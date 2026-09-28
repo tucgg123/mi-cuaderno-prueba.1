@@ -336,7 +336,10 @@ function viewMateriasHTML(){
     const mats=state.materias.filter(m=>m.semesterId===sem.id);
     return `<details class="s" open>
       <summary>🎓 ${esc(sem.name)}
-        <span class="row" style="margin:0"><button class="icon-btn" data-action="delSemester" data-id="${sem.id}" title="Eliminar semestre" onclick="event.stopPropagation()">🗑️</button></span>
+        <span class="row" style="margin:0">
+          <button class="icon-btn" data-action="renameSemester" data-id="${sem.id}" title="Renombrar semestre">✏️</button>
+          <button class="icon-btn" data-action="delSemester" data-id="${sem.id}" title="Eliminar semestre">🗑️</button>
+        </span>
       </summary>
       <div class="b">
         <div class="grid">${mats.map(materiaCard).join('')||'<p class="meta">Sin materias en este semestre.</p>'}</div>
@@ -355,6 +358,7 @@ function materiaCard(m){
     <p class="meta">${temasCount} tema${temasCount==1?'':'s'} · ${avg==null?'sin notas registradas':'promedio '+avg.toFixed(1)}</p>
     <div class="row">
       <button class="sec" data-action="openMateria" data-id="${m.id}">Abrir →</button>
+      <button class="icon-btn" data-action="renameMateria" data-id="${m.id}" title="Editar materia">✏️</button>
       <button class="icon-btn" data-action="delMateria" data-id="${m.id}" title="Eliminar materia">🗑️</button>
     </div>
   </div>`;
@@ -400,7 +404,7 @@ function refreshCorteAvg(materiaId){
 function temaBlock(t){
   return `<details class="s" data-tema="${t.id}">
     <summary><span>📝 ${esc(t.title)||'(tema sin título)'}</span>
-      <button class="icon-btn" data-action="delTema" data-id="${t.id}" title="Eliminar tema" onclick="event.stopPropagation()">🗑️</button>
+      <button class="icon-btn" data-action="delTema" data-id="${t.id}" title="Eliminar tema">🗑️</button>
     </summary>
     <div class="b">
       <input class="fld" data-action="editTemaTitle" data-id="${t.id}" value="${esc(t.title)}" placeholder="Título del tema">
@@ -512,11 +516,25 @@ document.addEventListener('click',e=>{if(!e.target.closest('#searchWrap'))$('sea
 /* ================= ACCIONES (clicks) ================= */
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-action]');if(!b)return;
+  e.preventDefault();
   const a=b.dataset.action;
 
   if(a==='addSemester'){
     const name=prompt('Nombre del semestre (ej. Semestre 1, 2026-1):');
     if(name&&name.trim())mutate(s=>s.semesters.push({id:uid(),name:name.trim()}));
+  }
+  else if(a==='renameSemester'){
+    const cur=state.semesters.find(x=>x.id===b.dataset.id);
+    const name=prompt('Nuevo nombre del semestre:',cur?cur.name:'');
+    if(name&&name.trim())mutate(s=>{const x=s.semesters.find(y=>y.id===b.dataset.id);if(x)x.name=name.trim()});
+  }
+  else if(a==='renameMateria'){
+    const cur=state.materias.find(x=>x.id===b.dataset.id);
+    const name=prompt('Nuevo nombre de la materia:',cur?cur.name:'');
+    if(name&&name.trim()){
+      const icon=prompt('Emoji (opcional):',cur?cur.icon:'📘')||(cur?cur.icon:'📘');
+      mutate(s=>{const x=s.materias.find(y=>y.id===b.dataset.id);if(x){x.name=name.trim();x.icon=icon}});
+    }
   }
   else if(a==='delSemester'){
     if(confirm('¿Eliminar este semestre y todas sus materias, temas y cortes? Esta acción no se puede deshacer.')){
