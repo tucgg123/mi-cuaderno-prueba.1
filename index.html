@@ -48,6 +48,8 @@ textarea{min-height:110px;resize:vertical;font-family:inherit}
 .matCard .row{margin-top:auto}
 .corteRow{display:flex;gap:6px;align-items:center;margin-bottom:6px}
 .corteRow .fld.sm{flex:2}.corteRow .fld.xs{flex:1;min-width:0}
+.cardRow{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.cardRow .fld.sm{flex:1;margin-bottom:0}
 .temaList details{background:var(--bg)}
 .pfhero{display:flex;align-items:center;gap:14px}
 .pfav{width:56px;height:56px;border-radius:50%;background:var(--al);display:flex;align-items:center;justify-content:center;font-size:1.6em;flex:none}
@@ -57,6 +59,20 @@ textarea{min-height:110px;resize:vertical;font-family:inherit}
 .avBtn{border:2px solid var(--b);background:var(--c);border-radius:10px;width:42px;height:42px;font-size:1.2em}
 .avBtn.on{border-color:var(--a);background:var(--al)}
 .empty{border:1px dashed var(--b);border-radius:14px;padding:24px;text-align:center;color:var(--m)}
+
+/* Study tools */
+.toolGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin:10px 0 4px}
+.flashcard{perspective:1200px;height:220px;margin:18px 0;cursor:pointer}
+.fcInner{position:relative;width:100%;height:100%;transition:transform .5s;transform-style:preserve-3d}
+.flashcard.flip .fcInner{transform:rotateY(180deg)}
+.fcFace{position:absolute;inset:0;backface-visibility:hidden;display:flex;align-items:center;justify-content:center;text-align:center;padding:22px;border-radius:16px;border:1px solid var(--b);background:var(--c);font-family:var(--serif);font-size:1.25em;overflow:auto}
+.fcBack{transform:rotateY(180deg);background:var(--al)}
+.optBtn{display:block;width:100%;text-align:left;margin-bottom:8px}
+.optBtn.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 16%,transparent)}
+.optBtn.no{border-color:var(--no);background:color-mix(in srgb,var(--no) 16%,transparent)}
+.optBtn.chosen{border-color:var(--a);background:var(--al)}
+.optBtn:disabled{cursor:default;opacity:.9}
+
 
 /* Auth screen */
 #authScreen{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(120% 100% at 50% 0%,color-mix(in srgb,var(--al) 55%,var(--bg)),var(--bg))}
@@ -181,12 +197,24 @@ function defaultState(){return{
   materias:[],
   temas:[],
   cortes:[],
+  cards:[],
+  attempts:[],
   events:[]
 }}
+function normalizeState(){
+  state.cards=state.cards||[];
+  state.attempts=state.attempts||[];
+  state.events=state.events||[];
+  (state.materias||[]).forEach(m=>{if(m.refs==null)m.refs=''});
+  state.cards.forEach(c=>{if(c.known===undefined)c.known=null});
+}
 let state=defaultState();
 let currentUid=null;
 let route={view:'materias',materiaId:null};
 let calView={y:new Date().getFullYear(),m:new Date().getMonth(),sel:null};
+let toolState=null;
+let repasoTimer=null;
+function clearRepasoTimer(){if(repasoTimer){clearInterval(repasoTimer);repasoTimer=null}}
 
 function localKey(){return 'cuaderno_'+(currentUid||'anon')}
 function saveLocal(){try{localStorage.setItem(localKey(),JSON.stringify(state))}catch(e){}}
@@ -221,6 +249,7 @@ async function hydrateFromCloud(u){
     console.error('No se pudo leer la nube, uso datos locales:',e);
     state=loadLocal()||defaultState();
   }
+  normalizeState();
   saveLocal();
 }
 
@@ -308,9 +337,11 @@ function goToView(v){
 }
 
 function render(){
+  if(route.view!=='tool')clearRepasoTimer();
   const view=$('view');
   if(route.view==='materias')view.innerHTML=viewMateriasHTML();
   else if(route.view==='materiaDetail')view.innerHTML=viewMateriaDetailHTML(route.materiaId);
+  else if(route.view==='tool')view.innerHTML=viewToolHTML();
   else if(route.view==='calendario')view.innerHTML=viewCalendarioHTML();
   else if(route.view==='perfil')view.innerHTML=viewPerfilHTML();
   window.scrollTo(0,0);
@@ -388,6 +419,22 @@ function viewMateriaDetailHTML(materiaId){
         <div id="corteAvgBox">${corteAvgHTML(avg,goal)}</div>
       </div>
     </section>
+
+    <section style="margin-top:22px">
+      <div class="viewhead"><h2>🎯 Estudiar</h2></div>
+      <p class="meta">Estas herramientas usan las tarjetas (frente/reverso) que agregues dentro de cada tema.</p>
+      <div class="toolGrid">
+        <button class="sec" data-action="openTool" data-tool="flashcards" data-mat="${materiaId}">🔄 Flashcards</button>
+        <button class="sec" data-action="openTool" data-tool="memorizar" data-mat="${materiaId}">📖 Memorizar</button>
+        <button class="sec" data-action="openTool" data-tool="quiz" data-mat="${materiaId}">❓ Quiz</button>
+        <button class="sec" data-action="openTool" data-tool="examen" data-mat="${materiaId}">📝 Modo examen</button>
+        <button class="sec" data-action="openTool" data-tool="concepto" data-mat="${materiaId}">💡 ¿Qué concepto?</button>
+        <button class="sec" data-action="openTool" data-tool="repaso" data-mat="${materiaId}">⏱️ Repaso 5 min</button>
+        <button class="sec" data-action="openTool" data-tool="comparar" data-mat="${materiaId}">⚖️ Comparar</button>
+        <button class="sec" data-action="openTool" data-tool="progreso" data-mat="${materiaId}">📊 Mi progreso</button>
+        <button class="sec" data-action="openTool" data-tool="referencias" data-mat="${materiaId}">📚 Referencias</button>
+      </div>
+    </section>
   `;
 }
 function corteAvgHTML(avg,goal){
@@ -402,6 +449,7 @@ function refreshCorteAvg(materiaId){
   if(box)box.innerHTML=corteAvgHTML(weightedAvg(cortes),state.profile.goal||80);
 }
 function temaBlock(t){
+  const cards=state.cards.filter(c=>c.temaId===t.id);
   return `<details class="s" data-tema="${t.id}">
     <summary><span>📝 ${esc(t.title)||'(tema sin título)'}</span>
       <button class="icon-btn" data-action="delTema" data-id="${t.id}" title="Eliminar tema">🗑️</button>
@@ -409,8 +457,19 @@ function temaBlock(t){
     <div class="b">
       <input class="fld" data-action="editTemaTitle" data-id="${t.id}" value="${esc(t.title)}" placeholder="Título del tema">
       <textarea class="fld" data-action="editTemaBody" data-id="${t.id}" placeholder="Escribe aquí tus apuntes de este tema…">${esc(t.body)}</textarea>
+      <h4 style="margin:14px 0 6px">🃏 Tarjetas de estudio</h4>
+      <p class="meta" style="margin-top:0">Frente = término o pregunta. Reverso = definición o respuesta. Con estas se arman Flashcards, Quiz, etc.</p>
+      <div class="cardList">${cards.map(cardRow).join('')||'<p class="meta">Sin tarjetas todavía.</p>'}</div>
+      <button class="sec" data-action="addCard" data-tema="${t.id}" data-mat="${t.materiaId}">+ Agregar tarjeta</button>
     </div>
   </details>`;
+}
+function cardRow(c){
+  return `<div class="cardRow" data-card="${c.id}">
+    <input class="fld sm" data-action="editCardFront" data-id="${c.id}" value="${esc(c.front)}" placeholder="Frente (término / pregunta)">
+    <input class="fld sm" data-action="editCardBack" data-id="${c.id}" value="${esc(c.back)}" placeholder="Reverso (definición / respuesta)">
+    <button class="icon-btn" data-action="delCard" data-id="${c.id}" title="Eliminar tarjeta">🗑️</button>
+  </div>`;
 }
 function corteRow(c){
   return `<div class="corteRow" data-corte="${c.id}">
@@ -419,6 +478,197 @@ function corteRow(c){
     <input class="fld xs" type="number" min="0" max="100" data-action="editCorteScore" data-id="${c.id}" value="${c.score??''}" placeholder="Nota" title="Nota obtenida">
     <button class="icon-btn" data-action="delCorte" data-id="${c.id}" title="Eliminar corte">🗑️</button>
   </div>`;
+}
+
+/* ================= HERRAMIENTAS DE ESTUDIO ================= */
+function shuffle(arr){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function getCards(materiaId){return state.cards.filter(c=>c.materiaId===materiaId && c.front.trim() && c.back.trim())}
+function fmtSecs(s){s=Math.max(0,s);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+function relTime(ts){
+  const d=Math.round((Date.now()-ts)/864e5);
+  if(d<=0)return'hoy';if(d===1)return'ayer';if(d<30)return`hace ${d} días`;
+  const mo=Math.round(d/30);return mo===1?'hace 1 mes':`hace ${mo} meses`;
+}
+function noCardsMsg(){return'<div class="empty">Esta materia todavía no tiene tarjetas con frente y reverso completos. Agregá algunas desde sus temas.</div>'}
+
+function startTool(tool,materiaId){
+  clearRepasoTimer();
+  const cards=getCards(materiaId);
+  if(tool==='flashcards'||tool==='memorizar'||tool==='repaso'||tool==='concepto'){
+    toolState={cards:shuffle(cards),idx:0,flipped:false,known:0,seen:0};
+  }else if(tool==='quiz'||tool==='examen'){
+    const n=tool==='quiz'?Math.min(10,cards.length):cards.length;
+    const picked=shuffle(cards).slice(0,n);
+    const questions=picked.map(c=>{
+      let pool=state.cards.filter(x=>x.id!==c.id && x.back.trim() && x.materiaId===c.materiaId);
+      if(pool.length<3){
+        const extra=state.cards.filter(x=>x.id!==c.id && x.back.trim() && x.materiaId!==c.materiaId);
+        pool=pool.concat(shuffle(extra).slice(0,3-pool.length));
+      }
+      const distractors=shuffle(pool).slice(0,3).map(x=>x.back);
+      const opts=shuffle([c.back,...distractors]);
+      return{card:c,options:opts,selected:null};
+    });
+    toolState={questions,idx:0,score:0};
+  }else if(tool==='comparar'){
+    const other=state.materias.find(m=>m.id!==materiaId);
+    toolState={materiaId2:other?other.id:null};
+  }else{
+    toolState={};
+  }
+  route={view:'tool',tool,materiaId};
+  render();
+  if(tool==='repaso'){
+    toolState.secondsLeft=300;
+    repasoTimer=setInterval(()=>{
+      toolState.secondsLeft--;
+      const el=$('repasoTimerText');
+      if(el)el.textContent=fmtSecs(toolState.secondsLeft);
+      if(toolState.secondsLeft<=0){clearRepasoTimer();render();}
+    },1000);
+  }
+}
+
+function viewToolHTML(){
+  const{tool,materiaId}=route;
+  const m=state.materias.find(x=>x.id===materiaId);
+  if(!m){goToView('materias');return'';}
+  const head=`<button class="sec" data-action="backMateria" data-id="${materiaId}">← ${esc(m.icon)} ${esc(m.name)}</button><div style="margin-top:14px"></div>`;
+  let body='';
+  if(tool==='flashcards')body=toolFlashcardsHTML();
+  else if(tool==='memorizar')body=toolMemorizarHTML(m);
+  else if(tool==='quiz')body=toolQuizHTML(false);
+  else if(tool==='examen')body=toolQuizHTML(true);
+  else if(tool==='concepto')body=toolConceptoHTML();
+  else if(tool==='repaso')body=toolRepasoHTML();
+  else if(tool==='comparar')body=toolCompararHTML(m);
+  else if(tool==='progreso')body=toolProgresoHTML(m);
+  else if(tool==='referencias')body=toolReferenciasHTML(m);
+  return head+body;
+}
+
+function toolFlashcardsHTML(){
+  const{cards,idx,flipped,known,seen}=toolState;
+  if(!cards.length)return noCardsMsg();
+  if(idx>=cards.length)return `<div class="empty"><h2>🎉 ¡Terminaste!</h2><p>Sabías ${known} de ${seen} tarjetas.</p><button class="pr" data-action="redoTool">Repetir</button></div>`;
+  const c=cards[idx];
+  return `
+  <div class="viewhead"><h1>🔄 Flashcards</h1><span class="meta">${idx+1} / ${cards.length}</span></div>
+  <div class="flashcard ${flipped?'flip':''}" data-action="flipCard">
+    <div class="fcInner"><div class="fcFace fcFront">${esc(c.front)}</div><div class="fcFace fcBack">${esc(c.back)}</div></div>
+  </div>
+  <p class="meta" style="text-align:center">Tocá la tarjeta para voltear</p>
+  <div class="row" style="justify-content:center">
+    <button class="sec" data-action="cardAnswer" data-know="0">😕 Repasar</button>
+    <button class="pr" data-action="cardAnswer" data-know="1">😊 La sé</button>
+  </div>`;
+}
+
+function toolMemorizarHTML(m){
+  const cards=getCards(m.id);
+  if(!cards.length)return noCardsMsg();
+  return `<div class="viewhead"><h1>📖 Memorizar</h1></div>
+  <p class="meta">Repasá todas las tarjetas de un vistazo, sin apuros.</p>
+  ${cards.map(c=>`<div class="card"><b>${esc(c.front)}</b><p class="meta" style="margin:6px 0 0">${esc(c.back)}</p></div>`).join('')}`;
+}
+
+function toolConceptoHTML(){
+  const{cards,idx,flipped}=toolState;
+  if(!cards.length)return noCardsMsg();
+  if(idx>=cards.length)return `<div class="empty"><h2>🎉 ¡Listo!</h2><p>Repasaste ${cards.length} conceptos.</p><button class="pr" data-action="redoTool">Repetir</button></div>`;
+  const c=cards[idx];
+  return `
+  <div class="viewhead"><h1>💡 ¿Qué concepto?</h1><span class="meta">${idx+1} / ${cards.length}</span></div>
+  <div class="card">
+    <p class="meta">Definición / pista:</p>
+    <h3>${esc(c.back)}</h3>
+    ${flipped?`<hr style="border-color:var(--b);margin:12px 0"><p class="meta">Concepto:</p><h3>${esc(c.front)}</h3>`:`<button class="sec" data-action="flipCard">Mostrar respuesta</button>`}
+  </div>
+  ${flipped?`<div class="row" style="justify-content:center"><button class="sec" data-action="cardAnswer" data-know="0">😕 Fallé</button><button class="pr" data-action="cardAnswer" data-know="1">😊 Acerté</button></div>`:''}`;
+}
+
+function toolRepasoHTML(){
+  const{cards,idx,flipped,secondsLeft,known,seen}=toolState;
+  if(!cards.length)return noCardsMsg();
+  if(secondsLeft<=0)return `<div class="empty"><h2>⏱️ ¡Tiempo!</h2><p>Repasaste ${seen} tarjetas, sabías ${known}.</p><button class="pr" data-action="redoTool">Repetir</button></div>`;
+  const c=cards[idx%cards.length];
+  return `
+  <div class="viewhead"><h1>⏱️ Repaso 5 min</h1><span class="meta" id="repasoTimerText">${fmtSecs(secondsLeft)}</span></div>
+  <div class="flashcard ${flipped?'flip':''}" data-action="flipCard">
+    <div class="fcInner"><div class="fcFace fcFront">${esc(c.front)}</div><div class="fcFace fcBack">${esc(c.back)}</div></div>
+  </div>
+  <p class="meta" style="text-align:center">Tocá para voltear</p>
+  <div class="row" style="justify-content:center">
+    <button class="sec" data-action="cardAnswer" data-know="0">😕 Repasar</button>
+    <button class="pr" data-action="cardAnswer" data-know="1">😊 La sé</button>
+  </div>`;
+}
+
+function toolQuizHTML(isExam){
+  const{questions,idx,score}=toolState;
+  if(!questions.length)return'<div class="empty">Necesitás al menos 2 tarjetas con frente y reverso en esta materia para generar preguntas.</div>';
+  if(idx>=questions.length){
+    return `<div class="empty"><h2>${isExam?'📝':'❓'} ¡Listo!</h2><p>Resultado: <b>${score} / ${questions.length}</b></p>
+    ${isExam?questions.map((q,i)=>`<p class="meta" style="text-align:left">${i+1}. ${esc(q.card.front)} — ${q.selected===q.card.back?'✅':'❌ correcta: '+esc(q.card.back)}</p>`).join(''):''}
+    <button class="pr" data-action="redoTool">Repetir</button></div>`;
+  }
+  const q=questions[idx];
+  return `
+  <div class="viewhead"><h1>${isExam?'📝 Modo examen':'❓ Quiz'}</h1><span class="meta">${idx+1} / ${questions.length}</span></div>
+  <div class="card"><h3 style="margin-top:0">${esc(q.card.front)}</h3>
+    ${q.options.map(o=>{
+      let cls='sec optBtn';
+      if(!isExam && q.selected){
+        if(o===q.card.back)cls+=' ok';
+        else if(o===q.selected)cls+=' no';
+      }else if(isExam && o===q.selected){
+        cls+=' chosen';
+      }
+      return `<button class="${cls}" data-action="answerQuiz" data-opt="${esc(o)}" ${q.selected?'disabled':''}>${esc(o)}</button>`;
+    }).join('')}
+  </div>
+  ${q.selected?'<button class="pr" data-action="nextQuestion">Siguiente →</button>':''}`;
+}
+
+function toolCompararHTML(m){
+  const others=state.materias.filter(x=>x.id!==m.id);
+  if(!others.length)return'<div class="empty">Necesitás al menos 2 materias para comparar.</div>';
+  if(!toolState.materiaId2)toolState.materiaId2=others[0].id;
+  const m2=state.materias.find(x=>x.id===toolState.materiaId2)||others[0];
+  const c1=getCards(m.id),c2=getCards(m2.id);
+  return `
+  <div class="viewhead"><h1>⚖️ Comparar</h1></div>
+  <label class="lbl">Comparar con:</label>
+  <select class="fld" data-action="setCompareMateria" style="max-width:280px">
+    ${others.map(o=>`<option value="${o.id}" ${o.id===m2.id?'selected':''}>${esc(o.icon)} ${esc(o.name)}</option>`).join('')}
+  </select>
+  <div class="two" style="margin-top:14px">
+    <div class="card"><h3 style="margin-top:0">${esc(m.icon)} ${esc(m.name)}</h3>${c1.map(c=>`<p class="meta"><b style="color:var(--t)">${esc(c.front)}:</b> ${esc(c.back)}</p>`).join('')||'<p class="meta">Sin tarjetas.</p>'}</div>
+    <div class="card"><h3 style="margin-top:0">${esc(m2.icon)} ${esc(m2.name)}</h3>${c2.map(c=>`<p class="meta"><b style="color:var(--t)">${esc(c.front)}:</b> ${esc(c.back)}</p>`).join('')||'<p class="meta">Sin tarjetas.</p>'}</div>
+  </div>`;
+}
+
+function toolProgresoHTML(m){
+  const cards=getCards(m.id);
+  const known=cards.filter(c=>c.known===true).length;
+  const attempts=state.attempts.filter(a=>a.materiaId===m.id).sort((a,b)=>b.date-a.date).slice(0,15);
+  const pct=cards.length?Math.round(known/cards.length*100):0;
+  return `
+  <div class="viewhead"><h1>📊 Mi progreso</h1></div>
+  <div class="card">
+    <p class="meta" style="margin-top:0">Tarjetas dominadas</p>
+    <div class="bar"><i style="width:${pct}%"></i></div>
+    <p class="meta">${known} / ${cards.length} (${pct}%)</p>
+  </div>
+  <h3>Historial de quiz y exámenes</h3>
+  ${attempts.length?attempts.map(a=>`<div class="li"><span>${a.type==='examen'?'📝':'❓'} ${a.score}/${a.total}</span><small>${relTime(a.date)}</small></div>`).join(''):'<p class="meta">Todavía no hiciste ningún quiz o examen en esta materia.</p>'}`;
+}
+
+function toolReferenciasHTML(m){
+  return `
+  <div class="viewhead"><h1>📚 Referencias</h1></div>
+  <p class="meta">Guardá acá tu bibliografía o fuentes de esta materia.</p>
+  <textarea class="fld" style="min-height:220px" data-action="editMateriaRefs" data-id="${m.id}" placeholder="Ej: Papalia, D. (2012). Desarrollo humano...">${esc(m.refs||'')}</textarea>`;
 }
 
 /* ================= VISTA: CALENDARIO ================= */
@@ -543,6 +793,8 @@ document.addEventListener('click',e=>{
         s.materias=s.materias.filter(m=>m.semesterId!==b.dataset.id);
         s.temas=s.temas.filter(t=>!matIds.includes(t.materiaId));
         s.cortes=s.cortes.filter(c=>!matIds.includes(c.materiaId));
+        s.cards=s.cards.filter(c=>!matIds.includes(c.materiaId));
+        s.attempts=s.attempts.filter(x=>!matIds.includes(x.materiaId));
         s.semesters=s.semesters.filter(x=>x.id!==b.dataset.id);
       });
     }
@@ -551,12 +803,14 @@ document.addEventListener('click',e=>{
     const name=prompt('Nombre de la materia:');
     if(name&&name.trim()){
       const icon=prompt('Emoji para la materia (opcional):','📘')||'📘';
-      mutate(s=>s.materias.push({id:uid(),name:name.trim(),icon,semesterId:b.dataset.sem}));
+      mutate(s=>s.materias.push({id:uid(),name:name.trim(),icon,semesterId:b.dataset.sem,refs:''}));
     }
   }
   else if(a==='delMateria'){
-    if(confirm('¿Eliminar esta materia y todo su contenido (temas y cortes)? Esta acción no se puede deshacer.')){
+    if(confirm('¿Eliminar esta materia y todo su contenido (temas, tarjetas y cortes)? Esta acción no se puede deshacer.')){
       mutate(s=>{
+        s.cards=s.cards.filter(c=>c.materiaId!==b.dataset.id);
+        s.attempts=s.attempts.filter(x=>x.materiaId!==b.dataset.id);
         s.temas=s.temas.filter(t=>t.materiaId!==b.dataset.id);
         s.cortes=s.cortes.filter(c=>c.materiaId!==b.dataset.id);
         s.materias=s.materias.filter(m=>m.id!==b.dataset.id);
@@ -565,11 +819,18 @@ document.addEventListener('click',e=>{
   }
   else if(a==='openMateria'){route={view:'materiaDetail',materiaId:b.dataset.id};render();}
   else if(a==='backMaterias')goToView('materias');
+  else if(a==='backMateria'){route={view:'materiaDetail',materiaId:b.dataset.id};render();}
   else if(a==='addTema'){
     mutate(s=>s.temas.unshift({id:uid(),materiaId:b.dataset.mat,title:'',body:'',updatedAt:Date.now()}));
   }
   else if(a==='delTema'){
-    if(confirm('¿Eliminar este tema?'))mutate(s=>s.temas=s.temas.filter(t=>t.id!==b.dataset.id));
+    if(confirm('¿Eliminar este tema y sus tarjetas?'))mutate(s=>{s.cards=s.cards.filter(c=>c.temaId!==b.dataset.id);s.temas=s.temas.filter(t=>t.id!==b.dataset.id)});
+  }
+  else if(a==='addCard'){
+    mutate(s=>s.cards.push({id:uid(),temaId:b.dataset.tema,materiaId:b.dataset.mat,front:'',back:'',known:null}));
+  }
+  else if(a==='delCard'){
+    if(confirm('¿Eliminar esta tarjeta?'))mutate(s=>s.cards=s.cards.filter(c=>c.id!==b.dataset.id));
   }
   else if(a==='addCorte'){
     mutate(s=>{
@@ -579,6 +840,33 @@ document.addEventListener('click',e=>{
   }
   else if(a==='delCorte'){
     if(confirm('¿Eliminar este corte?'))mutate(s=>{s.cortes=s.cortes.filter(c=>c.id!==b.dataset.id);refreshCorteAvg(route.materiaId)});
+  }
+  else if(a==='openTool'){startTool(b.dataset.tool,b.dataset.mat);}
+  else if(a==='redoTool'){startTool(route.tool,route.materiaId);}
+  else if(a==='flipCard'){toolState.flipped=!toolState.flipped;render();}
+  else if(a==='cardAnswer'){
+    const know=b.dataset.know==='1';
+    const c=toolState.cards[toolState.idx];
+    const real=state.cards.find(x=>x.id===c.id);
+    if(real){real.known=know;persist();}
+    toolState.seen++;if(know)toolState.known++;
+    toolState.idx++;toolState.flipped=false;
+    render();
+  }
+  else if(a==='answerQuiz'){
+    const q=toolState.questions[toolState.idx];
+    if(q.selected)return;
+    q.selected=b.dataset.opt;
+    if(q.selected===q.card.back)toolState.score++;
+    render();
+  }
+  else if(a==='nextQuestion'){
+    toolState.idx++;
+    if(toolState.idx>=toolState.questions.length){
+      mutate(s=>s.attempts.push({id:uid(),materiaId:route.materiaId,type:route.tool,score:toolState.score,total:toolState.questions.length,date:Date.now()}));
+    }else{
+      render();
+    }
   }
   else if(a==='calPrev'){calView.m--;if(calView.m<0){calView.m=11;calView.y--}render();}
   else if(a==='calNext'){calView.m++;if(calView.m>11){calView.m=0;calView.y++}render();}
@@ -629,6 +917,23 @@ document.addEventListener('input',e=>{
     const f=e.target.dataset.f;
     state.profile[f]=f==='goal'?clamp(+e.target.value||80,1,100):e.target.value;
     persist();
+  }
+  else if(a==='editCardFront'){
+    const c=state.cards.find(x=>x.id===id);if(!c)return;
+    c.front=e.target.value;persist();
+  }
+  else if(a==='editCardBack'){
+    const c=state.cards.find(x=>x.id===id);if(!c)return;
+    c.back=e.target.value;persist();
+  }
+  else if(a==='editMateriaRefs'){
+    const m=state.materias.find(x=>x.id===id);if(!m)return;
+    m.refs=e.target.value;persist();
+  }
+});
+document.addEventListener('change',e=>{
+  if(e.target.dataset.action==='setCompareMateria'){
+    toolState.materiaId2=e.target.value;persist();render();
   }
 });
 })();
