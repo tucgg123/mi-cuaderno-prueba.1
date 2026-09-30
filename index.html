@@ -157,7 +157,14 @@ main#view{max-width:900px;margin:0 auto;padding:20px 16px 70px;animation:f .25s}
 <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script type="module">
+import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.54/build/pdf.min.mjs';
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.54/build/pdf.worker.min.mjs';
+window.pdfjsLib = pdfjsLib;
+</script>
 <script>
+
 /* ======================================================================
    PEGA AQUÍ LA CONFIGURACIÓN DE TU PROYECTO DE FIREBASE
    (Firebase console > ⚙️ Configuración del proyecto > Tus apps > Config)
@@ -409,6 +416,13 @@ function viewMateriaDetailHTML(materiaId){
 
     <section>
       <div class="viewhead"><h2>📝 Temas</h2><button class="pr" data-action="addTema" data-mat="${materiaId}">+ Agregar tema</button></div>
+      <div class="card" style="margin-bottom:14px">
+        <b style="font-size:.9em">🤖 Generar tema con IA</b>
+        <p class="meta" style="margin-top:4px">Subí un PDF o una presentación (.pptx) de esta materia y la IA arma un tema con resumen y tarjetas de estudio.</p>
+        <input type="file" id="iaFileInput" accept=".pdf,.pptx" data-mat="${materiaId}" style="display:none">
+        <button class="sec" id="iaUploadBtn" data-action="iaPickFile">📎 Subir PDF o PPTX</button>
+        <div id="iaStatus" class="meta" style="margin-top:8px"></div>
+      </div>
       <div class="temaList">${temas.map(temaBlock).join('')||'<div class="empty">Aún no agregas temas en esta materia.</div>'}</div>
     </section>
 
@@ -934,6 +948,102 @@ document.addEventListener('input',e=>{
 document.addEventListener('change',e=>{
   if(e.target.dataset.action==='setCompareMateria'){
     toolState.materiaId2=e.target.value;persist();render();
+  }
+});
+
+/* ================= IA: SUBIR PDF/PPTX Y GENERAR TEMA + TARJETAS ================= */
+async function extraerTextoPDF(file){
+  const buf=await file.arrayBuffer();
+  const pdf=await window.pdfjsLib.getDocument({data:buf}).promise;
+  let texto='';
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const content=await page.getTextContent();
+    texto+=content.items.map(it=>it.str).join(' ')+'\n\n';
+  }
+  return texto.trim();
+}
+async function extraerTextoPPTX(file){
+  const zip=await JSZip.loadAsync(file);
+  const slideFiles=Object.keys(zip.files)
+    .filter(name=>/^ppt\/slides\/slide\d+\.xml$/.test(name))
+    .sort((a,b)=>{
+      const na=+a.match(/slide(\d+)\.xml/)[1], nb=+b.match(/slide(\d+)\.xml/)[1];
+      return na-nb;
+    });
+  let texto='';
+  for(const name of slideFiles){
+    const xml=await zip.files[name].async('text');
+    const doc=new DOMParser().parseFromString(xml,'application/xml');
+    const nodes=doc.getElementsByTagName('a:t');
+    texto+=Array.from(nodes).map(n=>n.textContent).join(' ')+'\n\n';
+  }
+  return texto.trim();
+}
+
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-action="iaPickFile"]');
+  if(b)$('iaFileInput').click();
+});
+
+document.addEventListener('change',async e=>{
+  if(e.target.id!=='iaFileInput')return;
+  const file=e.target.files[0];
+  if(!file)return;
+  const materiaId=e.target.dataset.mat;
+  const statusEl=$('iaStatus');
+  const btn=$('iaUploadBtn');
+  const nombre=file.name.toLowerCase();
+
+  try{
+    btn.disabled=true;
+    statusEl.textContent='📄 Leyendo el archivo…';
+    let texto='';
+    if(nombre.endsWith('.pdf')) texto=await extraerTextoPDF(file);
+    else if(nombre.endsWith('.pptx')) texto=await extraerTextoPPTX(file);
+    else{ statusEl.textContent='❌ Solo se admiten archivos .pdf o .pptx.'; btn.disabled=false; return; }
+
+    if(!texto||texto.trim().length<40){
+      statusEl.textContent='❌ No pude sacar texto de ese archivo. Si es un PDF escaneado (una foto de las hojas) todavía no lo puedo leer, solo PDFs con texto real.';
+      btn.disabled=false; return;
+    }
+
+    statusEl.textContent='🤖 La IA está armando el tema y las tarjetas… puede tardar unos segundos.';
+    const materia=state.materias.find(m=>m.id===materiaId);
+    const resp=await fetch('/.netlify/functions/generar-tema',{
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({texto:texto.slice(0,60000), materia:materia?materia.name:''})
+    });
+
+    let data;
+    try{ data=await resp.json(); }catch(e){ data=null; }
+
+    if(!resp.ok||!data){
+      statusEl.textContent='❌ '+((data&&data.error)||'Ocurrió un error al generar el tema. Probá de nuevo.');
+      btn.disabled=false; return;
+    }
+    if(!data.titulo||!Array.isArray(data.tarjetas)){
+      statusEl.textContent='❌ La IA no devolvió un resultado válido. Probá de nuevo.';
+      btn.disabled=false; return;
+    }
+
+    mutate(s=>{
+      const temaId=uid();
+      s.temas.unshift({id:temaId,materiaId,title:data.titulo,body:data.resumen||'',updatedAt:Date.now()});
+      (data.tarjetas||[]).forEach(t=>{
+        if(t.frente&&t.reverso) s.cards.push({id:uid(),materiaId,temaId,front:t.frente,back:t.reverso,known:null});
+      });
+    });
+    const st=$('iaStatus');
+    if(st) st.textContent=`✅ Listo — se creó el tema "${data.titulo}" con ${(data.tarjetas||[]).length} tarjetas.`;
+  }catch(err){
+    console.error(err);
+    const st=$('iaStatus');
+    if(st) st.textContent='❌ Algo falló: '+err.message;
+  }finally{
+    const bt=$('iaUploadBtn'); if(bt)bt.disabled=false;
+    e.target.value='';
   }
 });
 })();
