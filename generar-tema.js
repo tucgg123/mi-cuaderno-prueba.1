@@ -28,7 +28,7 @@ exports.handler = async (event) => {
   }
 
   // Tope de seguridad: no mandamos textos gigantes a la IA (cuesta más y no hace falta).
-  const textoRecortado = texto.slice(0, 60000);
+  const textoRecortado = texto.slice(0, 15000);
 
   const prompt = `Sos un asistente que ayuda a estudiantes universitarios a convertir apuntes de clase (sacados de un PDF o una presentación) en material de estudio.
 
