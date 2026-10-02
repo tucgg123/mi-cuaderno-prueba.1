@@ -2,7 +2,7 @@
 // La clave se lee de la variable de entorno APIKEYGEMINIS (Site settings > Environment
 // variables en Netlify) y jamás queda expuesta en el código ni en el sitio publicado.
 
-const GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_MODEL = 'gemini-3.8-flash';
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
