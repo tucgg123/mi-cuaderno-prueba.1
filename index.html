@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mi cuaderno de estudio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f1e8;--c:#fffdf8;--t:#25211d;--m:#8a7f70;--a:#7a2e2c;--al:#f2e2dc;--b:#e6ddc9;--ok:#3f7d5c;--no:#a8433a;
+  --serif:'Fraunces',Georgia,"Times New Roman",serif;--sans:'Inter',system-ui,-apple-system,"Segoe UI",sans-serif;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)
+}
+:root[data-theme=dark]{--bg:#1b1e24;--c:#242830;--t:#e7e9ec;--m:#9aa1ac;--a:#dc9c86;--al:#333944;--b:#343a45}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#1b1e24;--c:#242830;--t:#e7e9ec;--m:#9aa1ac;--a:#dc9c86;--al:#333944;--b:#343a45}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--t);font:15.5px/1.65 var(--sans);-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--serif);font-weight:500;margin:.4em 0;letter-spacing:-.01em}
+h1{font-size:1.7em}h2{font-size:1.25em;color:var(--a)}h3{font-size:1.08em}
+p.meta,small,.meta{color:var(--m)}
+button{font:inherit;color:inherit;cursor:pointer;background:none}
+input,textarea{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--b);border-radius:10px;padding:9px 12px;width:100%}
+input:focus,textarea:focus{outline:0;border-color:var(--a);box-shadow:0 0 0 3px color-mix(in srgb,var(--a) 14%,transparent)}
+textarea{min-height:110px;resize:vertical;font-family:inherit}
+.pr{border:1px solid var(--a);background:var(--a);color:#fff;border-radius:10px;padding:9px 16px;font-weight:600}
+.sec{border:1px solid var(--b);background:transparent;border-radius:10px;padding:8px 14px;color:var(--t)}
+.sec:hover,.pr:hover{filter:brightness(1.05)}
+.icon-btn{border:1px solid var(--b);background:transparent;border-radius:50%;width:36px;height:36px;flex:none;display:flex;align-items:center;justify-content:center}
+.icon-btn:hover{background:var(--al);border-color:var(--a)}
+.card{background:var(--c);border:1px solid var(--b);border-radius:14px;padding:18px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.row{display:flex;gap:8px;align-items:center;margin-top:10px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:520px){.two{grid-template-columns:1fr}}
+.lbl{display:block;font-size:.82em;color:var(--m);margin:10px 0 4px;font-weight:600}
+.fld{margin-bottom:6px}
+.viewhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:4px 0 16px}
+.bar{height:9px;background:var(--b);border-radius:8px;overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;background:var(--a);transition:width .3s}
+.li{display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid var(--b);padding:9px 0}
+.li:last-child{border-bottom:0}
+.s{background:var(--c);border:1px solid var(--b);border-radius:14px;margin-bottom:12px;overflow:hidden}
+.s summary{cursor:pointer;padding:13px 16px;font-weight:600;font-family:var(--serif);font-size:1.05em;display:flex;justify-content:space-between;align-items:center;list-style:none}
+.s summary::-webkit-details-marker{display:none}
+.s>.b{padding:0 16px 16px}
+.matCard{display:flex;flex-direction:column}
+.matCard .row{margin-top:auto}
+.corteRow{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.corteRow .fld.sm{flex:2}.corteRow .fld.xs{flex:1;min-width:0}
+.cardRow{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.cardRow .fld.sm{flex:1;margin-bottom:0}
+.temaList details{background:var(--bg)}
+.pfhero{display:flex;align-items:center;gap:14px}
+.pfav{width:56px;height:56px;border-radius:50%;background:var(--al);display:flex;align-items:center;justify-content:center;font-size:1.6em;flex:none}
+.pgs{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px}
+.pgs div{font-size:.85em;color:var(--m)}.pgs b{display:block;font-size:1.3em;color:var(--t);font-family:var(--serif)}
+.avatarPicker{display:flex;flex-wrap:wrap;gap:6px}
+.avBtn{border:2px solid var(--b);background:var(--c);border-radius:10px;width:42px;height:42px;font-size:1.2em}
+.avBtn.on{border-color:var(--a);background:var(--al)}
+.empty{border:1px dashed var(--b);border-radius:14px;padding:24px;text-align:center;color:var(--m)}
+
+/* Study tools */
+.toolGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin:10px 0 4px}
+.flashcard{perspective:1200px;height:220px;margin:18px 0;cursor:pointer}
+.fcInner{position:relative;width:100%;height:100%;transition:transform .5s;transform-style:preserve-3d}
+.flashcard.flip .fcInner{transform:rotateY(180deg)}
+.fcFace{position:absolute;inset:0;backface-visibility:hidden;display:flex;align-items:center;justify-content:center;text-align:center;padding:22px;border-radius:16px;border:1px solid var(--b);background:var(--c);font-family:var(--serif);font-size:1.25em;overflow:auto}
+.fcBack{transform:rotateY(180deg);background:var(--al)}
+.optBtn{display:block;width:100%;text-align:left;margin-bottom:8px}
+.optBtn.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 16%,transparent)}
+.optBtn.no{border-color:var(--no);background:color-mix(in srgb,var(--no) 16%,transparent)}
+.optBtn.chosen{border-color:var(--a);background:var(--al)}
+.optBtn:disabled{cursor:default;opacity:.9}
+
+
+/* Auth screen */
+#authScreen{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(120% 100% at 50% 0%,color-mix(in srgb,var(--al) 55%,var(--bg)),var(--bg))}
+#authScreen[hidden]{display:none}
+.authCard{background:var(--c);border:1px solid var(--b);border-radius:16px;padding:28px 26px;max-width:380px;width:100%;box-shadow:0 20px 50px -20px rgba(0,0,0,.25)}
+.authCard h1{text-align:center;margin-bottom:2px}
+.authCard>p.meta{text-align:center;margin-top:0}
+.authTabs{display:flex;gap:6px;background:var(--bg);border-radius:10px;padding:4px;margin:16px 0}
+.authTabs button{flex:1;padding:8px;border-radius:8px;font-weight:600;color:var(--m)}
+.authTabs button.on{background:var(--a);color:#fff}
+#authForm input{margin-bottom:10px}
+#authForm .pr{width:100%}
+.authError{background:#a8433a20;color:var(--no);border-radius:10px;padding:10px 12px;font-size:.9em;margin-top:12px}
+#authLoading{text-align:center;margin-top:12px}
+
+/* Header / nav */
+header#topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;display:flex;gap:8px;align-items:center;padding:10px 14px;background:color-mix(in srgb,var(--c) 90%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--b)}
+header#topbar b{font-family:var(--serif);font-size:1.1em;white-space:nowrap}
+#searchWrap{position:relative;flex:1;min-width:0}
+#searchBox{border-radius:999px;padding:9px 16px}
+#searchResults{position:absolute;left:0;right:0;top:calc(100% + 6px);background:var(--c);border:1px solid var(--b);border-radius:12px;max-height:60vh;overflow:auto;z-index:20;box-shadow:0 14px 30px -14px rgba(0,0,0,.3)}
+#searchResults:empty{display:none}
+#searchResults div{padding:10px 14px;border-bottom:1px solid var(--b);cursor:pointer}
+#searchResults div:last-child{border-bottom:0}
+#searchResults div:hover{background:var(--al)}
+nav#mainNav{display:flex;gap:6px;overflow-x:auto;padding:10px 14px;background:var(--c);border-bottom:1px solid var(--b)}
+nav#mainNav button{white-space:nowrap;border:0;padding:8px 16px;border-radius:999px;color:var(--m);font-weight:600}
+nav#mainNav button.on{background:var(--al);color:var(--a)}
+main#view{max-width:900px;margin:0 auto;padding:20px 16px 70px;animation:f .25s}
+@keyframes f{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* Calendar */
+.calNav{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:12px}
+.calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:16px}
+.calGrid .dh{text-align:center;font-size:.75em;color:var(--m);font-style:normal}
+.dcell{aspect-ratio:1;border:1px solid var(--b);border-radius:8px;background:var(--c);position:relative;font-size:.85em}
+.dcell.empty{border:0;background:transparent}
+.dcell.today{border-color:var(--a);font-weight:700}
+.dcell.sel{background:var(--al);border-color:var(--a)}
+.dcell .dot{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--a)}
+</style>
+</head>
+<body>
+
+<div id="authScreen">
+  <div class="authCard">
+    <h1>📚 Mi cuaderno</h1>
+    <p class="meta">Organiza las materias y temas de tu carrera. Tus datos quedan guardados en tu cuenta.</p>
+    <div class="authTabs">
+      <button class="on" data-authtab="login" type="button">Iniciar sesión</button>
+      <button data-authtab="register" type="button">Crear cuenta</button>
+    </div>
+    <form id="authForm">
+      <input id="authEmail" type="email" placeholder="Correo electrónico" required autocomplete="email">
+      <input id="authPass" type="password" placeholder="Contraseña (mínimo 6 caracteres)" required minlength="6" autocomplete="current-password">
+      <button class="pr" type="submit" id="authSubmit">Iniciar sesión</button>
+    </form>
+    <p id="authError" class="authError" hidden></p>
+    <p id="authLoading" class="meta" hidden>Conectando…</p>
+  </div>
+</div>
+
+<div id="appRoot" hidden>
+  <header id="topbar">
+    <b id="ct">📚 Mi cuaderno</b>
+    <div id="searchWrap">
+      <input id="searchBox" placeholder="Buscar materia o tema…">
+      <div id="searchResults"></div>
+    </div>
+    <button id="themeBtn" class="icon-btn" title="Cambiar tema"></button>
+    <button id="logoutBtn" class="icon-btn" title="Cerrar sesión">🚪</button>
+  </header>
+  <nav id="mainNav">
+    <button data-nav="materias" class="on">📚 Materias</button>
+    <button data-nav="calendario">🗓️ Calendario</button>
+    <button data-nav="perfil">👤 Perfil</button>
+  </nav>
+  <main id="view"></main>
+</div>
+
+<!-- ============== FIREBASE (edita FIREBASE_CONFIG con tus propias llaves) ============== -->
+<script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script type="module">
+import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.54/build/pdf.min.mjs';
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.54/build/pdf.worker.min.mjs';
+window.pdfjsLib = pdfjsLib;
+</script>
+<script>
+
+/* ======================================================================
+   PEGA AQUÍ LA CONFIGURACIÓN DE TU PROYECTO DE FIREBASE
+   (Firebase console > ⚙️ Configuración del proyecto > Tus apps > Config)
+   ====================================================================== */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAAPnrXUzON42Hmtb4hOxQqTTQ1HBv0nR0",
+  authDomain: "mi-cuaderno-904fa.firebaseapp.com",
+  projectId: "mi-cuaderno-904fa",
+  storageBucket: "mi-cuaderno-904fa.firebasestorage.app",
+  messagingSenderId: "1001521698205",
+  appId: "1:1001521698205:web:9e83b5010ea3d0a339cb74"
+  
+};
+firebase.initializeApp(FIREBASE_CONFIG);
+const auth = firebase.auth();
+const db = firebase.firestore();
+</script>
+
+<script>
+(()=>{
+/* ================= UTILIDADES ================= */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const fmtDateLong=s=>new Date(s+'T00:00').toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'});
+const relDate=s=>{const n=Math.round((new Date(s+'T00:00')-new Date(ymd(new Date())+'T00:00'))/864e5);return n==0?'hoy':n==1?'mañana':n>1?`en ${n} días`:`hace ${-n} días`};
+const TY={ex:'📝 Examen',en:'📤 Entrega',ot:'📌 Otro'};
+const AV=['🎓','📚','🦉','🐱','🦊','🐼','🌸','⭐','🔥','🌙'];
+
+/* ================= ESTADO ================= */
+function defaultState(){return{
+  profile:{name:'',career:'',avatar:'🎓',examDate:'',goal:80,notes:''},
+  theme:null,
+  semesters:[{id:uid(),name:'Semestre 1'}],
+  materias:[],
+  temas:[],
+  cortes:[],
+  cards:[],
+  attempts:[],
+  events:[]
+}}
+function normalizeState(){
+  state.cards=state.cards||[];
+  state.attempts=state.attempts||[];
+  state.events=state.events||[];
+  (state.materias||[]).forEach(m=>{if(m.refs==null)m.refs=''});
+  state.cards.forEach(c=>{if(c.known===undefined)c.known=null});
+}
+let state=defaultState();
+let currentUid=null;
+let route={view:'materias',materiaId:null};
+let calView={y:new Date().getFullYear(),m:new Date().getMonth(),sel:null};
+let toolState=null;
+let repasoTimer=null;
+function clearRepasoTimer(){if(repasoTimer){clearInterval(repasoTimer);repasoTimer=null}}
+
+function localKey(){return 'cuaderno_'+(currentUid||'anon')}
+function saveLocal(){try{localStorage.setItem(localKey(),JSON.stringify(state))}catch(e){}}
+function loadLocal(){try{const raw=localStorage.getItem(localKey());return raw?JSON.parse(raw):null}catch(e){return null}}
+
+let cloudTimer=null;
+function scheduleCloud(){
+  if(!currentUid)return;
+  clearTimeout(cloudTimer);
+  cloudTimer=setTimeout(pushCloudNow,1000);
+}
+async function pushCloudNow(){
+  if(!currentUid)return;
+  try{
+    await db.collection('users').doc(currentUid).set({
+      data:JSON.stringify(state),
+      updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }catch(e){console.error('No se pudo sincronizar con la nube:',e)}
+}
+async function hydrateFromCloud(u){
+  currentUid=u;
+  try{
+    const doc=await db.collection('users').doc(u).get();
+    if(doc.exists && doc.data().data){
+      state=JSON.parse(doc.data().data);
+    }else{
+      state=loadLocal()||defaultState();
+      await pushCloudNow();
+    }
+  }catch(e){
+    console.error('No se pudo leer la nube, uso datos locales:',e);
+    state=loadLocal()||defaultState();
+  }
+  normalizeState();
+  saveLocal();
+}
+
+/* mutate(): cambio estructural -> guarda + sincroniza + vuelve a pintar */
+function mutate(fn){fn(state);saveLocal();scheduleCloud();render()}
+/* persist(): cambio de texto (inputs) -> guarda + sincroniza SIN repintar, para no perder el foco */
+function persist(){saveLocal();scheduleCloud()}
+
+/* ================= AUTENTICACIÓN ================= */
+let authMode='login';
+document.querySelectorAll('[data-authtab]').forEach(b=>b.onclick=()=>{
+  authMode=b.dataset.authtab;
+  document.querySelectorAll('[data-authtab]').forEach(x=>x.classList.toggle('on',x===b));
+  $('authSubmit').textContent=authMode==='login'?'Iniciar sesión':'Crear cuenta';
+  $('authError').hidden=true;
+});
+function mapAuthError(err){
+  const c=err&&err.code||'';
+  const M={
+    'auth/invalid-email':'Ese correo no es válido.',
+    'auth/user-not-found':'No existe una cuenta con ese correo.',
+    'auth/wrong-password':'Contraseña incorrecta.',
+    'auth/invalid-credential':'Correo o contraseña incorrectos.',
+    'auth/email-already-in-use':'Ya existe una cuenta con ese correo. Prueba iniciar sesión.',
+    'auth/weak-password':'La contraseña debe tener al menos 6 caracteres.',
+    'auth/too-many-requests':'Demasiados intentos. Espera un momento e inténtalo de nuevo.',
+    'auth/network-request-failed':'Sin conexión a internet.'
+  };
+  return M[c]||'Ocurrió un error. Inténtalo de nuevo.';
+}
+$('authForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const email=$('authEmail').value.trim(),pass=$('authPass').value;
+  $('authError').hidden=true;$('authSubmit').disabled=true;
+  try{
+    if(authMode==='login') await auth.signInWithEmailAndPassword(email,pass);
+    else await auth.createUserWithEmailAndPassword(email,pass);
+  }catch(err){
+    $('authError').textContent=mapAuthError(err);$('authError').hidden=false;
+  }finally{
+    $('authSubmit').disabled=false;
+  }
+});
+$('logoutBtn').onclick=()=>{if(confirm('¿Cerrar sesión?'))auth.signOut()};
+
+auth.onAuthStateChanged(async user=>{
+  if(user){
+    $('authLoading').hidden=false;
+    await hydrateFromCloud(user.uid);
+    $('authLoading').hidden=true;
+    $('authScreen').hidden=true;
+    $('appRoot').hidden=false;
+    applyTheme();updateThemeBtn();
+    route={view:'materias',materiaId:null};
+    render();
+  }else{
+    currentUid=null;
+    state=defaultState();
+    $('appRoot').hidden=true;
+    $('authScreen').hidden=false;
+  }
+});
+
+/* ================= TEMA CLARO/OSCURO ================= */
+function applyTheme(){
+  if(state.theme)document.documentElement.setAttribute('data-theme',state.theme);
+  else document.documentElement.removeAttribute('data-theme');
+}
+function updateThemeBtn(){$('themeBtn').textContent=state.theme==='dark'?'🌙':state.theme==='light'?'☀️':'🌗'}
+$('themeBtn').onclick=()=>{
+  state.theme=state.theme==='dark'?'light':state.theme==='light'?null:'dark';
+  applyTheme();updateThemeBtn();persist();
+};
+
+/* ================= NAVEGACIÓN PRINCIPAL ================= */
+document.querySelectorAll('#mainNav [data-nav]').forEach(b=>b.onclick=()=>{
+  route={view:b.dataset.nav,materiaId:null};
+  document.querySelectorAll('#mainNav button').forEach(x=>x.classList.toggle('on',x===b));
+  render();
+});
+function goToView(v){
+  route.view=v;route.materiaId=null;
+  document.querySelectorAll('#mainNav button').forEach(x=>x.classList.toggle('on',x.dataset.nav===v));
+  render();
+}
+
+function render(){
+  if(route.view!=='tool')clearRepasoTimer();
+  const view=$('view');
+  if(route.view==='materias')view.innerHTML=viewMateriasHTML();
+  else if(route.view==='materiaDetail')view.innerHTML=viewMateriaDetailHTML(route.materiaId);
+  else if(route.view==='tool')view.innerHTML=viewToolHTML();
+  else if(route.view==='calendario')view.innerHTML=viewCalendarioHTML();
+  else if(route.view==='perfil')view.innerHTML=viewPerfilHTML();
+  window.scrollTo(0,0);
+}
+
+/* ================= HELPERS DE DATOS ================= */
+function weightedAvg(cortes){
+  const scored=cortes.filter(c=>c.score!=null && c.score!=='');
+  const totalW=scored.reduce((a,c)=>a+(+c.weight||0),0);
+  if(!scored.length||!totalW)return null;
+  const sum=scored.reduce((a,c)=>a+(+c.score)*(+c.weight),0);
+  return sum/totalW;
+}
+
+/* ================= VISTA: MIS MATERIAS ================= */
+function viewMateriasHTML(){
+  const sems=state.semesters;
+  let html=`<div class="viewhead"><h1>📚 Mis materias</h1><button class="pr" data-action="addSemester">+ Semestre</button></div>`;
+  if(!sems.length){
+    html+=`<div class="empty">Aún no tienes semestres. Agrega uno para empezar a organizar tus materias.</div>`;
+  }
+  html+=sems.map(sem=>{
+    const mats=state.materias.filter(m=>m.semesterId===sem.id);
+    return `<details class="s" open>
+      <summary>🎓 ${esc(sem.name)}
+        <span class="row" style="margin:0">
+          <button class="icon-btn" data-action="renameSemester" data-id="${sem.id}" title="Renombrar semestre">✏️</button>
+          <button class="icon-btn" data-action="delSemester" data-id="${sem.id}" title="Eliminar semestre">🗑️</button>
+        </span>
+      </summary>
+      <div class="b">
+        <div class="grid">${mats.map(materiaCard).join('')||'<p class="meta">Sin materias en este semestre.</p>'}</div>
+        <button class="sec" style="margin-top:10px" data-action="addMateria" data-sem="${sem.id}">+ Agregar materia</button>
+      </div>
+    </details>`;
+  }).join('');
+  return html;
+}
+function materiaCard(m){
+  const temasCount=state.temas.filter(t=>t.materiaId===m.id).length;
+  const cortes=state.cortes.filter(c=>c.materiaId===m.id);
+  const avg=weightedAvg(cortes);
+  return `<div class="card matCard">
+    <h3>${esc(m.icon||'📘')} ${esc(m.name)}</h3>
+    <p class="meta">${temasCount} tema${temasCount==1?'':'s'} · ${avg==null?'sin notas registradas':'promedio '+avg.toFixed(1)}</p>
+    <div class="row">
+      <button class="sec" data-action="openMateria" data-id="${m.id}">Abrir →</button>
+      <button class="icon-btn" data-action="renameMateria" data-id="${m.id}" title="Editar materia">✏️</button>
+      <button class="icon-btn" data-action="delMateria" data-id="${m.id}" title="Eliminar materia">🗑️</button>
+    </div>
+  </div>`;
+}
+
+/* ================= VISTA: DETALLE DE MATERIA ================= */
+function viewMateriaDetailHTML(materiaId){
+  const m=state.materias.find(x=>x.id===materiaId);
+  if(!m){goToView('materias');return'';}
+  const temas=state.temas.filter(t=>t.materiaId===materiaId).sort((a,b)=>b.updatedAt-a.updatedAt);
+  const cortes=state.cortes.filter(c=>c.materiaId===materiaId);
+  const avg=weightedAvg(cortes);
+  const goal=state.profile.goal||80;
+  return `
+    <button class="sec" data-action="backMaterias">← Mis materias</button>
+    <div class="viewhead" style="margin-top:14px"><h1>${esc(m.icon||'📘')} ${esc(m.name)}</h1></div>
+
+    <section>
+      <div class="viewhead"><h2>📝 Temas</h2><button class="pr" data-action="addTema" data-mat="${materiaId}">+ Agregar tema</button></div>
+      <div class="card" style="margin-bottom:14px">
+        <b style="font-size:.9em">🤖 Generar tema con IA</b>
+        <p class="meta" style="margin-top:4px">Subí un PDF o una presentación (.pptx) de esta materia y la IA arma un tema con resumen y tarjetas de estudio.</p>
+        <input type="file" id="iaFileInput" accept=".pdf,.pptx" data-mat="${materiaId}" style="display:none">
+        <button class="sec" id="iaUploadBtn" data-action="iaPickFile">📎 Subir PDF o PPTX</button>
+        <div id="iaStatus" class="meta" style="margin-top:8px"></div>
+      </div>
+      <div class="temaList">${temas.map(temaBlock).join('')||'<div class="empty">Aún no agregas temas en esta materia.</div>'}</div>
+    </section>
+
+    <section style="margin-top:22px">
+      <div class="viewhead"><h2>🧮 Cortes / notas</h2><button class="pr" data-action="addCorte" data-mat="${materiaId}">+ Agregar corte</button></div>
+      <div class="card">
+        ${cortes.length?cortes.map(corteRow).join(''):'<p class="meta">Aún no agregas cortes. Un corte tiene nombre, peso (%) y la nota obtenida.</p>'}
+        <div id="corteAvgBox">${corteAvgHTML(avg,goal)}</div>
+      </div>
+    </section>
+
+    <section style="margin-top:22px">
+      <div class="viewhead"><h2>🎯 Estudiar</h2></div>
+      <p class="meta">Estas herramientas usan las tarjetas (frente/reverso) que agregues dentro de cada tema.</p>
+      <div class="toolGrid">
+        <button class="sec" data-action="openTool" data-tool="flashcards" data-mat="${materiaId}">🔄 Flashcards</button>
+        <button class="sec" data-action="openTool" data-tool="memorizar" data-mat="${materiaId}">📖 Memorizar</button>
+        <button class="sec" data-action="openTool" data-tool="quiz" data-mat="${materiaId}">❓ Quiz</button>
+        <button class="sec" data-action="openTool" data-tool="examen" data-mat="${materiaId}">📝 Modo examen</button>
+        <button class="sec" data-action="openTool" data-tool="concepto" data-mat="${materiaId}">💡 ¿Qué concepto?</button>
+        <button class="sec" data-action="openTool" data-tool="repaso" data-mat="${materiaId}">⏱️ Repaso 5 min</button>
+        <button class="sec" data-action="openTool" data-tool="comparar" data-mat="${materiaId}">⚖️ Comparar</button>
+        <button class="sec" data-action="openTool" data-tool="progreso" data-mat="${materiaId}">📊 Mi progreso</button>
+        <button class="sec" data-action="openTool" data-tool="referencias" data-mat="${materiaId}">📚 Referencias</button>
+      </div>
+    </section>
+  `;
+}
+function corteAvgHTML(avg,goal){
+  if(avg==null)return'';
+  const ok=avg>=goal;
+  return `<div class="bar"><i style="width:${clamp(avg,0,100)}%;background:${ok?'var(--ok)':'var(--no)'}"></i></div>
+  <p class="meta">Promedio ponderado: <b style="color:${ok?'var(--ok)':'var(--no)'}">${avg.toFixed(1)}</b> · meta ${goal}</p>`;
+}
+function refreshCorteAvg(materiaId){
+  const cortes=state.cortes.filter(c=>c.materiaId===materiaId);
+  const box=$('corteAvgBox');
+  if(box)box.innerHTML=corteAvgHTML(weightedAvg(cortes),state.profile.goal||80);
+}
+function temaBlock(t){
+  const cards=state.cards.filter(c=>c.temaId===t.id);
+  return `<details class="s" data-tema="${t.id}">
+    <summary><span>📝 ${esc(t.title)||'(tema sin título)'}</span>
+      <button class="icon-btn" data-action="delTema" data-id="${t.id}" title="Eliminar tema">🗑️</button>
+    </summary>
+    <div class="b">
+      <input class="fld" data-action="editTemaTitle" data-id="${t.id}" value="${esc(t.title)}" placeholder="Título del tema">
+      <textarea class="fld" data-action="editTemaBody" data-id="${t.id}" placeholder="Escribe aquí tus apuntes de este tema…">${esc(t.body)}</textarea>
+      <h4 style="margin:14px 0 6px">🃏 Tarjetas de estudio</h4>
+      <p class="meta" style="margin-top:0">Frente = término o pregunta. Reverso = definición o respuesta. Con estas se arman Flashcards, Quiz, etc.</p>
+      <div class="cardList">${cards.map(cardRow).join('')||'<p class="meta">Sin tarjetas todavía.</p>'}</div>
+      <button class="sec" data-action="addCard" data-tema="${t.id}" data-mat="${t.materiaId}">+ Agregar tarjeta</button>
+    </div>
+  </details>`;
+}
+function cardRow(c){
+  return `<div class="cardRow" data-card="${c.id}">
+    <input class="fld sm" data-action="editCardFront" data-id="${c.id}" value="${esc(c.front)}" placeholder="Frente (término / pregunta)">
+    <input class="fld sm" data-action="editCardBack" data-id="${c.id}" value="${esc(c.back)}" placeholder="Reverso (definición / respuesta)">
+    <button class="icon-btn" data-action="delCard" data-id="${c.id}" title="Eliminar tarjeta">🗑️</button>
+  </div>`;
+}
+function corteRow(c){
+  return `<div class="corteRow" data-corte="${c.id}">
+    <input class="fld sm" data-action="editCorteName" data-id="${c.id}" value="${esc(c.name)}" placeholder="Nombre (ej. Corte 1)">
+    <input class="fld xs" type="number" min="0" max="100" data-action="editCorteWeight" data-id="${c.id}" value="${c.weight}" title="Peso %">
+    <input class="fld xs" type="number" min="0" max="100" data-action="editCorteScore" data-id="${c.id}" value="${c.score??''}" placeholder="Nota" title="Nota obtenida">
+    <button class="icon-btn" data-action="delCorte" data-id="${c.id}" title="Eliminar corte">🗑️</button>
+  </div>`;
+}
+
+/* ================= HERRAMIENTAS DE ESTUDIO ================= */
+function shuffle(arr){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function getCards(materiaId){return state.cards.filter(c=>c.materiaId===materiaId && c.front.trim() && c.back.trim())}
+function fmtSecs(s){s=Math.max(0,s);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+function relTime(ts){
+  const d=Math.round((Date.now()-ts)/864e5);
+  if(d<=0)return'hoy';if(d===1)return'ayer';if(d<30)return`hace ${d} días`;
+  const mo=Math.round(d/30);return mo===1?'hace 1 mes':`hace ${mo} meses`;
+}
+function noCardsMsg(){return'<div class="empty">Esta materia todavía no tiene tarjetas con frente y reverso completos. Agregá algunas desde sus temas.</div>'}
+
+function startTool(tool,materiaId){
+  clearRepasoTimer();
+  const cards=getCards(materiaId);
+  if(tool==='flashcards'||tool==='memorizar'||tool==='repaso'||tool==='concepto'){
+    toolState={cards:shuffle(cards),idx:0,flipped:false,known:0,seen:0};
+  }else if(tool==='quiz'||tool==='examen'){
+    const n=tool==='quiz'?Math.min(10,cards.length):cards.length;
+    const picked=shuffle(cards).slice(0,n);
+    const questions=picked.map(c=>{
+      let pool=state.cards.filter(x=>x.id!==c.id && x.back.trim() && x.materiaId===c.materiaId);
+      if(pool.length<3){
+        const extra=state.cards.filter(x=>x.id!==c.id && x.back.trim() && x.materiaId!==c.materiaId);
+        pool=pool.concat(shuffle(extra).slice(0,3-pool.length));
+      }
+      const distractors=shuffle(pool).slice(0,3).map(x=>x.back);
+      const opts=shuffle([c.back,...distractors]);
+      return{card:c,options:opts,selected:null};
+    });
+    toolState={questions,idx:0,score:0};
+  }else if(tool==='comparar'){
+    const other=state.materias.find(m=>m.id!==materiaId);
+    toolState={materiaId2:other?other.id:null};
+  }else{
+    toolState={};
+  }
+  route={view:'tool',tool,materiaId};
+  render();
+  if(tool==='repaso'){
+    toolState.secondsLeft=300;
+    repasoTimer=setInterval(()=>{
+      toolState.secondsLeft--;
+      const el=$('repasoTimerText');
+      if(el)el.textContent=fmtSecs(toolState.secondsLeft);
+      if(toolState.secondsLeft<=0){clearRepasoTimer();render();}
+    },1000);
+  }
+}
+
+function viewToolHTML(){
+  const{tool,materiaId}=route;
+  const m=state.materias.find(x=>x.id===materiaId);
+  if(!m){goToView('materias');return'';}
+  const head=`<button class="sec" data-action="backMateria" data-id="${materiaId}">← ${esc(m.icon)} ${esc(m.name)}</button><div style="margin-top:14px"></div>`;
+  let body='';
+  if(tool==='flashcards')body=toolFlashcardsHTML();
+  else if(tool==='memorizar')body=toolMemorizarHTML(m);
+  else if(tool==='quiz')body=toolQuizHTML(false);
+  else if(tool==='examen')body=toolQuizHTML(true);
+  else if(tool==='concepto')body=toolConceptoHTML();
+  else if(tool==='repaso')body=toolRepasoHTML();
+  else if(tool==='comparar')body=toolCompararHTML(m);
+  else if(tool==='progreso')body=toolProgresoHTML(m);
+  else if(tool==='referencias')body=toolReferenciasHTML(m);
+  return head+body;
+}
+
+function toolFlashcardsHTML(){
+  const{cards,idx,flipped,known,seen}=toolState;
+  if(!cards.length)return noCardsMsg();
+  if(idx>=cards.length)return `<div class="empty"><h2>🎉 ¡Terminaste!</h2><p>Sabías ${known} de ${seen} tarjetas.</p><button class="pr" data-action="redoTool">Repetir</button></div>`;
+  const c=cards[idx];
+  return `
+  <div class="viewhead"><h1>🔄 Flashcards</h1><span class="meta">${idx+1} / ${cards.length}</span></div>
+  <div class="flashcard ${flipped?'flip':''}" data-action="flipCard">
+    <div class="fcInner"><div class="fcFace fcFront">${esc(c.front)}</div><div class="fcFace fcBack">${esc(c.back)}</div></div>
+  </div>
+  <p class="meta" style="text-align:center">Tocá la tarjeta para voltear</p>
+  <div class="row" style="justify-content:center">
+    <button class="sec" data-action="cardAnswer" data-know="0">😕 Repasar</button>
+    <button class="pr" data-action="cardAnswer" data-know="1">😊 La sé</button>
+  </div>`;
+}
+
+function toolMemorizarHTML(m){
+  const cards=getCards(m.id);
+  if(!cards.length)return noCardsMsg();
+  return `<div class="viewhead"><h1>📖 Memorizar</h1></div>
+  <p class="meta">Repasá todas las tarjetas de un vistazo, sin apuros.</p>
+  ${cards.map(c=>`<div class="card"><b>${esc(c.front)}</b><p class="meta" style="margin:6px 0 0">${esc(c.back)}</p></div>`).join('')}`;
+}
+
+function toolConceptoHTML(){
+  const{cards,idx,flipped}=toolState;
+  if(!cards.length)return noCardsMsg();
+  if(idx>=cards.length)return `<div class="empty"><h2>🎉 ¡Listo!</h2><p>Repasaste ${cards.length} conceptos.</p><button class="pr" data-action="redoTool">Repetir</button></div>`;
+  const c=cards[idx];
+  return `
+  <div class="viewhead"><h1>💡 ¿Qué concepto?</h1><span class="meta">${idx+1} / ${cards.length}</span></div>
+  <div class="card">
+    <p class="meta">Definición / pista:</p>
+    <h3>${esc(c.back)}</h3>
+    ${flipped?`<hr style="border-color:var(--b);margin:12px 0"><p class="meta">Concepto:</p><h3>${esc(c.front)}</h3>`:`<button class="sec" data-action="flipCard">Mostrar respuesta</button>`}
+  </div>
+  ${flipped?`<div class="row" style="justify-content:center"><button class="sec" data-action="cardAnswer" data-know="0">😕 Fallé</button><button class="pr" data-action="cardAnswer" data-know="1">😊 Acerté</button></div>`:''}`;
+}
+
+function toolRepasoHTML(){
+  const{cards,idx,flipped,secondsLeft,known,seen}=toolState;
+  if(!cards.length)return noCardsMsg();
+  if(secondsLeft<=0)return `<div class="empty"><h2>⏱️ ¡Tiempo!</h2><p>Repasaste ${seen} tarjetas, sabías ${known}.</p><button class="pr" data-action="redoTool">Repetir</button></div>`;
+  const c=cards[idx%cards.length];
+  return `
+  <div class="viewhead"><h1>⏱️ Repaso 5 min</h1><span class="meta" id="repasoTimerText">${fmtSecs(secondsLeft)}</span></div>
+  <div class="flashcard ${flipped?'flip':''}" data-action="flipCard">
+    <div class="fcInner"><div class="fcFace fcFront">${esc(c.front)}</div><div class="fcFace fcBack">${esc(c.back)}</div></div>
+  </div>
+  <p class="meta" style="text-align:center">Tocá para voltear</p>
+  <div class="row" style="justify-content:center">
+    <button class="sec" data-action="cardAnswer" data-know="0">😕 Repasar</button>
+    <button class="pr" data-action="cardAnswer" data-know="1">😊 La sé</button>
+  </div>`;
+}
+
+function toolQuizHTML(isExam){
+  const{questions,idx,score}=toolState;
+  if(!questions.length)return'<div class="empty">Necesitás al menos 2 tarjetas con frente y reverso en esta materia para generar preguntas.</div>';
+  if(idx>=questions.length){
+    return `<div class="empty"><h2>${isExam?'📝':'❓'} ¡Listo!</h2><p>Resultado: <b>${score} / ${questions.length}</b></p>
+    ${isExam?questions.map((q,i)=>`<p class="meta" style="text-align:left">${i+1}. ${esc(q.card.front)} — ${q.selected===q.card.back?'✅':'❌ correcta: '+esc(q.card.back)}</p>`).join(''):''}
+    <button class="pr" data-action="redoTool">Repetir</button></div>`;
+  }
+  const q=questions[idx];
+  return `
+  <div class="viewhead"><h1>${isExam?'📝 Modo examen':'❓ Quiz'}</h1><span class="meta">${idx+1} / ${questions.length}</span></div>
+  <div class="card"><h3 style="margin-top:0">${esc(q.card.front)}</h3>
+    ${q.options.map(o=>{
+      let cls='sec optBtn';
+      if(!isExam && q.selected){
+        if(o===q.card.back)cls+=' ok';
+        else if(o===q.selected)cls+=' no';
+      }else if(isExam && o===q.selected){
+        cls+=' chosen';
+      }
+      return `<button class="${cls}" data-action="answerQuiz" data-opt="${esc(o)}" ${q.selected?'disabled':''}>${esc(o)}</button>`;
+    }).join('')}
+  </div>
+  ${q.selected?'<button class="pr" data-action="nextQuestion">Siguiente →</button>':''}`;
+}
+
+function toolCompararHTML(m){
+  const others=state.materias.filter(x=>x.id!==m.id);
+  if(!others.length)return'<div class="empty">Necesitás al menos 2 materias para comparar.</div>';
+  if(!toolState.materiaId2)toolState.materiaId2=others[0].id;
+  const m2=state.materias.find(x=>x.id===toolState.materiaId2)||others[0];
+  const c1=getCards(m.id),c2=getCards(m2.id);
+  return `
+  <div class="viewhead"><h1>⚖️ Comparar</h1></div>
+  <label class="lbl">Comparar con:</label>
+  <select class="fld" data-action="setCompareMateria" style="max-width:280px">
+    ${others.map(o=>`<option value="${o.id}" ${o.id===m2.id?'selected':''}>${esc(o.icon)} ${esc(o.name)}</option>`).join('')}
+  </select>
+  <div class="two" style="margin-top:14px">
+    <div class="card"><h3 style="margin-top:0">${esc(m.icon)} ${esc(m.name)}</h3>${c1.map(c=>`<p class="meta"><b style="color:var(--t)">${esc(c.front)}:</b> ${esc(c.back)}</p>`).join('')||'<p class="meta">Sin tarjetas.</p>'}</div>
+    <div class="card"><h3 style="margin-top:0">${esc(m2.icon)} ${esc(m2.name)}</h3>${c2.map(c=>`<p class="meta"><b style="color:var(--t)">${esc(c.front)}:</b> ${esc(c.back)}</p>`).join('')||'<p class="meta">Sin tarjetas.</p>'}</div>
+  </div>`;
+}
+
+function toolProgresoHTML(m){
+  const cards=getCards(m.id);
+  const known=cards.filter(c=>c.known===true).length;
+  const attempts=state.attempts.filter(a=>a.materiaId===m.id).sort((a,b)=>b.date-a.date).slice(0,15);
+  const pct=cards.length?Math.round(known/cards.length*100):0;
+  return `
+  <div class="viewhead"><h1>📊 Mi progreso</h1></div>
+  <div class="card">
+    <p class="meta" style="margin-top:0">Tarjetas dominadas</p>
+    <div class="bar"><i style="width:${pct}%"></i></div>
+    <p class="meta">${known} / ${cards.length} (${pct}%)</p>
+  </div>
+  <h3>Historial de quiz y exámenes</h3>
+  ${attempts.length?attempts.map(a=>`<div class="li"><span>${a.type==='examen'?'📝':'❓'} ${a.score}/${a.total}</span><small>${relTime(a.date)}</small></div>`).join(''):'<p class="meta">Todavía no hiciste ningún quiz o examen en esta materia.</p>'}`;
+}
+
+function toolReferenciasHTML(m){
+  return `
+  <div class="viewhead"><h1>📚 Referencias</h1></div>
+  <p class="meta">Guardá acá tu bibliografía o fuentes de esta materia.</p>
+  <textarea class="fld" style="min-height:220px" data-action="editMateriaRefs" data-id="${m.id}" placeholder="Ej: Papalia, D. (2012). Desarrollo humano...">${esc(m.refs||'')}</textarea>`;
+}
+
+/* ================= VISTA: CALENDARIO ================= */
+function viewCalendarioHTML(){
+  const{y,m}=calView;
+  const monthNames=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const first=new Date(y,m,1),startOff=(first.getDay()+6)%7,daysInMonth=new Date(y,m+1,0).getDate();
+  const todayStr=ymd(new Date());
+  const evByDate={};state.events.forEach(e=>{(evByDate[e.date]=evByDate[e.date]||[]).push(e)});
+  let cells='';
+  for(let i=0;i<startOff;i++)cells+='<div class="dcell empty"></div>';
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=ymd(new Date(y,m,d));
+    const has=evByDate[ds];
+    cells+=`<button class="dcell ${ds===todayStr?'today':''} ${ds===calView.sel?'sel':''}" data-action="selDay" data-date="${ds}">${d}${has?'<i class="dot"></i>':''}</button>`;
+  }
+  const sel=calView.sel;
+  const selEvents=sel?(evByDate[sel]||[]):[];
+  const upcoming=state.events.filter(e=>e.date>=todayStr).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,8);
+  return `
+    <div class="viewhead"><h1>🗓️ Calendario</h1></div>
+    <div class="calNav">
+      <button class="icon-btn" data-action="calPrev">‹</button>
+      <b>${monthNames[m]} ${y}</b>
+      <button class="icon-btn" data-action="calNext">›</button>
+    </div>
+    <div class="calGrid">${['L','M','X','J','V','S','D'].map(x=>`<i class="dh">${x}</i>`).join('')}${cells}</div>
+    ${sel?`<div class="card">
+      <h3>${fmtDateLong(sel)}</h3>
+      ${selEvents.length?selEvents.map(e=>`<div class="li"><span>${TY[e.type]||'📌'} ${esc(e.title)}</span><button class="icon-btn" data-action="delEvent" data-id="${e.id}">🗑️</button></div>`).join(''):'<p class="meta">Sin eventos este día.</p>'}
+      <button class="sec" style="margin-top:10px" data-action="addEvent" data-date="${sel}">+ Agregar evento</button>
+    </div>`:'<p class="meta">Toca un día para ver o agregar eventos.</p>'}
+    <h3>Próximos</h3>
+    ${upcoming.length?upcoming.map(e=>`<div class="li"><span><b>${TY[e.type]||'📌'}</b> ${esc(e.title)}<br><small>${fmtDateLong(e.date)} · ${relDate(e.date)}</small></span></div>`).join(''):'<p class="meta">No tienes eventos próximos.</p>'}
+  `;
+}
+
+/* ================= VISTA: PERFIL ================= */
+function viewPerfilHTML(){
+  const p=state.profile;
+  const avgsAll=state.materias.map(m=>weightedAvg(state.cortes.filter(c=>c.materiaId===m.id))).filter(x=>x!=null);
+  const globalAvg=avgsAll.length?(avgsAll.reduce((a,b)=>a+b,0)/avgsAll.length):null;
+  return `
+    <div class="viewhead"><h1>👤 Mi perfil</h1></div>
+    <div class="card">
+      <div class="pfhero"><div class="pfav">${esc(p.avatar)}</div><div><h2 style="margin:0">${esc(p.name)||'Estudiante'}</h2><p class="meta" style="margin:2px 0 0">${esc(p.career)||'Agrega tu carrera y universidad'}</p></div></div>
+      <div class="pgs">
+        <div><b>${state.materias.length}</b>materias</div>
+        <div><b>${state.temas.length}</b>temas</div>
+        <div><b>${globalAvg==null?'—':globalAvg.toFixed(1)}</b>promedio global</div>
+      </div>
+    </div>
+    <div class="card"><h3>Avatar</h3><div class="avatarPicker">${AV.map(a=>`<button class="avBtn ${a===p.avatar?'on':''}" data-action="setAvatar" data-a="${a}">${a}</button>`).join('')}</div></div>
+    <div class="card">
+      <h3>Editar perfil</h3>
+      <label class="lbl">Nombre</label><input class="fld" data-action="profileField" data-f="name" value="${esc(p.name)}" maxlength="40">
+      <label class="lbl">Carrera y universidad</label><input class="fld" data-action="profileField" data-f="career" value="${esc(p.career)}" maxlength="80">
+      <div class="two">
+        <div><label class="lbl">Próximo examen</label><input class="fld" type="date" data-action="profileField" data-f="examDate" value="${p.examDate||''}"></div>
+        <div><label class="lbl">Meta de promedio</label><input class="fld" type="number" min="1" max="100" data-action="profileField" data-f="goal" value="${p.goal}"></div>
+      </div>
+      <label class="lbl">Notas personales</label><textarea class="fld" data-action="profileField" data-f="notes" placeholder="Ideas, dudas, recordatorios…">${esc(p.notes)}</textarea>
+    </div>
+    <div class="card">
+      <h3>Cuenta</h3>
+      <p class="meta">Conectado como <b>${esc(auth.currentUser&&auth.currentUser.email||'')}</b></p>
+      <button class="sec" data-action="logout">🚪 Cerrar sesión</button>
+    </div>
+  `;
+}
+
+/* ================= BÚSQUEDA ================= */
+$('searchBox').addEventListener('input',e=>{
+  const q=e.target.value.trim().toLowerCase();
+  const box=$('searchResults');
+  if(q.length<2){box.innerHTML='';return}
+  const results=[];
+  state.materias.forEach(m=>{if(m.name.toLowerCase().includes(q))results.push({label:`📘 ${m.name}`,materiaId:m.id})});
+  state.temas.forEach(t=>{
+    if((t.title||'').toLowerCase().includes(q)||(t.body||'').toLowerCase().includes(q)){
+      const mat=state.materias.find(m=>m.id===t.materiaId);
+      results.push({label:`📝 ${t.title||'(sin título)'} — ${mat?mat.name:''}`,materiaId:t.materiaId});
+    }
+  });
+  box.innerHTML=results.slice(0,8).map((r,i)=>`<div data-r="${i}">${esc(r.label)}</div>`).join('');
+  box.querySelectorAll('[data-r]').forEach((el,i)=>el.onclick=()=>{
+    box.innerHTML='';$('searchBox').value='';
+    route={view:'materiaDetail',materiaId:results[i].materiaId};
+    document.querySelectorAll('#mainNav button').forEach(x=>x.classList.remove('on'));
+    render();
+  });
+});
+document.addEventListener('click',e=>{if(!e.target.closest('#searchWrap'))$('searchResults').innerHTML=''});
+
+/* ================= ACCIONES (clicks) ================= */
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-action]');if(!b)return;
+  e.preventDefault();
+  const a=b.dataset.action;
+
+  if(a==='addSemester'){
+    const name=prompt('Nombre del semestre (ej. Semestre 1, 2026-1):');
+    if(name&&name.trim())mutate(s=>s.semesters.push({id:uid(),name:name.trim()}));
+  }
+  else if(a==='renameSemester'){
+    const cur=state.semesters.find(x=>x.id===b.dataset.id);
+    const name=prompt('Nuevo nombre del semestre:',cur?cur.name:'');
+    if(name&&name.trim())mutate(s=>{const x=s.semesters.find(y=>y.id===b.dataset.id);if(x)x.name=name.trim()});
+  }
+  else if(a==='renameMateria'){
+    const cur=state.materias.find(x=>x.id===b.dataset.id);
+    const name=prompt('Nuevo nombre de la materia:',cur?cur.name:'');
+    if(name&&name.trim()){
+      const icon=prompt('Emoji (opcional):',cur?cur.icon:'📘')||(cur?cur.icon:'📘');
+      mutate(s=>{const x=s.materias.find(y=>y.id===b.dataset.id);if(x){x.name=name.trim();x.icon=icon}});
+    }
+  }
+  else if(a==='delSemester'){
+    if(confirm('¿Eliminar este semestre y todas sus materias, temas y cortes? Esta acción no se puede deshacer.')){
+      mutate(s=>{
+        const matIds=s.materias.filter(m=>m.semesterId===b.dataset.id).map(m=>m.id);
+        s.materias=s.materias.filter(m=>m.semesterId!==b.dataset.id);
+        s.temas=s.temas.filter(t=>!matIds.includes(t.materiaId));
+        s.cortes=s.cortes.filter(c=>!matIds.includes(c.materiaId));
+        s.cards=s.cards.filter(c=>!matIds.includes(c.materiaId));
+        s.attempts=s.attempts.filter(x=>!matIds.includes(x.materiaId));
+        s.semesters=s.semesters.filter(x=>x.id!==b.dataset.id);
+      });
+    }
+  }
+  else if(a==='addMateria'){
+    const name=prompt('Nombre de la materia:');
+    if(name&&name.trim()){
+      const icon=prompt('Emoji para la materia (opcional):','📘')||'📘';
+      mutate(s=>s.materias.push({id:uid(),name:name.trim(),icon,semesterId:b.dataset.sem,refs:''}));
+    }
+  }
+  else if(a==='delMateria'){
+    if(confirm('¿Eliminar esta materia y todo su contenido (temas, tarjetas y cortes)? Esta acción no se puede deshacer.')){
+      mutate(s=>{
+        s.cards=s.cards.filter(c=>c.materiaId!==b.dataset.id);
+        s.attempts=s.attempts.filter(x=>x.materiaId!==b.dataset.id);
+        s.temas=s.temas.filter(t=>t.materiaId!==b.dataset.id);
+        s.cortes=s.cortes.filter(c=>c.materiaId!==b.dataset.id);
+        s.materias=s.materias.filter(m=>m.id!==b.dataset.id);
+      });
+    }
+  }
+  else if(a==='openMateria'){route={view:'materiaDetail',materiaId:b.dataset.id};render();}
+  else if(a==='backMaterias')goToView('materias');
+  else if(a==='backMateria'){route={view:'materiaDetail',materiaId:b.dataset.id};render();}
+  else if(a==='addTema'){
+    mutate(s=>s.temas.unshift({id:uid(),materiaId:b.dataset.mat,title:'',body:'',updatedAt:Date.now()}));
+  }
+  else if(a==='delTema'){
+    if(confirm('¿Eliminar este tema y sus tarjetas?'))mutate(s=>{s.cards=s.cards.filter(c=>c.temaId!==b.dataset.id);s.temas=s.temas.filter(t=>t.id!==b.dataset.id)});
+  }
+  else if(a==='addCard'){
+    mutate(s=>s.cards.push({id:uid(),temaId:b.dataset.tema,materiaId:b.dataset.mat,front:'',back:'',known:null}));
+  }
+  else if(a==='delCard'){
+    if(confirm('¿Eliminar esta tarjeta?'))mutate(s=>s.cards=s.cards.filter(c=>c.id!==b.dataset.id));
+  }
+  else if(a==='addCorte'){
+    mutate(s=>{
+      const n=s.cortes.filter(c=>c.materiaId===b.dataset.mat).length+1;
+      s.cortes.push({id:uid(),materiaId:b.dataset.mat,name:'Corte '+n,weight:25,score:null});
+    });
+  }
+  else if(a==='delCorte'){
+    if(confirm('¿Eliminar este corte?'))mutate(s=>{s.cortes=s.cortes.filter(c=>c.id!==b.dataset.id);refreshCorteAvg(route.materiaId)});
+  }
+  else if(a==='openTool'){startTool(b.dataset.tool,b.dataset.mat);}
+  else if(a==='redoTool'){startTool(route.tool,route.materiaId);}
+  else if(a==='flipCard'){toolState.flipped=!toolState.flipped;render();}
+  else if(a==='cardAnswer'){
+    const know=b.dataset.know==='1';
+    const c=toolState.cards[toolState.idx];
+    const real=state.cards.find(x=>x.id===c.id);
+    if(real){real.known=know;persist();}
+    toolState.seen++;if(know)toolState.known++;
+    toolState.idx++;toolState.flipped=false;
+    render();
+  }
+  else if(a==='answerQuiz'){
+    const q=toolState.questions[toolState.idx];
+    if(q.selected)return;
+    q.selected=b.dataset.opt;
+    if(q.selected===q.card.back)toolState.score++;
+    render();
+  }
+  else if(a==='nextQuestion'){
+    toolState.idx++;
+    if(toolState.idx>=toolState.questions.length){
+      mutate(s=>s.attempts.push({id:uid(),materiaId:route.materiaId,type:route.tool,score:toolState.score,total:toolState.questions.length,date:Date.now()}));
+    }else{
+      render();
+    }
+  }
+  else if(a==='calPrev'){calView.m--;if(calView.m<0){calView.m=11;calView.y--}render();}
+  else if(a==='calNext'){calView.m++;if(calView.m>11){calView.m=0;calView.y++}render();}
+  else if(a==='selDay'){calView.sel=b.dataset.date;render();}
+  else if(a==='addEvent'){
+    const title=prompt('Título del evento (ej. Examen final de Ética):');
+    if(title&&title.trim()){
+      const t=(prompt('Tipo: escribe "examen", "entrega" u "otro"','examen')||'otro').toLowerCase();
+      const type=t.startsWith('ex')?'ex':t.startsWith('en')?'en':'ot';
+      mutate(s=>s.events.push({id:uid(),date:b.dataset.date,title:title.trim(),type}));
+    }
+  }
+  else if(a==='delEvent'){
+    if(confirm('¿Eliminar este evento?'))mutate(s=>s.events=s.events.filter(x=>x.id!==b.dataset.id));
+  }
+  else if(a==='setAvatar'){mutate(s=>s.profile.avatar=b.dataset.a);}
+  else if(a==='logout'){if(confirm('¿Cerrar sesión?'))auth.signOut();}
+});
+
+/* ================= ACCIONES (edición en vivo, sin repintar) ================= */
+document.addEventListener('input',e=>{
+  const a=e.target.dataset.action;if(!a)return;
+  const id=e.target.dataset.id;
+
+  if(a==='editTemaTitle'){
+    const t=state.temas.find(x=>x.id===id);if(!t)return;
+    t.title=e.target.value;t.updatedAt=Date.now();persist();
+    const sum=e.target.closest('details')?.querySelector('summary span');
+    if(sum)sum.textContent='📝 '+(t.title||'(tema sin título)');
+  }
+  else if(a==='editTemaBody'){
+    const t=state.temas.find(x=>x.id===id);if(!t)return;
+    t.body=e.target.value;t.updatedAt=Date.now();persist();
+  }
+  else if(a==='editCorteName'){
+    const c=state.cortes.find(x=>x.id===id);if(!c)return;
+    c.name=e.target.value;persist();
+  }
+  else if(a==='editCorteWeight'){
+    const c=state.cortes.find(x=>x.id===id);if(!c)return;
+    c.weight=+e.target.value||0;persist();refreshCorteAvg(route.materiaId);
+  }
+  else if(a==='editCorteScore'){
+    const c=state.cortes.find(x=>x.id===id);if(!c)return;
+    c.score=e.target.value===''?null:clamp(+e.target.value,0,100);persist();refreshCorteAvg(route.materiaId);
+  }
+  else if(a==='profileField'){
+    const f=e.target.dataset.f;
+    state.profile[f]=f==='goal'?clamp(+e.target.value||80,1,100):e.target.value;
+    persist();
+  }
+  else if(a==='editCardFront'){
+    const c=state.cards.find(x=>x.id===id);if(!c)return;
+    c.front=e.target.value;persist();
+  }
+  else if(a==='editCardBack'){
+    const c=state.cards.find(x=>x.id===id);if(!c)return;
+    c.back=e.target.value;persist();
+  }
+  else if(a==='editMateriaRefs'){
+    const m=state.materias.find(x=>x.id===id);if(!m)return;
+    m.refs=e.target.value;persist();
+  }
+});
+document.addEventListener('change',e=>{
+  if(e.target.dataset.action==='setCompareMateria'){
+    toolState.materiaId2=e.target.value;persist();render();
+  }
+});
+
+/* ================= IA: SUBIR PDF/PPTX Y GENERAR TEMA + TARJETAS ================= */
+async function extraerTextoPDF(file){
+  const buf=await file.arrayBuffer();
+  const pdf=await window.pdfjsLib.getDocument({data:buf}).promise;
+  let texto='';
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const content=await page.getTextContent();
+    texto+=content.items.map(it=>it.str).join(' ')+'\n\n';
+  }
+  return texto.trim();
+}
+async function extraerTextoPPTX(file){
+  const zip=await JSZip.loadAsync(file);
+  const slideFiles=Object.keys(zip.files)
+    .filter(name=>/^ppt\/slides\/slide\d+\.xml$/.test(name))
+    .sort((a,b)=>{
+      const na=+a.match(/slide(\d+)\.xml/)[1], nb=+b.match(/slide(\d+)\.xml/)[1];
+      return na-nb;
+    });
+  let texto='';
+  for(const name of slideFiles){
+    const xml=await zip.files[name].async('text');
+    const doc=new DOMParser().parseFromString(xml,'application/xml');
+    const nodes=doc.getElementsByTagName('a:t');
+    texto+=Array.from(nodes).map(n=>n.textContent).join(' ')+'\n\n';
+  }
+  return texto.trim();
+}
+
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-action="iaPickFile"]');
+  if(b)$('iaFileInput').click();
+});
+
+document.addEventListener('change',async e=>{
+  if(e.target.id!=='iaFileInput')return;
+  const file=e.target.files[0];
+  if(!file)return;
+  const materiaId=e.target.dataset.mat;
+  const statusEl=$('iaStatus');
+  const btn=$('iaUploadBtn');
+  const nombre=file.name.toLowerCase();
+
+  try{
+    btn.disabled=true;
+    statusEl.textContent='📄 Leyendo el archivo…';
+    let texto='';
+    if(nombre.endsWith('.pdf')) texto=await extraerTextoPDF(file);
+    else if(nombre.endsWith('.pptx')) texto=await extraerTextoPPTX(file);
+    else{ statusEl.textContent='❌ Solo se admiten archivos .pdf o .pptx.'; btn.disabled=false; return; }
+
+    if(!texto||texto.trim().length<40){
+      statusEl.textContent='❌ No pude sacar texto de ese archivo. Si es un PDF escaneado (una foto de las hojas) todavía no lo puedo leer, solo PDFs con texto real.';
+      btn.disabled=false; return;
+    }
+
+    statusEl.textContent='🤖 La IA está armando el tema y las tarjetas… puede tardar unos segundos.';
+    const materia=state.materias.find(m=>m.id===materiaId);
+    const resp=await fetch('/.netlify/functions/generar-tema',{
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({texto:texto.slice(0,60000), materia:materia?materia.name:''})
+    });
+
+    let data;
+    try{ data=await resp.json(); }catch(e){ data=null; }
+
+    if(!resp.ok||!data){
+      statusEl.textContent='❌ '+((data&&data.error)||'Ocurrió un error al generar el tema. Probá de nuevo.');
+      btn.disabled=false; return;
+    }
+    if(!data.titulo||!Array.isArray(data.tarjetas)){
+      statusEl.textContent='❌ La IA no devolvió un resultado válido. Probá de nuevo.';
+      btn.disabled=false; return;
+    }
+
+    mutate(s=>{
+      const temaId=uid();
+      s.temas.unshift({id:temaId,materiaId,title:data.titulo,body:data.resumen||'',updatedAt:Date.now()});
+      (data.tarjetas||[]).forEach(t=>{
+        if(t.frente&&t.reverso) s.cards.push({id:uid(),materiaId,temaId,front:t.frente,back:t.reverso,known:null});
+      });
+    });
+    const st=$('iaStatus');
+    if(st) st.textContent=`✅ Listo — se creó el tema "${data.titulo}" con ${(data.tarjetas||[]).length} tarjetas.`;
+  }catch(err){
+    console.error(err);
+    const st=$('iaStatus');
+    if(st) st.textContent='❌ Algo falló: '+err.message;
+  }finally{
+    const bt=$('iaUploadBtn'); if(bt)bt.disabled=false;
+    e.target.value='';
+  }
+});
+})();
+</script>
+</body>
+</html>
