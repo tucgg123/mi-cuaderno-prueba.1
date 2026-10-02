@@ -27,7 +27,7 @@ async function llamarGemini(apiKey, prompt) {
       ultima = resp;
       if (resp.status === 404) break; // modelo no disponible: pasar al siguiente
       if (![429, 500, 503].includes(resp.status)) return resp; // error que no se arregla reintentando
-      await new Promise(r => setTimeout(r, 1500));
+            if (intento === 0) await new Promise(r => setTimeout(r, 1500));
     }
   }
   return ultima;
