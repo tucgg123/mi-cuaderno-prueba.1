@@ -51,6 +51,18 @@ textarea{min-height:110px;resize:vertical;font-family:inherit}
 .cardRow{display:flex;gap:6px;align-items:center;margin-bottom:6px}
 .cardRow .fld.sm{flex:1;margin-bottom:0}
 .temaList details{background:var(--bg)}
+.secAcc{background:var(--c);border:1px solid var(--b);border-radius:16px;margin:10px 0;overflow:hidden;transition:border-color .2s}
+.secAcc[open]{border-color:var(--a)}
+.secAcc>summary{cursor:pointer;list-style:none;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-family:var(--serif);font-size:1.05em;font-weight:500}
+.secAcc>summary::-webkit-details-marker{display:none}
+.secAcc>summary::after{content:'+';color:var(--a);font-size:1.5em;line-height:1;font-family:var(--sans);transition:transform .2s}
+.secAcc[open]>summary::after{transform:rotate(45deg)}
+.secAcc>summary .sn{flex:1}
+.secAcc>.b{padding:0 18px 18px}
+.secAcc textarea{min-height:130px}
+.secTools{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.secTools .fld{margin-bottom:0}
+.temaTitleBig{font-family:var(--serif);font-size:1.5em;font-weight:500}
 .pfhero{display:flex;align-items:center;gap:14px}
 .pfav{width:56px;height:56px;border-radius:50%;background:var(--al);display:flex;align-items:center;justify-content:center;font-size:1.6em;flex:none}
 .pgs{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px}
@@ -418,7 +430,7 @@ function viewMateriaDetailHTML(materiaId){
       <div class="viewhead"><h2>📝 Temas</h2><button class="pr" data-action="addTema" data-mat="${materiaId}">+ Agregar tema</button></div>
       <div class="card" style="margin-bottom:14px">
         <b style="font-size:.9em">🤖 Generar tema con IA</b>
-        <p class="meta" style="margin-top:4px">Subí un PDF o una presentación (.pptx) de esta materia y la IA arma un tema con resumen y tarjetas de estudio.</p>
+        <p class="meta" style="margin-top:4px">Subí un PDF o una presentación (.pptx) de esta materia y la IA lo analiza, organiza el contenido en secciones según lo que trae el archivo y crea tarjetas de estudio.</p>
         <input type="file" id="iaFileInput" accept=".pdf,.pptx" data-mat="${materiaId}" style="display:none">
         <button class="sec" id="iaUploadBtn" data-action="iaPickFile">📎 Subir PDF o PPTX</button>
         <div id="iaStatus" class="meta" style="margin-top:8px"></div>
@@ -470,11 +482,26 @@ function temaBlock(t){
     </summary>
     <div class="b">
       <input class="fld" data-action="editTemaTitle" data-id="${t.id}" value="${esc(t.title)}" placeholder="Título del tema">
-      <textarea class="fld" data-action="editTemaBody" data-id="${t.id}" placeholder="Escribe aquí tus apuntes de este tema…">${esc(t.body)}</textarea>
+      ${Array.isArray(t.secciones)
+        ? `<div class="secList">${t.secciones.map(sc=>secBlock(t.id,sc)).join('')}</div>
+           <button class="sec" data-action="addSec" data-id="${t.id}">+ Agregar sección</button>`
+        : `<textarea class="fld" data-action="editTemaBody" data-id="${t.id}" placeholder="Escribe aquí tus apuntes de este tema…">${esc(t.body)}</textarea>`}
       <h4 style="margin:14px 0 6px">🃏 Tarjetas de estudio</h4>
       <p class="meta" style="margin-top:0">Frente = término o pregunta. Reverso = definición o respuesta. Con estas se arman Flashcards, Quiz, etc.</p>
       <div class="cardList">${cards.map(cardRow).join('')||'<p class="meta">Sin tarjetas todavía.</p>'}</div>
       <button class="sec" data-action="addCard" data-tema="${t.id}" data-mat="${t.materiaId}">+ Agregar tarjeta</button>
+    </div>
+  </details>`;
+}
+function secBlock(temaId,sc){
+  return `<details class="secAcc" data-sec="${sc.id}">
+    <summary><span class="sn">${esc(sc.title)||'(sección sin título)'}</span></summary>
+    <div class="b">
+      <div class="secTools">
+        <input class="fld" data-action="editSecTitle" data-id="${temaId}" data-sid="${sc.id}" value="${esc(sc.title)}" placeholder="Título de la sección">
+        <button class="icon-btn" data-action="delSec" data-id="${temaId}" data-sid="${sc.id}" title="Eliminar sección">🗑️</button>
+      </div>
+      <textarea class="fld" data-action="editSecBody" data-id="${temaId}" data-sid="${sc.id}" placeholder="Contenido de la sección…">${esc(sc.body)}</textarea>
     </div>
   </details>`;
 }
@@ -837,6 +864,12 @@ document.addEventListener('click',e=>{
   else if(a==='addTema'){
     mutate(s=>s.temas.unshift({id:uid(),materiaId:b.dataset.mat,title:'',body:'',updatedAt:Date.now()}));
   }
+  else if(a==='addSec'){
+    mutate(s=>{const t=s.temas.find(x=>x.id===b.dataset.id);if(t){t.secciones=t.secciones||[];t.secciones.push({id:uid(),title:'',body:''});t.updatedAt=Date.now()}});
+  }
+  else if(a==='delSec'){
+    if(confirm('¿Eliminar esta sección?'))mutate(s=>{const t=s.temas.find(x=>x.id===b.dataset.id);if(t&&t.secciones)t.secciones=t.secciones.filter(x=>x.id!==b.dataset.sid)});
+  }
   else if(a==='delTema'){
     if(confirm('¿Eliminar este tema y sus tarjetas?'))mutate(s=>{s.cards=s.cards.filter(c=>c.temaId!==b.dataset.id);s.temas=s.temas.filter(t=>t.id!==b.dataset.id)});
   }
@@ -914,6 +947,16 @@ document.addEventListener('input',e=>{
   else if(a==='editTemaBody'){
     const t=state.temas.find(x=>x.id===id);if(!t)return;
     t.body=e.target.value;t.updatedAt=Date.now();persist();
+  }
+  else if(a==='editSecTitle'||a==='editSecBody'){
+    const t=state.temas.find(x=>x.id===id);if(!t||!t.secciones)return;
+    const sc=t.secciones.find(x=>x.id===e.target.dataset.sid);if(!sc)return;
+    if(a==='editSecTitle'){
+      sc.title=e.target.value;
+      const sn=e.target.closest('details')?.querySelector('summary .sn');
+      if(sn)sn.textContent=sc.title||'(sección sin título)';
+    }else sc.body=e.target.value;
+    t.updatedAt=Date.now();persist();
   }
   else if(a==='editCorteName'){
     const c=state.cortes.find(x=>x.id===id);if(!c)return;
@@ -1030,7 +1073,10 @@ document.addEventListener('change',async e=>{
 
     mutate(s=>{
       const temaId=uid();
-      s.temas.unshift({id:temaId,materiaId,title:data.titulo,body:data.resumen||'',updatedAt:Date.now()});
+      const secs=Array.isArray(data.secciones)?data.secciones.filter(x=>x&&x.titulo&&x.contenido).map(x=>({id:uid(),title:String(x.titulo),body:String(x.contenido)})):[];
+      const tema={id:temaId,materiaId,title:data.titulo,body:data.resumen||'',updatedAt:Date.now()};
+      if(secs.length)tema.secciones=secs;
+      s.temas.unshift(tema);
       (data.tarjetas||[]).forEach(t=>{
         if(t.frente&&t.reverso) s.cards.push({id:uid(),materiaId,temaId,front:t.frente,back:t.reverso,known:null});
       });
