@@ -19,7 +19,11 @@ async function llamarGemini(apiKey, prompt) {
           },
           body: JSON.stringify({
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
-            generationConfig: { responseMimeType: 'application/json', temperature: 0.4 }
+            generationConfig: {
+              responseMimeType: 'application/json',
+              temperature: 0.4,
+              maxOutputTokens: 8192
+            }
           })
         }
       );
@@ -27,7 +31,7 @@ async function llamarGemini(apiKey, prompt) {
       ultima = resp;
       if (resp.status === 404) break; // modelo no disponible: pasar al siguiente
       if (![429, 500, 503].includes(resp.status)) return resp; // error que no se arregla reintentando
-            if (intento === 0) await new Promise(r => setTimeout(r, 1500));
+      if (intento === 0) await new Promise(r => setTimeout(r, 1500));
     }
   }
   return ultima;
@@ -57,17 +61,29 @@ exports.handler = async (event) => {
   }
 
   // Tope de seguridad: no mandamos textos gigantes a la IA (cuesta más y no hace falta).
-  const textoRecortado = texto.slice(0, 15000);
+  const textoRecortado = texto.slice(0, 25000);
 
-  const prompt = `Sos un asistente que ayuda a estudiantes universitarios a convertir apuntes de clase (sacados de un PDF o una presentación) en material de estudio.
+  const prompt = `Eres un asistente que ayuda a estudiantes universitarios a convertir apuntes de clase (sacados de un PDF o una presentación) en material de estudio.
 
 Materia: "${materia || 'sin especificar'}"
 
-Te paso abajo el texto extraído del archivo. Devolvé EXCLUSIVAMENTE un JSON válido, sin explicación adicional, con esta forma exacta:
+PROCESO (hazlo mentalmente, no lo escribas):
+1. Analiza primero el texto completo: qué tipo de contenido es (teoría, un modelo o autor, un procedimiento, ejercicios, casos, formulario, legislación, etc.) y qué temas contiene realmente.
+2. Según ese análisis, decide TÚ cuáles secciones necesita este material. La estructura debe adaptarse al contenido: no uses una plantilla fija.
+3. Escribe cada sección únicamente con información que esté en el texto.
 
-{"titulo":"título corto para el tema (máx 8 palabras)","resumen":"resumen claro y bien organizado en español de los conceptos más importantes del texto, en 2 a 5 párrafos","tarjetas":[{"frente":"término o pregunta corta","reverso":"definición o respuesta clara y no muy larga"}]}
+REGLAS DE LAS SECCIONES:
+- Entre 3 y 8 secciones, ordenadas de forma lógica para estudiar.
+- Incluye una sección solo si el texto tiene material para ella. Por ejemplo, "Autor y año" solo si el texto menciona un autor o una fecha; "Ejemplos" solo si hay ejemplos; "Limitaciones o críticas" solo si se discuten; "Fórmulas" solo si hay fórmulas; "Pasos del procedimiento" solo si hay un procedimiento.
+- Los títulos deben ser específicos del contenido (por ejemplo "Componentes de la memoria de trabajo"), no genéricos.
+- No inventes datos que no estén en el texto. Si algo no aparece, no crees la sección.
+- "contenido" debe ser claro y bien organizado, de 1 a 3 párrafos cortos o una lista con guiones cuando sea más claro. Texto plano, sin markdown con asteriscos.
 
-Generá entre 8 y 15 tarjetas que cubran los conceptos, definiciones y términos clave del texto. El "frente" debe ser corto (un término o una pregunta). El "reverso" debe responder con precisión pero sin ser un párrafo entero.
+Devuelve EXCLUSIVAMENTE un JSON válido, sin explicación adicional, con esta forma exacta:
+
+{"titulo":"título corto para el tema (máx 8 palabras)","secciones":[{"titulo":"título de la sección","contenido":"contenido de la sección"}],"tarjetas":[{"frente":"término o pregunta corta","reverso":"definición o respuesta clara y no muy larga"}]}
+
+Genera entre 8 y 15 tarjetas que cubran los conceptos, definiciones y términos clave del texto. El "frente" debe ser corto (un término o una pregunta). El "reverso" debe responder con precisión sin ser un párrafo entero.
 
 TEXTO A ANALIZAR:
 """
@@ -96,7 +112,7 @@ ${textoRecortado}
     try {
       parsed = JSON.parse(raw);
     } catch (e) {
-      return { statusCode: 502, body: JSON.stringify({ error: 'La IA no devolvió un resultado con el formato esperado. Probá de nuevo.' }) };
+      return { statusCode: 502, body: JSON.stringify({ error: 'La IA no devolvió un resultado con el formato esperado. Prueba de nuevo.' }) };
     }
 
     if (!parsed.titulo || !Array.isArray(parsed.tarjetas)) {
