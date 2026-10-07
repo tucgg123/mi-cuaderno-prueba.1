@@ -77,11 +77,12 @@ REGLAS DE LAS SECCIONES:
 - Incluye una sección solo si el texto tiene material para ella. Por ejemplo, "Autor y año" solo si el texto menciona un autor o una fecha; "Ejemplos" solo si hay ejemplos; "Limitaciones o críticas" solo si se discuten; "Fórmulas" solo si hay fórmulas; "Pasos del procedimiento" solo si hay un procedimiento.
 - Los títulos deben ser específicos del contenido (por ejemplo "Componentes de la memoria de trabajo"), no genéricos.
 - No inventes datos que no estén en el texto. Si algo no aparece, no crees la sección.
+- "puntos" son de 2 a 5 ideas clave de la sección, cada una corta (máximo 12 palabras), tomadas del contenido. Alimentan un esquema visual, así que deben poder leerse solas.
 - "contenido" debe ser claro y bien organizado, de 1 a 3 párrafos cortos o una lista con guiones cuando sea más claro. Texto plano, sin markdown con asteriscos.
 
 Devuelve EXCLUSIVAMENTE un JSON válido, sin explicación adicional, con esta forma exacta:
 
-{"titulo":"título corto para el tema (máx 8 palabras)","secciones":[{"titulo":"título de la sección","contenido":"contenido de la sección"}],"tarjetas":[{"frente":"término o pregunta corta","reverso":"definición o respuesta clara y no muy larga"}]}
+{"titulo":"título corto para el tema (máx 8 palabras)","secciones":[{"titulo":"título de la sección","contenido":"contenido de la sección","puntos":["idea clave corta","otra idea clave corta"]}],"tarjetas":[{"frente":"término o pregunta corta","reverso":"definición o respuesta clara y no muy larga"}]}
 
 Genera entre 8 y 15 tarjetas que cubran los conceptos, definiciones y términos clave del texto. El "frente" debe ser corto (un término o una pregunta). El "reverso" debe responder con precisión sin ser un párrafo entero.
 
