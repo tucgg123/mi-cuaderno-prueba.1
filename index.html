@@ -125,6 +125,75 @@ main#view{max-width:900px;margin:0 auto;padding:20px 16px 70px;animation:f .25s}
 .dcell.today{border-color:var(--a);font-weight:700}
 .dcell.sel{background:var(--al);border-color:var(--a)}
 .dcell .dot{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--a)}
+
+/* ===== Mejora estética de temas y tarjetas (solo diseño) ===== */
+.temaList{display:flex;flex-direction:column;gap:16px}
+.temaList>.s{background:var(--c);margin-bottom:0;border-radius:18px;box-shadow:0 14px 30px -24px rgba(60,40,20,.45)}
+.temaList>.s>summary{padding:18px 20px;gap:14px}
+.temaList>.s>.b{padding:4px 20px 22px}
+.temaHead{display:flex;flex-direction:column;gap:8px;min-width:0}
+.temaHead .tt{font-size:1.12em;font-weight:500;line-height:1.3}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font:600 .72em/1 var(--sans);color:var(--m);background:var(--bg);border:1px solid var(--b);border-radius:999px;padding:5px 10px}
+.tituloTema{font-family:var(--serif);font-size:1.4em;font-weight:500;border:0;border-bottom:1px solid var(--b);border-radius:0;background:transparent;padding:10px 2px;margin-bottom:16px}
+.tituloTema:focus{box-shadow:none;border-bottom-color:var(--a)}
+.resumenCard{background:var(--al);border-radius:14px;padding:14px 18px;margin:0 0 16px}
+.resumenCard small{font-weight:600;color:var(--a)}
+.resumenCard p{margin:4px 0 0;font-family:var(--serif);line-height:1.7}
+.secList{display:flex;flex-direction:column;gap:10px;margin:0 0 14px}
+.temaList .secAcc{background:var(--bg);margin:0;border-radius:14px;border:1px solid var(--b);border-left:4px solid var(--a)}
+.temaList .secAcc>summary{padding:14px 18px}
+.temaList .secAcc>.b{padding:2px 18px 18px}
+.secAcc .sn{display:flex;flex-direction:column;gap:3px;min-width:0}
+.secAcc .st{font-weight:500}
+.secAcc .sp{color:var(--m);font:400 .82em/1.45 var(--sans);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.secAcc[open] .sp{display:none}
+.secAcc .secTools{margin-bottom:12px}
+.secAcc .secTools input{border:0;border-bottom:1px solid var(--b);border-radius:0;background:transparent;padding:6px 2px;font-family:var(--serif);font-size:1.05em;font-weight:500}
+.secAcc .secTools input:focus{box-shadow:none;border-bottom-color:var(--a)}
+.secAcc textarea{background:var(--c);padding:14px 16px;line-height:1.75;min-height:96px;overflow:hidden;resize:none}
+.cardList{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin:12px 0 14px}
+.cardList>p.meta{grid-column:1/-1}
+.cardRow{position:relative;flex-direction:column;align-items:stretch;gap:6px;margin:0;padding:14px;background:var(--bg);border:1px solid var(--b);border-radius:14px}
+.cardRow .cl{font-size:.7em;font-weight:600;color:var(--m)}
+.cardRow .fld.sm{flex:none;width:100%;margin-bottom:6px}
+.cardRow .cf{font-family:var(--serif);font-weight:500}
+.cardRow .icon-btn{position:absolute;top:8px;right:8px;width:30px;height:30px}
+
+/* ===== Pestañas del tema, lectura limpia y esquema ===== */
+.tabsT{display:flex;gap:4px;margin:0 0 18px;border-bottom:1px solid var(--b);overflow-x:auto}
+.tabsT button{display:flex;align-items:center;gap:6px;border:0;border-bottom:3px solid transparent;border-radius:0;padding:10px 14px;font-weight:600;color:var(--m);white-space:nowrap}
+.tabsT button.on{color:var(--a);border-bottom-color:var(--a)}
+.tp[hidden]{display:none}
+.tarjIntro{margin:0 0 4px}
+.secAcc .secEdit{display:none}
+.secAcc.editing .secEdit{display:block}
+.secAcc.editing .secRead{display:none}
+.secAcc .lbEdit{display:none}
+.secAcc.editing .lbRead{display:none}
+.secAcc.editing .lbEdit{display:inline}
+.secEdit .fld{margin-bottom:8px}
+.secEdit input.fld{font-family:var(--sans);font-size:1em;border:1px solid var(--b);border-radius:10px;background:var(--bg);padding:9px 12px}
+.secFoot{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:18px}
+.secRead .txt{max-width:68ch}
+.secRead .txt p{margin:0 0 .9em;line-height:1.8}
+.secRead .txt ul.lista{margin:0 0 .9em;padding-left:1.2em;line-height:1.8}
+.secRead .txt ul.lista li{margin-bottom:.35em}
+.secRead .txt ul.lista li::marker{color:var(--a)}
+.puntos{background:var(--al);border-radius:12px;padding:14px 18px;margin-top:6px}
+.puntos small{font-weight:600;color:var(--a)}
+.puntos ul{margin:6px 0 0;padding-left:1.1em}
+.puntos li{line-height:1.6;margin-bottom:4px}
+.puntos li::marker{color:var(--a)}
+.esq{display:flex;flex-direction:column;align-items:flex-start;padding:4px 0 8px}
+.esqRoot{background:var(--a);color:var(--bg);border-radius:14px;padding:12px 20px;font:500 1.12em/1.3 var(--serif)}
+.esqTree{margin-left:24px;padding:18px 0 4px 24px;border-left:2px solid var(--b);display:flex;flex-direction:column;gap:20px;width:calc(100% - 24px)}
+.esqBranch{position:relative}
+.esqBranch::before{content:'';position:absolute;left:-24px;top:19px;width:24px;border-top:2px solid var(--b)}
+.esqNode{display:inline-block;background:var(--al);color:var(--a);border:1px solid var(--a);border-radius:12px;padding:8px 14px;font:500 1em/1.3 var(--serif)}
+.esqLeaves{list-style:none;margin:10px 0 0 18px;padding:0 0 0 20px;border-left:2px dotted var(--b);display:flex;flex-direction:column;gap:8px}
+.esqLeaves li{position:relative;background:var(--bg);border:1px solid var(--b);border-radius:10px;padding:8px 12px;font-size:.92em;line-height:1.5}
+.esqLeaves li::before{content:'';position:absolute;left:-20px;top:50%;width:20px;border-top:2px dotted var(--b)}
 </style>
 </head>
 <body>
@@ -474,41 +543,85 @@ function refreshCorteAvg(materiaId){
   const box=$('corteAvgBox');
   if(box)box.innerHTML=corteAvgHTML(weightedAvg(cortes),state.profile.goal||80);
 }
+const ui={open:{},sec:{},tab:{}};
+function fmtBody(txt){
+  const lines=String(txt||'').split(/\n+/).map(x=>x.trim()).filter(Boolean);
+  let out='',list=[];
+  const flush=()=>{if(list.length){out+='<ul class="lista">'+list.map(x=>`<li>${esc(x)}</li>`).join('')+'</ul>';list=[]}};
+  lines.forEach(l=>{const m=l.match(/^[-•–*]\s+(.*)$/);if(m)list.push(m[1]);else{flush();out+=`<p>${esc(l)}</p>`}});
+  flush();
+  return out||'<p class="meta">Esta sección todavía no tiene contenido.</p>';
+}
+function puntosDe(sc){
+  if(Array.isArray(sc.puntos)&&sc.puntos.length)return sc.puntos;
+  const body=String(sc.body||'').trim();
+  const bullets=body.split(/\n+/).map(x=>x.trim()).filter(l=>/^[-•–*]\s+/.test(l)).map(l=>l.replace(/^[-•–*]\s+/,''));
+  let base=bullets;
+  if(!base.length){base=(body.match(/[^.!?]+[.!?]+/g)||[]).map(x=>x.trim());if(!base.length&&body)base=[body]}
+  return base.slice(0,4).map(x=>x.length>110?x.slice(0,107).trim()+'…':x);
+}
+function secReadHTML(sc){
+  const p=puntosDe(sc);
+  return `<div class="txt">${fmtBody(sc.body)}</div>${p.length?`<div class="puntos"><small>Ideas clave</small><ul>${p.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}`;
+}
+function esquemaHTML(t){
+  const secs=Array.isArray(t.secciones)?t.secciones:[];
+  if(!secs.length)return'<div class="empty">Este tema no tiene secciones, así que todavía no hay esquema.</div>';
+  return `<div class="esq"><div class="esqRoot">${esc(t.title)||'Tema'}</div><div class="esqTree">${secs.map(sc=>{const p=puntosDe(sc);return `<div class="esqBranch"><div class="esqNode">${esc(sc.title)||'(sin título)'}</div>${p.length?`<ul class="esqLeaves">${p.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}</div>`}).join('')}</div></div>`;
+}
 function temaBlock(t){
   const cards=state.cards.filter(c=>c.temaId===t.id);
-  return `<details class="s" data-tema="${t.id}">
-    <summary><span>📝 ${esc(t.title)||'(tema sin título)'}</span>
+  const hasSec=Array.isArray(t.secciones);
+  let tab=ui.tab[t.id]||'contenido';
+  if(tab==='esquema'&&!hasSec)tab='contenido';
+  const tabs=[['contenido','Contenido'],...(hasSec?[['esquema','Esquema']]:[]),['tarjetas',`Tarjetas <span class="chip">${cards.length}</span>`]];
+  return `<details class="s" data-tema="${t.id}" ${ui.open[t.id]?'open':''}>
+    <summary><span class="temaHead"><span class="tt">📝 ${esc(t.title)||'(tema sin título)'}</span><span class="chips">${hasSec?`<span class="chip">${t.secciones.length} sección${t.secciones.length==1?'':'es'}</span>`:''}<span class="chip">${cards.length} tarjeta${cards.length==1?'':'s'}</span></span></span>
       <button class="icon-btn" data-action="delTema" data-id="${t.id}" title="Eliminar tema">🗑️</button>
     </summary>
     <div class="b">
-      <input class="fld" data-action="editTemaTitle" data-id="${t.id}" value="${esc(t.title)}" placeholder="Título del tema">
-      ${Array.isArray(t.secciones)
-        ? `<div class="secList">${t.secciones.map(sc=>secBlock(t.id,sc)).join('')}</div>
-           <button class="sec" data-action="addSec" data-id="${t.id}">+ Agregar sección</button>`
-        : `<textarea class="fld" data-action="editTemaBody" data-id="${t.id}" placeholder="Escribe aquí tus apuntes de este tema…">${esc(t.body)}</textarea>`}
-      <h4 style="margin:14px 0 6px">🃏 Tarjetas de estudio</h4>
-      <p class="meta" style="margin-top:0">Frente = término o pregunta. Reverso = definición o respuesta. Con estas se arman Flashcards, Quiz, etc.</p>
-      <div class="cardList">${cards.map(cardRow).join('')||'<p class="meta">Sin tarjetas todavía.</p>'}</div>
-      <button class="sec" data-action="addCard" data-tema="${t.id}" data-mat="${t.materiaId}">+ Agregar tarjeta</button>
+      <input class="fld tituloTema" data-action="editTemaTitle" data-id="${t.id}" value="${esc(t.title)}" placeholder="Título del tema">
+      <div class="tabsT">${tabs.map(([k,l])=>`<button type="button" data-action="temaTab" data-id="${t.id}" data-tab="${k}" class="${tab===k?'on':''}">${l}</button>`).join('')}</div>
+      <div class="tp" data-panel="contenido" ${tab==='contenido'?'':'hidden'}>
+        ${hasSec&&t.body?`<div class="resumenCard"><small>Resumen</small><p>${esc(t.body)}</p></div>`:''}
+        ${hasSec
+          ? `<div class="secList">${t.secciones.map(sc=>secBlock(t.id,sc)).join('')}</div>
+             <button class="sec" data-action="addSec" data-id="${t.id}">+ Agregar sección</button>`
+          : `<textarea class="fld" data-action="editTemaBody" data-id="${t.id}" placeholder="Escribe aquí tus apuntes de este tema…">${esc(t.body)}</textarea>`}
+      </div>
+      ${hasSec?`<div class="tp" data-panel="esquema" ${tab==='esquema'?'':'hidden'}>${esquemaHTML(t)}</div>`:''}
+      <div class="tp" data-panel="tarjetas" ${tab==='tarjetas'?'':'hidden'}>
+        <p class="meta tarjIntro">Frente = término o pregunta. Reverso = definición o respuesta. Con estas se arman Flashcards, Quiz, etc.</p>
+        <div class="cardList">${cards.map(cardRow).join('')||'<p class="meta">Sin tarjetas todavía.</p>'}</div>
+        <button class="sec" data-action="addCard" data-tema="${t.id}" data-mat="${t.materiaId}">+ Agregar tarjeta</button>
+      </div>
     </div>
   </details>`;
 }
 function secBlock(temaId,sc){
-  return `<details class="secAcc" data-sec="${sc.id}">
-    <summary><span class="sn">${esc(sc.title)||'(sección sin título)'}</span></summary>
+  return `<details class="secAcc" data-sec="${sc.id}" ${ui.sec[sc.id]?'open':''}>
+    <summary><span class="sn"><b class="st">${esc(sc.title)||'(sección sin título)'}</b><small class="sp">${esc((sc.body||'').slice(0,120))}</small></span></summary>
     <div class="b">
-      <div class="secTools">
+      <div class="secRead">${secReadHTML(sc)}</div>
+      <div class="secEdit">
+        <label class="lbl">Título de la sección</label>
         <input class="fld" data-action="editSecTitle" data-id="${temaId}" data-sid="${sc.id}" value="${esc(sc.title)}" placeholder="Título de la sección">
-        <button class="icon-btn" data-action="delSec" data-id="${temaId}" data-sid="${sc.id}" title="Eliminar sección">🗑️</button>
+        <label class="lbl">Contenido</label>
+        <textarea class="fld" data-action="editSecBody" data-id="${temaId}" data-sid="${sc.id}" placeholder="Contenido de la sección…">${esc(sc.body)}</textarea>
+        <label class="lbl">Ideas clave (una por línea, alimentan el esquema)</label>
+        <textarea class="fld" data-action="editSecPuntos" data-id="${temaId}" data-sid="${sc.id}" placeholder="Una idea corta por línea…">${esc((Array.isArray(sc.puntos)?sc.puntos:[]).join('\n'))}</textarea>
       </div>
-      <textarea class="fld" data-action="editSecBody" data-id="${temaId}" data-sid="${sc.id}" placeholder="Contenido de la sección…">${esc(sc.body)}</textarea>
+      <div class="secFoot">
+        <button class="sec" data-action="editSec" data-id="${temaId}" data-sid="${sc.id}"><span class="lbRead">✏️ Editar</span><span class="lbEdit">✓ Listo</span></button>
+        <button class="sec" data-action="delSec" data-id="${temaId}" data-sid="${sc.id}">🗑️ Eliminar</button>
+      </div>
     </div>
   </details>`;
 }
 function cardRow(c){
   return `<div class="cardRow" data-card="${c.id}">
-    <input class="fld sm" data-action="editCardFront" data-id="${c.id}" value="${esc(c.front)}" placeholder="Frente (término / pregunta)">
-    <input class="fld sm" data-action="editCardBack" data-id="${c.id}" value="${esc(c.back)}" placeholder="Reverso (definición / respuesta)">
+    <span class="cl">Frente</span><input class="fld sm cf" data-action="editCardFront" data-id="${c.id}" value="${esc(c.front)}" placeholder="Frente (término / pregunta)">
+    <span class="cl">Reverso</span><input class="fld sm" data-action="editCardBack" data-id="${c.id}" value="${esc(c.back)}" placeholder="Reverso (definición / respuesta)">
     <button class="icon-btn" data-action="delCard" data-id="${c.id}" title="Eliminar tarjeta">🗑️</button>
   </div>`;
 }
@@ -864,6 +977,24 @@ document.addEventListener('click',e=>{
   else if(a==='addTema'){
     mutate(s=>s.temas.unshift({id:uid(),materiaId:b.dataset.mat,title:'',body:'',updatedAt:Date.now()}));
   }
+  else if(a==='temaTab'){
+    ui.tab[b.dataset.id]=b.dataset.tab;
+    const box=b.closest('.b');
+    box.querySelectorAll('.tabsT button').forEach(x=>x.classList.toggle('on',x===b));
+    box.querySelectorAll('.tp').forEach(p=>{p.hidden=p.dataset.panel!==b.dataset.tab});
+  }
+  else if(a==='editSec'){
+    const el=b.closest('.secAcc');
+    if(el.classList.contains('editing')){
+      const t=state.temas.find(x=>x.id===b.dataset.id),sc=t&&t.secciones&&t.secciones.find(x=>x.id===b.dataset.sid);
+      if(sc){
+        el.querySelector('.secRead').innerHTML=secReadHTML(sc);
+        const pan=el.closest('.b').querySelector('[data-panel="esquema"]');
+        if(pan)pan.innerHTML=esquemaHTML(t);
+      }
+      el.classList.remove('editing');
+    }else{el.classList.add('editing');el.querySelectorAll('textarea').forEach(fitTA)}
+  }
   else if(a==='addSec'){
     mutate(s=>{const t=s.temas.find(x=>x.id===b.dataset.id);if(t){t.secciones=t.secciones||[];t.secciones.push({id:uid(),title:'',body:''});t.updatedAt=Date.now()}});
   }
@@ -948,14 +1079,20 @@ document.addEventListener('input',e=>{
     const t=state.temas.find(x=>x.id===id);if(!t)return;
     t.body=e.target.value;t.updatedAt=Date.now();persist();
   }
+  else if(a==='editSecPuntos'){
+    const t=state.temas.find(x=>x.id===id);
+    const sc=t&&t.secciones&&t.secciones.find(x=>x.id===e.target.dataset.sid);if(!sc)return;
+    sc.puntos=e.target.value.split('\n').map(x=>x.trim()).filter(Boolean);
+    t.updatedAt=Date.now();persist();
+  }
   else if(a==='editSecTitle'||a==='editSecBody'){
     const t=state.temas.find(x=>x.id===id);if(!t||!t.secciones)return;
     const sc=t.secciones.find(x=>x.id===e.target.dataset.sid);if(!sc)return;
     if(a==='editSecTitle'){
       sc.title=e.target.value;
-      const sn=e.target.closest('details')?.querySelector('summary .sn');
+      const sn=e.target.closest('details')?.querySelector('summary .st');
       if(sn)sn.textContent=sc.title||'(sección sin título)';
-    }else sc.body=e.target.value;
+    }else{sc.body=e.target.value;const sp=e.target.closest('details')?.querySelector('summary .sp');if(sp)sp.textContent=sc.body.slice(0,120)}
     t.updatedAt=Date.now();persist();
   }
   else if(a==='editCorteName'){
@@ -993,6 +1130,14 @@ document.addEventListener('change',e=>{
     toolState.materiaId2=e.target.value;persist();render();
   }
 });
+
+/* Auto-ajuste de altura de las secciones (solo estético) */
+function fitTA(t){t.style.height='auto';t.style.height=(t.scrollHeight+4)+'px'}
+document.addEventListener('toggle',e=>{const d=e.target;if(!d.matches||!d.matches('details'))return;
+  if(d.dataset.tema)ui.open[d.dataset.tema]=d.open;
+  if(d.dataset.sec)ui.sec[d.dataset.sec]=d.open;
+},true);
+document.addEventListener('input',e=>{if(e.target.matches&&e.target.matches('.secAcc textarea'))fitTA(e.target)});
 
 /* ================= IA: SUBIR PDF/PPTX Y GENERAR TEMA + TARJETAS ================= */
 async function extraerTextoPDF(file){
@@ -1073,7 +1218,7 @@ document.addEventListener('change',async e=>{
 
     mutate(s=>{
       const temaId=uid();
-      const secs=Array.isArray(data.secciones)?data.secciones.filter(x=>x&&x.titulo&&x.contenido).map(x=>({id:uid(),title:String(x.titulo),body:String(x.contenido)})):[];
+      const secs=Array.isArray(data.secciones)?data.secciones.filter(x=>x&&x.titulo&&x.contenido).map(x=>({id:uid(),title:String(x.titulo),body:String(x.contenido),puntos:Array.isArray(x.puntos)?x.puntos.map(p=>String(p).trim()).filter(Boolean).slice(0,6):[]})):[];
       const tema={id:temaId,materiaId,title:data.titulo,body:data.resumen||'',updatedAt:Date.now()};
       if(secs.length)tema.secciones=secs;
       s.temas.unshift(tema);
