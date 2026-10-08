@@ -8,7 +8,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  
 :root{
   --bg:#f5f1e8;--c:#fffdf8;--t:#25211d;--m:#8a7f70;--a:#7a2e2c;--al:#f2e2dc;--b:#e6ddc9;--ok:#3f7d5c;--no:#a8433a;
   --serif:'Fraunces',Georgia,"Times New Roman",serif;--sans:'Inter',system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -72,7 +71,7 @@ textarea{min-height:110px;resize:vertical;font-family:inherit}
 .avBtn{border:2px solid var(--b);background:var(--c);border-radius:10px;width:42px;height:42px;font-size:1.2em}
 .avBtn.on{border-color:var(--a);background:var(--al)}
 .empty{border:1px dashed var(--b);border-radius:14px;padding:24px;text-align:center;color:var(--m)}
-/* Codigo Hecho de parte de Sebastián Poveda y Santiago Romero. 2026 */
+
 /* Study tools */
 .toolGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin:10px 0 4px}
 .flashcard{perspective:1200px;height:220px;margin:18px 0;cursor:pointer}
@@ -126,7 +125,7 @@ main#view{max-width:900px;margin:0 auto;padding:20px 16px 70px;animation:f .25s}
 .dcell.today{border-color:var(--a);font-weight:700}
 .dcell.sel{background:var(--al);border-color:var(--a)}
 .dcell .dot{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--a)}
-/* Codigo Hecho de parte de Sebastián Poveda y Santiago Romero. 2026 aaa*/
+
 /* ===== Mejora estética de temas y tarjetas (solo diseño) ===== */
 .temaList{display:flex;flex-direction:column;gap:16px}
 .temaList>.s{background:var(--c);margin-bottom:0;border-radius:18px;box-shadow:0 14px 30px -24px rgba(60,40,20,.45)}
@@ -234,7 +233,7 @@ select.fld{font:inherit;color:inherit;background:var(--bg);border:1px solid var(
     <p id="authLoading" class="meta" hidden>Conectando…</p>
   </div>
 </div>
-  
+
 <div id="appRoot" hidden>
   <header id="topbar">
     <b id="ct">📚 Mi cuaderno</b>
@@ -264,8 +263,11 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dis
 window.pdfjsLib = pdfjsLib;
 </script>
 <script>
-/* Codigo Hecho de parte de Sebastián Poveda y Santiago Romero. 2026 */
 
+/* ======================================================================
+   PEGA AQUÍ LA CONFIGURACIÓN DE TU PROYECTO DE FIREBASE
+   (Firebase console > ⚙️ Configuración del proyecto > Tus apps > Config)
+   ====================================================================== */
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyAAPnrXUzON42Hmtb4hOxQqTTQ1HBv0nR0",
   authDomain: "mi-cuaderno-904fa.firebaseapp.com",
@@ -470,7 +472,7 @@ function render(){
   else if(route.view==='perfil')view.innerHTML=viewPerfilHTML();
   window.scrollTo(0,0);
 }
-/* Codigo Hecho de parte de Sebastián Poveda y Santiago Romero. 2026 */
+
 /* ================= HELPERS DE DATOS ================= */
 const scaleMax=()=>+(state.profile&&state.profile.scale)||5;
 function fmtN(n){return(+n).toLocaleString('es',{minimumFractionDigits:0,maximumFractionDigits:scaleMax()>10?1:2})}
@@ -718,7 +720,7 @@ function relTime(ts){
   const mo=Math.round(d/30);return mo===1?'hace 1 mes':`hace ${mo} meses`;
 }
 function noCardsMsg(){return'<div class="empty">Esta materia todavía no tiene tarjetas con frente y reverso completos. Agregá algunas desde sus temas.</div>'}
-/* Codigo Hecho de parte de Sebastián Poveda y Santiago Romero. 2026 */
+
 function startTool(tool,materiaId){
   clearRepasoTimer();
   const cards=getCards(materiaId);
@@ -891,7 +893,7 @@ function toolProgresoHTML(m){
   <h3>Historial de quiz y exámenes</h3>
   ${attempts.length?attempts.map(a=>`<div class="li"><span>${a.type==='examen'?'📝':'❓'} ${a.score}/${a.total}</span><small>${relTime(a.date)}</small></div>`).join(''):'<p class="meta">Todavía no hiciste ningún quiz o examen en esta materia.</p>'}`;
 }
-/* Codigo Hecho de parte de Sebastián Poveda y Santiago Romero. 2026 */
+
 function toolReferenciasHTML(m){
   return `
   <div class="viewhead"><h1>📚 Referencias</h1></div>
@@ -1088,7 +1090,6 @@ document.addEventListener('click',e=>{
   else if(a==='delCard'){
     if(confirm('¿Eliminar esta tarjeta?'))mutate(s=>s.cards=s.cards.filter(c=>c.id!==b.dataset.id));
   }
-    /* Codigo Hecho de parte de Sebastián Poveda y Santiago Romero. 2026 */
   else if(a==='addCorte'){
     const name=prompt('Nombre del nuevo corte:','Corte '+(state.cortes.filter(c=>c.materiaId===b.dataset.mat).length+1));
     if(name&&name.trim())mutate(s=>{
@@ -1319,7 +1320,7 @@ document.addEventListener('change',async e=>{
     try{ data=await resp.json(); }catch(e){ data=null; }
 
     if(!resp.ok||!data){
-      statusEl.textContent='❌ '+((data&&data.error)||'Ocurrió un error al generar el tema. Probá de nuevo.');
+      statusEl.textContent='❌ '+((data&&data.error)||('El servidor no pudo completar la petición (código '+resp.status+'). Suele pasar cuando la IA tarda demasiado; prueba con un archivo más corto o inténtalo de nuevo.'));
       btn.disabled=false; return;
     }
     if(!data.titulo||!Array.isArray(data.tarjetas)){
