@@ -36,7 +36,7 @@ async function llamarGemini(apiKey, prompt) {
   }
   return ultima;
 }
-
+// Codigo Hecho de parte de Sebastián Poveda y Santiago Romero. 2026
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Método no permitido.' }) };
@@ -59,7 +59,7 @@ exports.handler = async (event) => {
   if (!texto.trim()) {
     return { statusCode: 400, body: JSON.stringify({ error: 'No llegó texto para analizar.' }) };
   }
-
+// Codigo Hecho de parte de Sebastián Poveda y Santiago Romero. 2026
   // Tope de seguridad: no mandamos textos gigantes a la IA (cuesta más y no hace falta).
   const textoRecortado = texto.slice(0, 25000);
 
@@ -90,7 +90,7 @@ TEXTO A ANALIZAR:
 """
 ${textoRecortado}
 """`;
-
+// Codigo Hecho de parte de Sebastián Poveda y Santiago Romero. 2026
   try {
     const resp = await llamarGemini(apiKey, prompt);
 
