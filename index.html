@@ -194,6 +194,24 @@ main#view{max-width:900px;margin:0 auto;padding:20px 16px 70px;animation:f .25s}
 .esqLeaves{list-style:none;margin:10px 0 0 18px;padding:0 0 0 20px;border-left:2px dotted var(--b);display:flex;flex-direction:column;gap:8px}
 .esqLeaves li{position:relative;background:var(--bg);border:1px solid var(--b);border-radius:10px;padding:8px 12px;font-size:.92em;line-height:1.5}
 .esqLeaves li::before{content:'';position:absolute;left:-20px;top:50%;width:20px;border-top:2px dotted var(--b)}
+
+/* ===== Cortes como carpetas ===== */
+select.fld{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--b);border-radius:10px;padding:9px 12px;width:100%}
+.folder{background:var(--c);border:1px solid var(--b);border-radius:18px;margin-bottom:14px;overflow:hidden;box-shadow:0 14px 30px -24px rgba(60,40,20,.45)}
+.folder[open]{border-color:color-mix(in srgb,var(--a) 55%,var(--b))}
+.folder>summary{cursor:pointer;list-style:none;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.folder>summary::-webkit-details-marker{display:none}
+.fHead{display:flex;flex-direction:column;gap:8px;min-width:0;flex:1}
+.fHead .ft{font-family:var(--serif);font-size:1.2em;font-weight:500;line-height:1.3}
+.fAct{display:flex;gap:6px;flex:none}
+.folder>.b{padding:2px 18px 20px}
+.chipOk{color:var(--ok);border-color:var(--ok)}
+.corteEdit{display:none;background:var(--bg);border:1px solid var(--b);border-radius:14px;padding:6px 14px 12px;margin:0 0 16px}
+.folder.editing .corteEdit{display:block}
+.corteGrid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}
+@media(max-width:560px){.corteGrid{grid-template-columns:1fr 1fr}.corteGrid>:first-child{grid-column:1/-1}}
+.goalBar{position:relative;height:12px}
+.goalMark{position:absolute;top:-2px;bottom:-2px;width:3px;margin-left:-1px;background:var(--t);opacity:.75;border-radius:2px}
 </style>
 </head>
 <body>
@@ -279,7 +297,7 @@ const AV=['🎓','📚','🦉','🐱','🦊','🐼','🌸','⭐','🔥','🌙'];
 
 /* ================= ESTADO ================= */
 function defaultState(){return{
-  profile:{name:'',career:'',avatar:'🎓',examDate:'',goal:80,notes:''},
+  profile:{name:'',career:'',avatar:'🎓',examDate:'',scale:5,goal:4,notes:''},
   theme:null,
   semesters:[{id:uid(),name:'Semestre 1'}],
   materias:[],
@@ -289,7 +307,27 @@ function defaultState(){return{
   attempts:[],
   events:[]
 }}
+const CORTES_DEFECTO=[['Corte 1',30],['Corte 2',30],['Corte 3',40]];
+/* Garantiza: escala de notas, al menos un corte por materia y que cada tema esté dentro de un corte. */
+function ensureCortes(){
+  let changed=false;
+  const pf=state.profile=state.profile||{};
+  if(pf.scale==null){const g=+pf.goal;pf.scale=g>10?100:(g>5?10:5);changed=true}
+  if(!(+pf.goal>=0)){pf.goal=pf.scale===100?80:(pf.scale===10?8:4);changed=true}
+  state.cortes=state.cortes||[];state.temas=state.temas||[];
+  (state.materias||[]).forEach(m=>{
+    let cs=state.cortes.filter(c=>c.materiaId===m.id);
+    if(!cs.length){
+      CORTES_DEFECTO.forEach(([name,weight])=>state.cortes.push({id:uid(),materiaId:m.id,name,weight,score:null}));
+      cs=state.cortes.filter(c=>c.materiaId===m.id);changed=true;
+    }
+    const ids=new Set(cs.map(c=>c.id));
+    state.temas.forEach(t=>{if(t.materiaId===m.id&&!ids.has(t.corteId)){t.corteId=cs[0].id;changed=true}});
+  });
+  return changed;
+}
 function normalizeState(){
+  if(ensureCortes())scheduleCloud();
   state.cards=state.cards||[];
   state.attempts=state.attempts||[];
   state.events=state.events||[];
@@ -342,7 +380,7 @@ async function hydrateFromCloud(u){
 }
 
 /* mutate(): cambio estructural -> guarda + sincroniza + vuelve a pintar */
-function mutate(fn){fn(state);saveLocal();scheduleCloud();render()}
+function mutate(fn){fn(state);ensureCortes();saveLocal();scheduleCloud();render()}
 /* persist(): cambio de texto (inputs) -> guarda + sincroniza SIN repintar, para no perder el foco */
 function persist(){saveLocal();scheduleCloud()}
 
@@ -436,6 +474,20 @@ function render(){
 }
 
 /* ================= HELPERS DE DATOS ================= */
+const scaleMax=()=>+(state.profile&&state.profile.scale)||5;
+function fmtN(n){return(+n).toLocaleString('es',{minimumFractionDigits:0,maximumFractionDigits:scaleMax()>10?1:2})}
+function corteStats(cortes){
+  const scale=scaleMax(),goal=clamp(+state.profile.goal||0,0,scale);
+  const W=cortes.reduce((a,c)=>a+(+c.weight||0),0);
+  const scored=cortes.filter(c=>c.score!=null&&c.score!=='');
+  const Ws=scored.reduce((a,c)=>a+(+c.weight||0),0);
+  const sum=scored.reduce((a,c)=>a+(+c.score)*(+c.weight||0),0);
+  const acum=W>0?sum/W:0;
+  const avg=Ws>0?sum/Ws:null;
+  const remW=W>0?(W-Ws)/W:0;
+  const need=remW>0.0001?(goal-acum)/remW:null;
+  return{scale,goal,W,Ws,acum,avg,remW,need,n:scored.length};
+}
 function weightedAvg(cortes){
   const scored=cortes.filter(c=>c.score!=null && c.score!=='');
   const totalW=scored.reduce((a,c)=>a+(+c.weight||0),0);
@@ -474,7 +526,7 @@ function materiaCard(m){
   const avg=weightedAvg(cortes);
   return `<div class="card matCard">
     <h3>${esc(m.icon||'📘')} ${esc(m.name)}</h3>
-    <p class="meta">${temasCount} tema${temasCount==1?'':'s'} · ${avg==null?'sin notas registradas':'promedio '+avg.toFixed(1)}</p>
+    <p class="meta">${temasCount} tema${temasCount==1?'':'s'} · ${avg==null?'sin notas registradas':'promedio '+fmtN(avg)+' / '+fmtN(scaleMax())}</p>
     <div class="row">
       <button class="sec" data-action="openMateria" data-id="${m.id}">Abrir →</button>
       <button class="icon-btn" data-action="renameMateria" data-id="${m.id}" title="Editar materia">✏️</button>
@@ -487,32 +539,28 @@ function materiaCard(m){
 function viewMateriaDetailHTML(materiaId){
   const m=state.materias.find(x=>x.id===materiaId);
   if(!m){goToView('materias');return'';}
-  const temas=state.temas.filter(t=>t.materiaId===materiaId).sort((a,b)=>b.updatedAt-a.updatedAt);
   const cortes=state.cortes.filter(c=>c.materiaId===materiaId);
-  const avg=weightedAvg(cortes);
-  const goal=state.profile.goal||80;
+  const iaSel=cortes.some(c=>c.id===ui.iaCorte)?ui.iaCorte:(cortes[0]&&cortes[0].id);
   return `
     <button class="sec" data-action="backMaterias">← Mis materias</button>
     <div class="viewhead" style="margin-top:14px"><h1>${esc(m.icon||'📘')} ${esc(m.name)}</h1></div>
 
     <section>
-      <div class="viewhead"><h2>📝 Temas</h2><button class="pr" data-action="addTema" data-mat="${materiaId}">+ Agregar tema</button></div>
+      <div class="viewhead"><h2>📁 Cortes</h2><button class="pr" data-action="addCorte" data-mat="${materiaId}">+ Agregar corte</button></div>
+      <div class="card notasBox" style="margin-bottom:14px">
+        <b style="font-size:.9em">🧮 Mi promedio en esta materia</b>
+        <div id="corteAvgBox" style="margin-top:8px">${corteAvgHTML(cortes)}</div>
+      </div>
       <div class="card" style="margin-bottom:14px">
         <b style="font-size:.9em">🤖 Generar tema con IA</b>
-        <p class="meta" style="margin-top:4px">Subí un PDF o una presentación (.pptx) de esta materia y la IA lo analiza, organiza el contenido en secciones según lo que trae el archivo y crea tarjetas de estudio.</p>
+        <p class="meta" style="margin-top:4px">Sube un PDF o una presentación (.pptx), elige en qué corte guardarlo y la IA organiza el contenido en secciones y crea las tarjetas.</p>
+        <label class="lbl" for="iaCorte">Guardar en</label>
+        <select class="fld" id="iaCorte" data-action="iaCorteSel">${cortes.map(c=>`<option value="${c.id}" ${c.id===iaSel?'selected':''}>${esc(c.name)||'(corte sin nombre)'}</option>`).join('')}</select>
         <input type="file" id="iaFileInput" accept=".pdf,.pptx" data-mat="${materiaId}" style="display:none">
-        <button class="sec" id="iaUploadBtn" data-action="iaPickFile">📎 Subir PDF o PPTX</button>
+        <button class="sec" id="iaUploadBtn" data-action="iaPickFile" style="margin-top:10px">📎 Subir PDF o PPTX</button>
         <div id="iaStatus" class="meta" style="margin-top:8px"></div>
       </div>
-      <div class="temaList">${temas.map(temaBlock).join('')||'<div class="empty">Aún no agregas temas en esta materia.</div>'}</div>
-    </section>
-
-    <section style="margin-top:22px">
-      <div class="viewhead"><h2>🧮 Cortes / notas</h2><button class="pr" data-action="addCorte" data-mat="${materiaId}">+ Agregar corte</button></div>
-      <div class="card">
-        ${cortes.length?cortes.map(corteRow).join(''):'<p class="meta">Aún no agregas cortes. Un corte tiene nombre, peso (%) y la nota obtenida.</p>'}
-        <div id="corteAvgBox">${corteAvgHTML(avg,goal)}</div>
-      </div>
+      ${cortes.map(c=>corteFolder(c,materiaId)).join('')}
     </section>
 
     <section style="margin-top:22px">
@@ -532,16 +580,53 @@ function viewMateriaDetailHTML(materiaId){
     </section>
   `;
 }
-function corteAvgHTML(avg,goal){
-  if(avg==null)return'';
-  const ok=avg>=goal;
-  return `<div class="bar"><i style="width:${clamp(avg,0,100)}%;background:${ok?'var(--ok)':'var(--no)'}"></i></div>
-  <p class="meta">Promedio ponderado: <b style="color:${ok?'var(--ok)':'var(--no)'}">${avg.toFixed(1)}</b> · meta ${goal}</p>`;
+function corteFolder(c,materiaId){
+  const temas=state.temas.filter(t=>t.corteId===c.id).sort((a,b)=>b.updatedAt-a.updatedAt);
+  const hasScore=c.score!=null&&c.score!=='';
+  const open=ui.open[c.id]!==false;
+  return `<details class="folder" data-corte="${c.id}" ${open?'open':''}>
+    <summary>
+      <span class="fHead"><span class="ft">📁 ${esc(c.name)||'(corte sin nombre)'}</span>
+        <span class="chips"><span class="chip">${temas.length} tema${temas.length==1?'':'s'}</span><span class="chip">${fmtN(+c.weight||0)}%</span>${hasScore?`<span class="chip chipOk">Nota ${fmtN(c.score)}</span>`:''}</span></span>
+      <span class="fAct">
+        <button class="icon-btn" data-action="editCorte" data-id="${c.id}" title="Editar corte">✏️</button>
+        <button class="icon-btn" data-action="delCorte" data-id="${c.id}" title="Eliminar corte">🗑️</button>
+      </span>
+    </summary>
+    <div class="b">
+      <div class="corteEdit">
+        <div class="corteGrid">
+          <div><label class="lbl">Nombre del corte</label><input class="fld" data-action="editCorteName" data-id="${c.id}" value="${esc(c.name)}" placeholder="Ej. Corte 1"></div>
+          <div><label class="lbl">Peso (%)</label><input class="fld" type="number" min="0" max="100" step="1" data-action="editCorteWeight" data-id="${c.id}" value="${c.weight}"></div>
+          <div><label class="lbl">Nota (0 a ${fmtN(scaleMax())})</label><input class="fld" type="number" min="0" max="${scaleMax()}" step="0.1" data-action="editCorteScore" data-id="${c.id}" value="${c.score??''}" placeholder="Sin nota"></div>
+        </div>
+        <div class="secFoot"><button class="sec" data-action="doneCorte" data-id="${c.id}">✓ Listo</button></div>
+      </div>
+      <div class="temaList">${temas.map(temaBlock).join('')||'<div class="empty">Este corte aún no tiene temas.</div>'}</div>
+      <button class="pr" style="margin-top:12px" data-action="addTema" data-mat="${materiaId}" data-corte="${c.id}">+ Agregar tema</button>
+    </div>
+  </details>`;
+}
+function corteAvgHTML(cortes){
+  const k=corteStats(cortes);
+  const pct=k.avg==null?0:clamp(k.avg/k.scale*100,0,100);
+  const gpct=clamp(k.goal/k.scale*100,0,100);
+  const ok=k.avg!=null&&k.avg>=k.goal;
+  let msg='';
+  if(k.W<=0)msg='Asigna un peso (%) a tus cortes para calcular el promedio.';
+  else if(k.need==null)msg=k.acum>=k.goal-1e-9?'🎉 Cumpliste tu meta.':'No alcanzaste la meta de '+fmtN(k.goal)+'.';
+  else if(k.need<=0)msg='🎉 Ya aseguraste tu meta, aunque sacaras 0 en lo que falta.';
+  else if(k.need>k.scale+1e-9)msg='Con lo que falta ya no alcanzas la meta (necesitarías '+fmtN(Math.ceil(k.need*100)/100)+' y el máximo es '+fmtN(k.scale)+').';
+  else msg='Necesitas sacar al menos <b>'+fmtN(Math.ceil(k.need*100)/100)+'</b> de promedio en lo que falta ('+Math.round(k.remW*100)+'% restante) para llegar a tu meta.';
+  const warn=k.W>0&&Math.abs(k.W-100)>0.01?`<p class="meta" style="color:var(--no)">⚠️ Los pesos suman ${fmtN(k.W)}%, deberían sumar 100%.</p>`:'';
+  return `<div class="bar goalBar"><i style="width:${pct}%;background:${ok?'var(--ok)':'var(--a)'}"></i><span class="goalMark" style="left:${gpct}%" title="Meta"></span></div>
+  <p class="meta" style="margin:6px 0">${k.avg==null?'Registra la nota de un corte para ver tu promedio.':`Promedio de lo evaluado: <b style="color:${ok?'var(--ok)':'var(--t)'}">${fmtN(k.avg)}</b> / ${fmtN(k.scale)} · meta ${fmtN(k.goal)}`}</p>
+  <p class="meta" style="margin:0">${msg}</p>${warn}`;
 }
 function refreshCorteAvg(materiaId){
   const cortes=state.cortes.filter(c=>c.materiaId===materiaId);
   const box=$('corteAvgBox');
-  if(box)box.innerHTML=corteAvgHTML(weightedAvg(cortes),state.profile.goal||80);
+  if(box)box.innerHTML=corteAvgHTML(cortes);
 }
 const ui={open:{},sec:{},tab:{}};
 function fmtBody(txt){
@@ -625,15 +710,6 @@ function cardRow(c){
     <button class="icon-btn" data-action="delCard" data-id="${c.id}" title="Eliminar tarjeta">🗑️</button>
   </div>`;
 }
-function corteRow(c){
-  return `<div class="corteRow" data-corte="${c.id}">
-    <input class="fld sm" data-action="editCorteName" data-id="${c.id}" value="${esc(c.name)}" placeholder="Nombre (ej. Corte 1)">
-    <input class="fld xs" type="number" min="0" max="100" data-action="editCorteWeight" data-id="${c.id}" value="${c.weight}" title="Peso %">
-    <input class="fld xs" type="number" min="0" max="100" data-action="editCorteScore" data-id="${c.id}" value="${c.score??''}" placeholder="Nota" title="Nota obtenida">
-    <button class="icon-btn" data-action="delCorte" data-id="${c.id}" title="Eliminar corte">🗑️</button>
-  </div>`;
-}
-
 /* ================= HERRAMIENTAS DE ESTUDIO ================= */
 function shuffle(arr){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function getCards(materiaId){return state.cards.filter(c=>c.materiaId===materiaId && c.front.trim() && c.back.trim())}
@@ -872,7 +948,7 @@ function viewPerfilHTML(){
       <div class="pgs">
         <div><b>${state.materias.length}</b>materias</div>
         <div><b>${state.temas.length}</b>temas</div>
-        <div><b>${globalAvg==null?'—':globalAvg.toFixed(1)}</b>promedio global</div>
+        <div><b>${globalAvg==null?'—':fmtN(globalAvg)}</b>promedio global</div>
       </div>
     </div>
     <div class="card"><h3>Avatar</h3><div class="avatarPicker">${AV.map(a=>`<button class="avBtn ${a===p.avatar?'on':''}" data-action="setAvatar" data-a="${a}">${a}</button>`).join('')}</div></div>
@@ -882,7 +958,11 @@ function viewPerfilHTML(){
       <label class="lbl">Carrera y universidad</label><input class="fld" data-action="profileField" data-f="career" value="${esc(p.career)}" maxlength="80">
       <div class="two">
         <div><label class="lbl">Próximo examen</label><input class="fld" type="date" data-action="profileField" data-f="examDate" value="${p.examDate||''}"></div>
-        <div><label class="lbl">Meta de promedio</label><input class="fld" type="number" min="1" max="100" data-action="profileField" data-f="goal" value="${p.goal}"></div>
+        <div><label class="lbl">Escala de notas</label><select class="fld" data-action="setScale">${[5,10,100].map(n=>`<option value="${n}" ${scaleMax()===n?'selected':''}>0 a ${n}</option>`).join('')}</select></div>
+      </div>
+      <div class="two">
+        <div><label class="lbl">Meta de promedio (sobre ${scaleMax()})</label><input class="fld" type="number" min="0" max="${scaleMax()}" step="0.1" data-action="profileField" data-f="goal" value="${p.goal}"></div>
+        <div></div>
       </div>
       <label class="lbl">Notas personales</label><textarea class="fld" data-action="profileField" data-f="notes" placeholder="Ideas, dudas, recordatorios…">${esc(p.notes)}</textarea>
     </div>
@@ -975,7 +1055,7 @@ document.addEventListener('click',e=>{
   else if(a==='backMaterias')goToView('materias');
   else if(a==='backMateria'){route={view:'materiaDetail',materiaId:b.dataset.id};render();}
   else if(a==='addTema'){
-    mutate(s=>s.temas.unshift({id:uid(),materiaId:b.dataset.mat,title:'',body:'',updatedAt:Date.now()}));
+    mutate(s=>{ui.open[b.dataset.corte]=true;s.temas.unshift({id:uid(),materiaId:b.dataset.mat,corteId:b.dataset.corte,title:'',body:'',updatedAt:Date.now()})});
   }
   else if(a==='temaTab'){
     ui.tab[b.dataset.id]=b.dataset.tab;
@@ -1011,13 +1091,30 @@ document.addEventListener('click',e=>{
     if(confirm('¿Eliminar esta tarjeta?'))mutate(s=>s.cards=s.cards.filter(c=>c.id!==b.dataset.id));
   }
   else if(a==='addCorte'){
-    mutate(s=>{
-      const n=s.cortes.filter(c=>c.materiaId===b.dataset.mat).length+1;
-      s.cortes.push({id:uid(),materiaId:b.dataset.mat,name:'Corte '+n,weight:25,score:null});
+    const name=prompt('Nombre del nuevo corte:','Corte '+(state.cortes.filter(c=>c.materiaId===b.dataset.mat).length+1));
+    if(name&&name.trim())mutate(s=>{
+      const mine=s.cortes.filter(c=>c.materiaId===b.dataset.mat);
+      const used=mine.reduce((x,c)=>x+(+c.weight||0),0);
+      const id=uid();ui.open[id]=true;
+      s.cortes.push({id,materiaId:b.dataset.mat,name:name.trim(),weight:Math.max(0,100-used),score:null});
     });
   }
+  else if(a==='editCorte'||a==='doneCorte'){
+    const el=b.closest('.folder');
+    if(el.classList.contains('editing')){el.classList.remove('editing');render();}
+    else{el.classList.add('editing');el.open=true;const i=el.querySelector('.corteEdit input');if(i)i.focus();}
+  }
   else if(a==='delCorte'){
-    if(confirm('¿Eliminar este corte?'))mutate(s=>{s.cortes=s.cortes.filter(c=>c.id!==b.dataset.id);refreshCorteAvg(route.materiaId)});
+    const id=b.dataset.id,c=state.cortes.find(x=>x.id===id);if(!c)return;
+    if(state.cortes.filter(x=>x.materiaId===c.materiaId).length<=1){alert('Cada materia necesita al menos un corte. Puedes editar este en lugar de eliminarlo.');return;}
+    const n=state.temas.filter(t=>t.corteId===id).length;
+    const msg=n?`¿Eliminar "${c.name}" junto con sus ${n} tema${n==1?'':'s'} y sus tarjetas? Esta acción no se puede deshacer.`:`¿Eliminar "${c.name}"?`;
+    if(confirm(msg))mutate(s=>{
+      const ids=s.temas.filter(t=>t.corteId===id).map(t=>t.id);
+      s.cards=s.cards.filter(k=>!ids.includes(k.temaId));
+      s.temas=s.temas.filter(t=>t.corteId!==id);
+      s.cortes=s.cortes.filter(x=>x.id!==id);
+    });
   }
   else if(a==='openTool'){startTool(b.dataset.tool,b.dataset.mat);}
   else if(a==='redoTool'){startTool(route.tool,route.materiaId);}
@@ -1079,6 +1176,7 @@ document.addEventListener('input',e=>{
     const t=state.temas.find(x=>x.id===id);if(!t)return;
     t.body=e.target.value;t.updatedAt=Date.now();persist();
   }
+  else if(a==='iaCorteSel'){ui.iaCorte=e.target.value}
   else if(a==='editSecPuntos'){
     const t=state.temas.find(x=>x.id===id);
     const sc=t&&t.secciones&&t.secciones.find(x=>x.id===e.target.dataset.sid);if(!sc)return;
@@ -1098,18 +1196,19 @@ document.addEventListener('input',e=>{
   else if(a==='editCorteName'){
     const c=state.cortes.find(x=>x.id===id);if(!c)return;
     c.name=e.target.value;persist();
+    const ft=e.target.closest('.folder')?.querySelector('.ft');if(ft)ft.textContent='📁 '+(c.name||'(corte sin nombre)');
   }
   else if(a==='editCorteWeight'){
     const c=state.cortes.find(x=>x.id===id);if(!c)return;
-    c.weight=+e.target.value||0;persist();refreshCorteAvg(route.materiaId);
+    c.weight=clamp(+e.target.value||0,0,100);persist();refreshCorteAvg(route.materiaId);
   }
   else if(a==='editCorteScore'){
     const c=state.cortes.find(x=>x.id===id);if(!c)return;
-    c.score=e.target.value===''?null:clamp(+e.target.value,0,100);persist();refreshCorteAvg(route.materiaId);
+    c.score=e.target.value===''?null:clamp(+e.target.value,0,scaleMax());persist();refreshCorteAvg(route.materiaId);
   }
   else if(a==='profileField'){
     const f=e.target.dataset.f;
-    state.profile[f]=f==='goal'?clamp(+e.target.value||80,1,100):e.target.value;
+    state.profile[f]=f==='goal'?clamp(+e.target.value||0,0,scaleMax()):e.target.value;
     persist();
   }
   else if(a==='editCardFront'){
@@ -1131,11 +1230,24 @@ document.addEventListener('change',e=>{
   }
 });
 
+document.addEventListener('change',e=>{
+  if(!e.target.dataset||e.target.dataset.action!=='setScale')return;
+  const ns=+e.target.value,os=scaleMax();
+  if(ns===os)return;
+  if(!confirm('Cambiar la escala convierte tus notas y tu meta proporcionalmente (por ejemplo, 4,5 sobre 5 pasa a 90 sobre 100). ¿Continuar?')){render();return;}
+  const conv=x=>{const v=x*ns/os;return ns>10?Math.round(v*10)/10:Math.round(v*100)/100};
+  mutate(s=>{
+    s.profile.scale=ns;s.profile.goal=conv(+s.profile.goal||0);
+    s.cortes.forEach(c=>{if(c.score!=null&&c.score!=='')c.score=conv(+c.score)});
+  });
+});
+
 /* Auto-ajuste de altura de las secciones (solo estético) */
 function fitTA(t){t.style.height='auto';t.style.height=(t.scrollHeight+4)+'px'}
 document.addEventListener('toggle',e=>{const d=e.target;if(!d.matches||!d.matches('details'))return;
   if(d.dataset.tema)ui.open[d.dataset.tema]=d.open;
   if(d.dataset.sec)ui.sec[d.dataset.sec]=d.open;
+  if(d.dataset.corte)ui.open[d.dataset.corte]=d.open;
 },true);
 document.addEventListener('input',e=>{if(e.target.matches&&e.target.matches('.secAcc textarea'))fitTA(e.target)});
 
@@ -1219,7 +1331,9 @@ document.addEventListener('change',async e=>{
     mutate(s=>{
       const temaId=uid();
       const secs=Array.isArray(data.secciones)?data.secciones.filter(x=>x&&x.titulo&&x.contenido).map(x=>({id:uid(),title:String(x.titulo),body:String(x.contenido),puntos:Array.isArray(x.puntos)?x.puntos.map(p=>String(p).trim()).filter(Boolean).slice(0,6):[]})):[];
-      const tema={id:temaId,materiaId,title:data.titulo,body:data.resumen||'',updatedAt:Date.now()};
+      const sel=$('iaCorte');const corteId=(sel&&sel.value)||(s.cortes.find(c=>c.materiaId===materiaId)||{}).id;
+      ui.open[corteId]=true;ui.open[temaId]=true;
+      const tema={id:temaId,materiaId,corteId,title:data.titulo,body:data.resumen||'',updatedAt:Date.now()};
       if(secs.length)tema.secciones=secs;
       s.temas.unshift(tema);
       (data.tarjetas||[]).forEach(t=>{
