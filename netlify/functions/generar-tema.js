@@ -10,7 +10,7 @@ const json = (statusCode, obj) => ({
   headers: { 'content-type': 'application/json; charset=utf-8' },
   body: JSON.stringify(obj)
 });
-
+// hecho por Sebastian Poveda y Santiago Romero. 2026 
 // Tiempo máximo total esperando a la IA. Si se pasa, respondemos con un error claro
 // en vez de dejar que Netlify corte la función con un 502 sin explicación.
 const LIMITE_MS = 25000;
@@ -40,7 +40,7 @@ async function llamarGemini(apiKey, prompt) {
               generationConfig: {
                 responseMimeType: 'application/json',
                 temperature: 0.4,
-                maxOutputTokens: 4096
+                maxOutputTokens: 8192
               }
             })
           }
@@ -64,16 +64,35 @@ async function llamarGemini(apiKey, prompt) {
   return ultima;
 }
 
+// Intenta leer el JSON de la IA. Si vino con ```json o cortado a la mitad, lo rescata:
+// recorta hasta el último elemento completo y cierra los corchetes que falten.
+function leerJSON(raw) {
+  let t = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+  try { return JSON.parse(t); } catch (e) { /* sigue */ }
+  for (let i = t.length - 1; i > 0 && i > t.length - 4000; i--) {
+    const ch = t[i];
+    if (ch !== '}' && ch !== ']') continue;
+    const base = t.slice(0, i + 1);
+    for (const c of ['', ']}', '}]}', ']}]}']) {
+      try {
+        const obj = JSON.parse(base + c);
+        if (obj && obj.titulo && Array.isArray(obj.secciones || obj.tarjetas)) return obj;
+      } catch (e) { /* prueba otro cierre */ }
+    }
+  }
+  return null;
+}
+// hecho por Sebastian Poveda y Santiago Romero. 2026 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return json(405, { error: 'Método no permitido.' });
   }
-// Hecho por Sebastian Poveda y Santiago Romero año 2026
+
   const apiKey = process.env.APIKEYGEMINIS;
   if (!apiKey) {
     return json(500, { error: 'Falta configurar APIKEYGEMINIS en Netlify (Site settings > Environment variables).' });
   }
-
+// hecho por Sebastian Poveda y Santiago Romero. 2026 
   let texto, materia;
   try {
     const body = JSON.parse(event.body || '{}');
@@ -89,7 +108,7 @@ exports.handler = async (event) => {
 
   // Tope de seguridad: no mandamos textos gigantes a la IA (cuesta más y no hace falta).
   const textoRecortado = texto.slice(0, 20000);
-
+// hecho por Sebastian Poveda y Santiago Romero. 2026 
   const prompt = `Eres un asistente que ayuda a estudiantes universitarios a convertir apuntes de clase (sacados de un PDF o una presentación) en material de estudio.
 
 Materia: "${materia || 'sin especificar'}"
@@ -117,7 +136,7 @@ TEXTO A ANALIZAR:
 """
 ${textoRecortado}
 """`;
-
+// hecho por Sebastian Poveda y Santiago Romero. 2026 
   try {
     const resp = await llamarGemini(apiKey, prompt);
 
@@ -128,7 +147,7 @@ ${textoRecortado}
       }
       return json(502, { error: 'La IA respondió con un error: ' + errText.slice(0, 600) });
     }
-// Hecho por Sebastian Poveda y Santiago Romero año 2026
+
     const data = await resp.json();
     const candidate = data.candidates && data.candidates[0];
     const raw = candidate && candidate.content && candidate.content.parts
@@ -138,18 +157,25 @@ ${textoRecortado}
     if (!raw) {
       return json(502, { error: 'La IA no devolvió contenido. Puede que el archivo sea muy largo o el contenido haya sido bloqueado.' });
     }
-
-    let parsed;
-    try {
-      parsed = JSON.parse(raw);
-    } catch (e) {
-      return json(502, { error: 'La IA no devolvió un resultado con el formato esperado. Prueba de nuevo.' });
+// hecho por Sebastian Poveda y Santiago Romero. 2026 
+    const finish = candidate && candidate.finishReason;
+    let parsed = leerJSON(raw);
+    if (!parsed) {
+      console.error('JSON ilegible. finishReason =', finish, '| largo =', raw.length, '| final =', raw.slice(-120));
+      return json(502, { error: finish === 'MAX_TOKENS'
+        ? 'La respuesta de la IA salió demasiado larga y se cortó. Prueba con un archivo más corto o con menos páginas.'
+        : 'La IA no devolvió un resultado con el formato esperado. Prueba de nuevo.' });
+    }
+    if (finish === 'MAX_TOKENS') console.error('Respuesta cortada por MAX_TOKENS; se rescató parte del JSON.');
+    if (!Array.isArray(parsed.tarjetas)) parsed.tarjetas = [];
+    if (!Array.isArray(parsed.secciones) || !parsed.secciones.length) {
+      if (!parsed.tarjetas.length) return json(502, { error: 'La IA devolvió una respuesta incompleta. Prueba de nuevo.' });
     }
 
     if (!parsed.titulo || !Array.isArray(parsed.tarjetas)) {
       return json(502, { error: 'La respuesta de la IA no tiene el formato esperado.' });
     }
-// Hecho por Sebastian Poveda y Santiago Romero año 2026
+// hecho por Sebastian Poveda y Santiago Romero. 2026 
     return json(200, parsed);
   } catch (err) {
     if (err.message === 'TIMEOUT') {
