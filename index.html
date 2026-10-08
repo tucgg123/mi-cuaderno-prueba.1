@@ -85,7 +85,7 @@ textarea{min-height:110px;resize:vertical;font-family:inherit}
 .optBtn.chosen{border-color:var(--a);background:var(--al)}
 .optBtn:disabled{cursor:default;opacity:.9}
 
-
+/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
 /* Auth screen */
 #authScreen{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(120% 100% at 50% 0%,color-mix(in srgb,var(--al) 55%,var(--bg)),var(--bg))}
 #authScreen[hidden]{display:none}
@@ -263,7 +263,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dis
 window.pdfjsLib = pdfjsLib;
 </script>
 <script>
-
+/* hecho por Santiago Romero Y Sebastian Poveda 2026 */
 /* ======================================================================
    PEGA AQUÍ LA CONFIGURACIÓN DE TU PROYECTO DE FIREBASE
    (Firebase console > ⚙️ Configuración del proyecto > Tus apps > Config)
@@ -275,7 +275,7 @@ const FIREBASE_CONFIG = {
   storageBucket: "mi-cuaderno-904fa.firebasestorage.app",
   messagingSenderId: "1001521698205",
   appId: "1:1001521698205:web:9e83b5010ea3d0a339cb74"
-  
+  /* hecho por Santiago Romero Y Sebastian Poveda 2026 */
 };
 firebase.initializeApp(FIREBASE_CONFIG);
 const auth = firebase.auth();
@@ -294,7 +294,7 @@ const fmtDateLong=s=>new Date(s+'T00:00').toLocaleDateString('es',{weekday:'long
 const relDate=s=>{const n=Math.round((new Date(s+'T00:00')-new Date(ymd(new Date())+'T00:00'))/864e5);return n==0?'hoy':n==1?'mañana':n>1?`en ${n} días`:`hace ${-n} días`};
 const TY={ex:'📝 Examen',en:'📤 Entrega',ot:'📌 Otro'};
 const AV=['🎓','📚','🦉','🐱','🦊','🐼','🌸','⭐','🔥','🌙'];
-
+/* hecho por Santiago Romero Y Sebastian Poveda 2026 */
 /* ================= ESTADO ================= */
 function defaultState(){return{
   profile:{name:'',career:'',avatar:'🎓',examDate:'',scale:5,goal:4,notes:''},
@@ -326,6 +326,7 @@ function ensureCortes(){
   });
   return changed;
 }
+  /* hecho por Santiago Romero Y Sebastian Poveda 2026 */
 function normalizeState(){
   if(ensureCortes())scheduleCloud();
   state.cards=state.cards||[];
@@ -418,6 +419,7 @@ $('authForm').addEventListener('submit',async e=>{
   }finally{
     $('authSubmit').disabled=false;
   }
+  /* hecho por Santiago Romero Y Sebastian Poveda 2026 */
 });
 $('logoutBtn').onclick=()=>{if(confirm('¿Cerrar sesión?'))auth.signOut()};
 
@@ -472,6 +474,7 @@ function render(){
   else if(route.view==='perfil')view.innerHTML=viewPerfilHTML();
   window.scrollTo(0,0);
 }
+  /* hecho por Santiago Romero Y Sebastian Poveda 2026 */
 
 /* ================= HELPERS DE DATOS ================= */
 const scaleMax=()=>+(state.profile&&state.profile.scale)||5;
@@ -519,6 +522,7 @@ function viewMateriasHTML(){
     </details>`;
   }).join('');
   return html;
+  /* hecho por Santiago Romero Y Sebastian Poveda 2026 */
 }
 function materiaCard(m){
   const temasCount=state.temas.filter(t=>t.materiaId===m.id).length;
@@ -607,6 +611,7 @@ function corteFolder(c,materiaId){
     </div>
   </details>`;
 }
+  /* hecho por Santiago Romero Y Sebastian Poveda 2026 */
 function corteAvgHTML(cortes){
   const k=corteStats(cortes);
   const pct=k.avg==null?0:clamp(k.avg/k.scale*100,0,100);
@@ -649,6 +654,7 @@ function secReadHTML(sc){
   const p=puntosDe(sc);
   return `<div class="txt">${fmtBody(sc.body)}</div>${p.length?`<div class="puntos"><small>Ideas clave</small><ul>${p.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}`;
 }
+  /* hecho por Santiago Romero Y Sebastian Poveda 2026 */
 function esquemaHTML(t){
   const secs=Array.isArray(t.secciones)?t.secciones:[];
   if(!secs.length)return'<div class="empty">Este tema no tiene secciones, así que todavía no hay esquema.</div>';
@@ -710,6 +716,7 @@ function cardRow(c){
     <button class="icon-btn" data-action="delCard" data-id="${c.id}" title="Eliminar tarjeta">🗑️</button>
   </div>`;
 }
+  /* hecho por Santiago Romero Y Sebastian Poveda 2026 */
 /* ================= HERRAMIENTAS DE ESTUDIO ================= */
 function shuffle(arr){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function getCards(materiaId){return state.cards.filter(c=>c.materiaId===materiaId && c.front.trim() && c.back.trim())}
@@ -758,7 +765,7 @@ function startTool(tool,materiaId){
     },1000);
   }
 }
-
+/* hecho por Santiago Romero Y Sebastian Poveda 2026 */
 function viewToolHTML(){
   const{tool,materiaId}=route;
   const m=state.materias.find(x=>x.id===materiaId);
@@ -801,7 +808,7 @@ function toolMemorizarHTML(m){
   <p class="meta">Repasá todas las tarjetas de un vistazo, sin apuros.</p>
   ${cards.map(c=>`<div class="card"><b>${esc(c.front)}</b><p class="meta" style="margin:6px 0 0">${esc(c.back)}</p></div>`).join('')}`;
 }
-
+/* hecho por Santiago Romero Y Sebastian Poveda 2026 */
 function toolConceptoHTML(){
   const{cards,idx,flipped}=toolState;
   if(!cards.length)return noCardsMsg();
@@ -893,7 +900,7 @@ function toolProgresoHTML(m){
   <h3>Historial de quiz y exámenes</h3>
   ${attempts.length?attempts.map(a=>`<div class="li"><span>${a.type==='examen'?'📝':'❓'} ${a.score}/${a.total}</span><small>${relTime(a.date)}</small></div>`).join(''):'<p class="meta">Todavía no hiciste ningún quiz o examen en esta materia.</p>'}`;
 }
-
+/* hecho por Santiago Romero Y Sebastian Poveda 2026 */
 function toolReferenciasHTML(m){
   return `
   <div class="viewhead"><h1>📚 Referencias</h1></div>
@@ -935,7 +942,7 @@ function viewCalendarioHTML(){
     ${upcoming.length?upcoming.map(e=>`<div class="li"><span><b>${TY[e.type]||'📌'}</b> ${esc(e.title)}<br><small>${fmtDateLong(e.date)} · ${relDate(e.date)}</small></span></div>`).join(''):'<p class="meta">No tienes eventos próximos.</p>'}
   `;
 }
-
+/* hecho por Santiago Romero Y Sebastian Poveda 2026 */
 /* ================= VISTA: PERFIL ================= */
 function viewPerfilHTML(){
   const p=state.profile;
@@ -996,6 +1003,7 @@ $('searchBox').addEventListener('input',e=>{
   });
 });
 document.addEventListener('click',e=>{if(!e.target.closest('#searchWrap'))$('searchResults').innerHTML=''});
+  /* hecho por Santiago Romero Y Sebastian Poveda 2026 */
 
 /* ================= ACCIONES (clicks) ================= */
 document.addEventListener('click',e=>{
@@ -1160,7 +1168,7 @@ document.addEventListener('click',e=>{
   else if(a==='setAvatar'){mutate(s=>s.profile.avatar=b.dataset.a);}
   else if(a==='logout'){if(confirm('¿Cerrar sesión?'))auth.signOut();}
 });
-
+/* hecho por Santiago Romero Y Sebastian Poveda 2026 */
 /* ================= ACCIONES (edición en vivo, sin repintar) ================= */
 document.addEventListener('input',e=>{
   const a=e.target.dataset.action;if(!a)return;
@@ -1229,7 +1237,7 @@ document.addEventListener('change',e=>{
     toolState.materiaId2=e.target.value;persist();render();
   }
 });
-
+/* hecho por Santiago Romero Y Sebastian Poveda 2026 */
 document.addEventListener('change',e=>{
   if(!e.target.dataset||e.target.dataset.action!=='setScale')return;
   const ns=+e.target.value,os=scaleMax();
@@ -1315,7 +1323,7 @@ document.addEventListener('change',async e=>{
       headers:{'content-type':'application/json'},
       body:JSON.stringify({texto:texto.slice(0,60000), materia:materia?materia.name:''})
     });
-
+/* hecho por Santiago Romero Y Sebastian Poveda 2026 */
     let data;
     try{ data=await resp.json(); }catch(e){ data=null; }
 
