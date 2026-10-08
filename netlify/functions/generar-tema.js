@@ -5,46 +5,73 @@
 // Si el primero está saturado o no existe, se prueba el siguiente.
 const MODELOS = ['gemini-3.8-flash', 'gemini-3.5-flash'];
 
+const json = (statusCode, obj) => ({
+  statusCode,
+  headers: { 'content-type': 'application/json; charset=utf-8' },
+  body: JSON.stringify(obj)
+});
+
+// Tiempo máximo total esperando a la IA. Si se pasa, respondemos con un error claro
+// en vez de dejar que Netlify corte la función con un 502 sin explicación.
+const LIMITE_MS = 25000;
+
 async function llamarGemini(apiKey, prompt) {
+  const inicio = Date.now();
   let ultima;
   for (const modelo of MODELOS) {
     for (let intento = 0; intento < 2; intento++) {
-      const resp = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`,
-        {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            'x-goog-api-key': apiKey
-          },
-          body: JSON.stringify({
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
-            generationConfig: {
-              responseMimeType: 'application/json',
-              temperature: 0.4,
-              maxOutputTokens: 8192
-            }
-          })
-        }
-      );
+      const restante = LIMITE_MS - (Date.now() - inicio);
+      if (restante < 3000) throw new Error('TIMEOUT');
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), restante);
+      let resp;
+      try {
+        resp = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`,
+          {
+            method: 'POST',
+            signal: ctrl.signal,
+            headers: {
+              'content-type': 'application/json',
+              'x-goog-api-key': apiKey
+            },
+            body: JSON.stringify({
+              contents: [{ role: 'user', parts: [{ text: prompt }] }],
+              generationConfig: {
+                responseMimeType: 'application/json',
+                temperature: 0.4,
+                maxOutputTokens: 4096
+              }
+            })
+          }
+        );
+      } catch (e) {
+        if (e.name === 'AbortError') throw new Error('TIMEOUT');
+        throw e;
+      } finally {
+        clearTimeout(timer);
+      }
       if (resp.ok) return resp;
       ultima = resp;
-      if (resp.status === 404) break; // modelo no disponible: pasar al siguiente
-      if (![429, 500, 503].includes(resp.status)) return resp; // error que no se arregla reintentando
-      if (intento === 0) await new Promise(r => setTimeout(r, 1500));
+      console.error('Gemini respondió', resp.status, 'con el modelo', modelo);
+      // 404 = modelo no disponible, 429 = cuota agotada: reintentar solo gastaría más cuota,
+      // así que se pasa directo al siguiente modelo (cada modelo tiene su propio límite).
+      if (resp.status === 404 || resp.status === 429) break;
+      if (![500, 503].includes(resp.status)) return resp; // error que no se arregla reintentando
+      if (intento === 0) await new Promise(r => setTimeout(r, 800));
     }
   }
   return ultima;
 }
-// Codigo Hecho de parte de Sebastián Poveda y Santiago Romero. 2026
+
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: JSON.stringify({ error: 'Método no permitido.' }) };
+    return json(405, { error: 'Método no permitido.' });
   }
-
+// Hecho por Sebastian Poveda y Santiago Romero año 2026
   const apiKey = process.env.APIKEYGEMINIS;
   if (!apiKey) {
-    return { statusCode: 500, body: JSON.stringify({ error: 'Falta configurar APIKEYGEMINIS en Netlify (Site settings > Environment variables).' }) };
+    return json(500, { error: 'Falta configurar APIKEYGEMINIS en Netlify (Site settings > Environment variables).' });
   }
 
   let texto, materia;
@@ -53,15 +80,15 @@ exports.handler = async (event) => {
     texto = (body.texto || '').toString();
     materia = (body.materia || '').toString();
   } catch (e) {
-    return { statusCode: 400, body: JSON.stringify({ error: 'Cuerpo de la petición inválido.' }) };
+    return json(400, { error: 'Cuerpo de la petición inválido.' });
   }
 
   if (!texto.trim()) {
-    return { statusCode: 400, body: JSON.stringify({ error: 'No llegó texto para analizar.' }) };
+    return json(400, { error: 'No llegó texto para analizar.' });
   }
-// Codigo Hecho de parte de Sebastián Poveda y Santiago Romero. 2026
+
   // Tope de seguridad: no mandamos textos gigantes a la IA (cuesta más y no hace falta).
-  const textoRecortado = texto.slice(0, 25000);
+  const textoRecortado = texto.slice(0, 20000);
 
   const prompt = `Eres un asistente que ayuda a estudiantes universitarios a convertir apuntes de clase (sacados de un PDF o una presentación) en material de estudio.
 
@@ -73,32 +100,35 @@ PROCESO (hazlo mentalmente, no lo escribas):
 3. Escribe cada sección únicamente con información que esté en el texto.
 
 REGLAS DE LAS SECCIONES:
-- Entre 3 y 8 secciones, ordenadas de forma lógica para estudiar.
+- Entre 3 y 6 secciones, ordenadas de forma lógica para estudiar.
 - Incluye una sección solo si el texto tiene material para ella. Por ejemplo, "Autor y año" solo si el texto menciona un autor o una fecha; "Ejemplos" solo si hay ejemplos; "Limitaciones o críticas" solo si se discuten; "Fórmulas" solo si hay fórmulas; "Pasos del procedimiento" solo si hay un procedimiento.
 - Los títulos deben ser específicos del contenido (por ejemplo "Componentes de la memoria de trabajo"), no genéricos.
 - No inventes datos que no estén en el texto. Si algo no aparece, no crees la sección.
 - "puntos" son de 2 a 5 ideas clave de la sección, cada una corta (máximo 12 palabras), tomadas del contenido. Alimentan un esquema visual, así que deben poder leerse solas.
-- "contenido" debe ser claro y bien organizado, de 1 a 3 párrafos cortos o una lista con guiones cuando sea más claro. Texto plano, sin markdown con asteriscos.
+- "contenido" debe ser claro y bien organizado, 1 o 2 párrafos cortos, o una lista de 3 a 6 guiones cuando sea más claro. Sé conciso. Texto plano, sin markdown con asteriscos.
 
 Devuelve EXCLUSIVAMENTE un JSON válido, sin explicación adicional, con esta forma exacta:
 
 {"titulo":"título corto para el tema (máx 8 palabras)","secciones":[{"titulo":"título de la sección","contenido":"contenido de la sección","puntos":["idea clave corta","otra idea clave corta"]}],"tarjetas":[{"frente":"término o pregunta corta","reverso":"definición o respuesta clara y no muy larga"}]}
 
-Genera entre 8 y 15 tarjetas que cubran los conceptos, definiciones y términos clave del texto. El "frente" debe ser corto (un término o una pregunta). El "reverso" debe responder con precisión sin ser un párrafo entero.
+Genera entre 8 y 12 tarjetas que cubran los conceptos, definiciones y términos clave del texto. El "frente" debe ser corto (un término o una pregunta). El "reverso" debe responder con precisión sin ser un párrafo entero.
 
 TEXTO A ANALIZAR:
 """
 ${textoRecortado}
 """`;
-// Codigo Hecho de parte de Sebastián Poveda y Santiago Romero. 2026
+
   try {
     const resp = await llamarGemini(apiKey, prompt);
 
     if (!resp.ok) {
       const errText = await resp.text();
-      return { statusCode: 502, body: JSON.stringify({ error: 'La IA respondió con un error: ' + errText.slice(0, 300) }) };
+      if (resp.status === 429) {
+        return json(429, { error: 'La IA alcanzó su límite de uso gratuito por ahora. Espera uno o dos minutos y vuelve a intentarlo. Si sigue igual, es el límite diario y se reinicia en unas horas.' });
+      }
+      return json(502, { error: 'La IA respondió con un error: ' + errText.slice(0, 600) });
     }
-
+// Hecho por Sebastian Poveda y Santiago Romero año 2026
     const data = await resp.json();
     const candidate = data.candidates && data.candidates[0];
     const raw = candidate && candidate.content && candidate.content.parts
@@ -106,22 +136,27 @@ ${textoRecortado}
       : '';
 
     if (!raw) {
-      return { statusCode: 502, body: JSON.stringify({ error: 'La IA no devolvió contenido. Puede que el archivo sea muy largo o el contenido haya sido bloqueado.' }) };
+      return json(502, { error: 'La IA no devolvió contenido. Puede que el archivo sea muy largo o el contenido haya sido bloqueado.' });
     }
 
     let parsed;
     try {
       parsed = JSON.parse(raw);
     } catch (e) {
-      return { statusCode: 502, body: JSON.stringify({ error: 'La IA no devolvió un resultado con el formato esperado. Prueba de nuevo.' }) };
+      return json(502, { error: 'La IA no devolvió un resultado con el formato esperado. Prueba de nuevo.' });
     }
 
     if (!parsed.titulo || !Array.isArray(parsed.tarjetas)) {
-      return { statusCode: 502, body: JSON.stringify({ error: 'La respuesta de la IA no tiene el formato esperado.' }) };
+      return json(502, { error: 'La respuesta de la IA no tiene el formato esperado.' });
     }
-
-    return { statusCode: 200, body: JSON.stringify(parsed) };
+// Hecho por Sebastian Poveda y Santiago Romero año 2026
+    return json(200, parsed);
   } catch (err) {
-    return { statusCode: 500, body: JSON.stringify({ error: 'Error inesperado: ' + err.message }) };
+    if (err.message === 'TIMEOUT') {
+      console.error('La IA tardó más de', LIMITE_MS, 'ms');
+      return json(504, { error: 'La IA tardó demasiado en responder. Prueba con un archivo más corto o inténtalo de nuevo en un momento.' });
+    }
+    console.error('Error inesperado:', err);
+    return json(500, { error: 'Error inesperado: ' + err.message });
   }
 };
