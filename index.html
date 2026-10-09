@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+<style>
 :root{
   --bg:#f5f1e8;--c:#fffdf8;--t:#25211d;--m:#8a7f70;--a:#7a2e2c;--al:#f2e2dc;--b:#e6ddc9;--ok:#3f7d5c;--no:#a8433a;
   --serif:'Fraunces',Georgia,"Times New Roman",serif;--sans:'Inter',system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -85,7 +85,7 @@ textarea{min-height:110px;resize:vertical;font-family:inherit}
 .optBtn.chosen{border-color:var(--a);background:var(--al)}
 .optBtn:disabled{cursor:default;opacity:.9}
 
-
+ /* hecho por Sebastian Poveda y Santiago Romero. 2026*/
 /* Auth screen */
 #authScreen{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(120% 100% at 50% 0%,color-mix(in srgb,var(--al) 55%,var(--bg)),var(--bg))}
 #authScreen[hidden]{display:none}
@@ -115,7 +115,7 @@ nav#mainNav button{white-space:nowrap;border:0;padding:8px 16px;border-radius:99
 nav#mainNav button.on{background:var(--al);color:var(--a)}
 main#view{max-width:900px;margin:0 auto;padding:20px 16px 70px;animation:f .25s}
 @keyframes f{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-
+ /* hecho por Sebastian Poveda y Santiago Romero. 2026*/
 /* Calendar */
 .calNav{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:12px}
 .calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:16px}
@@ -185,15 +185,82 @@ main#view{max-width:900px;margin:0 auto;padding:20px 16px 70px;animation:f .25s}
 .puntos ul{margin:6px 0 0;padding-left:1.1em}
 .puntos li{line-height:1.6;margin-bottom:4px}
 .puntos li::marker{color:var(--a)}
-.esq{display:flex;flex-direction:column;align-items:flex-start;padding:4px 0 8px}
-.esqRoot{background:var(--a);color:var(--bg);border-radius:14px;padding:12px 20px;font:500 1.12em/1.3 var(--serif)}
-.esqTree{margin-left:24px;padding:18px 0 4px 24px;border-left:2px solid var(--b);display:flex;flex-direction:column;gap:20px;width:calc(100% - 24px)}
-.esqBranch{position:relative}
-.esqBranch::before{content:'';position:absolute;left:-24px;top:19px;width:24px;border-top:2px solid var(--b)}
-.esqNode{display:inline-block;background:var(--al);color:var(--a);border:1px solid var(--a);border-radius:12px;padding:8px 14px;font:500 1em/1.3 var(--serif)}
-.esqLeaves{list-style:none;margin:10px 0 0 18px;padding:0 0 0 20px;border-left:2px dotted var(--b);display:flex;flex-direction:column;gap:8px}
-.esqLeaves li{position:relative;background:var(--bg);border:1px solid var(--b);border-radius:10px;padding:8px 12px;font-size:.92em;line-height:1.5}
-.esqLeaves li::before{content:'';position:absolute;left:-20px;top:50%;width:20px;border-top:2px dotted var(--b)}
+  /* hecho por Sebastian Poveda y Santiago Romero. 2026*/
+/* ===== Esquemas: ramificado, radial y matricial ===== */
+.esqx{--esqL:color-mix(in srgb,var(--m) 45%,transparent)}
+.esqx-bar{margin:0 0 16px;position:relative;z-index:5}
+.esqx-tabs{position:relative;display:inline-block}
+.esqx-tab{display:inline-flex;align-items:center;gap:10px;padding:9px 14px;border:1px solid var(--b);border-radius:12px;background:var(--bg);color:var(--t);font-weight:600}
+.esqx-tab:hover{border-color:var(--a)}
+.esqx-cur{color:var(--m);font-weight:400;font-size:.9em}
+.esqx-chev{width:14px;height:14px;color:var(--a);transition:transform .2s ease}
+.esqx-tab[aria-expanded="true"] .esqx-chev{transform:rotate(180deg)}
+.esqx-menu{position:absolute;top:calc(100% + 6px);left:0;min-width:270px;margin:0;padding:6px;list-style:none;background:var(--c);border:1px solid var(--b);border-radius:14px;box-shadow:0 18px 40px rgba(0,0,0,.3);z-index:20}
+.esqx-menu[hidden]{display:none}
+.esqx-mi{display:grid;grid-template-columns:28px 1fr;align-items:center;column-gap:12px;width:100%;padding:10px 12px;border:0;border-radius:10px;text-align:left}
+.esqx-mi:hover,.esqx-mi:focus-visible{background:var(--al)}
+.esqx-ico{width:24px;height:24px;color:var(--m)}
+.esqx-nm{display:block;font-weight:600}
+.esqx-ds{display:block;font-size:.85em;color:var(--m)}
+.esqx-mi[aria-checked="true"] .esqx-nm,.esqx-mi[aria-checked="true"] .esqx-ico{color:var(--a)}
+.esqx-anim{animation:esqIn .28s ease both}
+@keyframes esqIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* ramificado */
+.esqx-root{display:inline-block;max-width:100%;padding:12px 26px;background:var(--a);color:var(--bg);border-radius:14px;font:600 1.15rem/1.3 var(--serif)}
+.esqx-cats{margin-left:30px}
+.esqx-cat{--pt:18px;position:relative;padding:var(--pt) 0 4px 34px}
+.esqx-cat::before{content:"";position:absolute;left:0;top:0;bottom:0;border-left:1.5px solid var(--esqL)}
+.esqx-cat:last-child::before{bottom:auto;height:calc(var(--pt) + 20px)}
+.esqx-cat::after{content:"";position:absolute;left:0;top:calc(var(--pt) + 20px);width:30px;border-top:1.5px solid var(--esqL)}
+.esqx-catnode{display:inline-flex;align-items:center;min-height:40px;max-width:100%;padding:6px 18px;background:var(--al);border:1px solid var(--a);border-radius:12px;color:var(--a);font:600 1rem/1.3 var(--serif)}
+.esqx-ideas{list-style:none;margin:12px 0 0 20px;padding:0}
+.esqx-idea{position:relative;padding:0 0 10px 28px}
+.esqx-idea::before{content:"";position:absolute;left:0;top:0;bottom:0;border-left:1.5px dotted var(--esqL)}
+.esqx-idea:last-child::before{bottom:auto;height:calc(50% - 5px)}
+.esqx-idea::after{content:"";position:absolute;left:0;top:calc(50% - 5px);width:24px;border-top:1.5px dotted var(--esqL)}
+.esqx-ideacard{padding:10px 16px;background:var(--bg);border:1px solid var(--b);border-radius:12px;font-size:.95rem;font-weight:500;line-height:1.5}
+/* radial */
+.esqx-scroll{overflow-x:auto;padding-bottom:8px}
+.esqx-stage{position:relative;margin:0 auto}
+.esqx-stage:not(.laid):not(.stacked){visibility:hidden;min-height:320px}
+.esqx-lines{position:absolute;left:0;top:0;pointer-events:none}
+.esqx-lines line{stroke:var(--a);stroke-opacity:.45;stroke-width:1.5;stroke-linecap:round}
+.esqx-center{position:absolute;width:250px;padding:18px 20px;background:var(--a);color:var(--bg);border-radius:20px;box-shadow:0 0 0 8px color-mix(in srgb,var(--a) 14%,transparent);font:600 1.15rem/1.3 var(--serif);text-align:center}
+.esqx-rcard{position:absolute;width:290px;padding:14px 16px 12px;background:var(--bg);border:1px solid var(--b);border-radius:16px}
+.esqx-rtitle{margin:0 0 8px;padding-bottom:8px;border-bottom:1px solid color-mix(in srgb,var(--a) 45%,transparent);color:var(--a);font:600 .98rem/1.3 var(--serif)}
+.esqx-rcard ul{margin:0;padding-left:18px;font-size:.86rem}
+.esqx-rcard li{margin:0 0 6px;line-height:1.5}
+.esqx-rcard li::marker{color:var(--a)}
+.esqx-stage.stacked{display:flex;flex-direction:column;align-items:center;width:auto!important;height:auto!important}
+.esqx-stage.stacked .esqx-lines{display:none}
+.esqx-stage.stacked .esqx-center,.esqx-stage.stacked .esqx-rcard{position:relative;left:auto!important;top:auto!important;width:100%;max-width:440px}
+.esqx-stage.stacked .esqx-rcard{margin-top:30px}
+.esqx-stage.stacked .esqx-rcard::before{content:"";position:absolute;left:50%;top:-30px;height:30px;border-left:1.5px solid color-mix(in srgb,var(--a) 45%,transparent)}
+/* matricial */
+.esqx-tscroll{overflow-x:auto;border-radius:16px}
+.esqx-matriz{width:100%;min-width:820px;border-collapse:separate;border-spacing:0;background:var(--bg);font-size:.93rem}
+.esqx-matriz caption{caption-side:top;padding:0 0 14px;text-align:left;color:var(--a);font:600 1.15rem var(--serif)}
+.esqx-matriz th,.esqx-matriz td{padding:14px 16px;vertical-align:top;text-align:left;border-bottom:1px solid var(--b);border-right:1px solid var(--b)}
+.esqx-matriz thead th{background:var(--c);color:var(--a);font:600 .95rem var(--serif);border-top:1px solid var(--b);border-bottom:1px solid color-mix(in srgb,var(--a) 45%,transparent)}
+.esqx-matriz thead th:first-child{border-top-left-radius:14px;border-left:1px solid var(--b)}
+.esqx-matriz thead th:last-child{border-top-right-radius:14px}
+.esqx-matriz tbody th[scope="row"]{position:sticky;left:0;min-width:170px;background:var(--c);color:var(--a);font:600 1rem var(--serif);border-left:1px solid var(--b)}
+.esqx-matriz tbody tr:last-child th{border-bottom-left-radius:14px}
+.esqx-matriz tbody tr:last-child td:last-child{border-bottom-right-radius:14px}
+.esqx-matriz td p{margin:0}
+.esqx-matriz td ul{margin:0;padding-left:18px}
+.esqx-matriz td li{margin:0 0 6px}
+.esqx-matriz td li:last-child{margin-bottom:0}
+.esqx-matriz td li::marker{color:var(--a)}
+.esqx-matriz .vacio{color:var(--m)}
+@media(max-width:620px){
+  .esqx-root{font-size:1.02rem;padding:10px 18px}
+  .esqx-cats{margin-left:14px}.esqx-cat{padding-left:22px}.esqx-cat::after{width:18px}
+  .esqx-ideas{margin-left:8px}.esqx-idea{padding-left:18px}.esqx-idea::after{width:14px}
+  .esqx-ideacard{font-size:.9rem;padding:9px 12px}
+  .esqx-menu{min-width:min(270px,calc(100vw - 60px))}
+}
+@media(prefers-reduced-motion:reduce){.esqx-anim{animation:none}.esqx-chev{transition:none}}
 
 /* ===== Cortes como carpetas ===== */
 select.fld{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--b);border-radius:10px;padding:9px 12px;width:100%}
@@ -469,7 +536,7 @@ function goToView(v){
   document.querySelectorAll('#mainNav button').forEach(x=>x.classList.toggle('on',x.dataset.nav===v));
   render();
 }
-/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+
 function render(){
   if(route.view!=='tool')clearRepasoTimer();
   const view=$('view');
@@ -479,7 +546,7 @@ function render(){
   else if(route.view==='calendario')view.innerHTML=viewCalendarioHTML();
   else if(route.view==='perfil')view.innerHTML=viewPerfilHTML();
   window.scrollTo(0,0);
-  requestAnimationFrame(()=>fitCards());
+  requestAnimationFrame(()=>{fitCards();layoutRadials()});
 }
 
 /* ================= HELPERS DE DATOS ================= */
@@ -528,7 +595,7 @@ function viewMateriasHTML(){
     </details>`;
   }).join('');
   return html;
-}/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+}
 function materiaCard(m){
   const temasCount=state.temas.filter(t=>t.materiaId===m.id).length;
   const cortes=state.cortes.filter(c=>c.materiaId===m.id);
@@ -614,7 +681,7 @@ function corteFolder(c,materiaId){
       <div class="temaList">${temas.map(temaBlock).join('')||'<div class="empty">Este corte aún no tiene temas.</div>'}</div>
       <button class="pr" style="margin-top:12px" data-action="addTema" data-mat="${materiaId}" data-corte="${c.id}">+ Agregar tema</button>
     </div>
-  </details>`;/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+  </details>`;
 }
 function corteAvgHTML(cortes){
   const k=corteStats(cortes);
@@ -630,7 +697,7 @@ function corteAvgHTML(cortes){
   const warn=k.W>0&&Math.abs(k.W-100)>0.01?`<p class="meta" style="color:var(--no)">⚠️ Los pesos suman ${fmtN(k.W)}%, deberían sumar 100%.</p>`:'';
   return `<div class="bar goalBar"><i style="width:${pct}%;background:${ok?'var(--ok)':'var(--a)'}"></i><span class="goalMark" style="left:${gpct}%" title="Meta"></span></div>
   <p class="meta" style="margin:6px 0">${k.avg==null?'Registra la nota de un corte para ver tu promedio.':`Promedio de lo evaluado: <b style="color:${ok?'var(--ok)':'var(--t)'}">${fmtN(k.avg)}</b> / ${fmtN(k.scale)} · meta ${fmtN(k.goal)}`}</p>
-  <p class="meta" style="margin:0">${msg}</p>${warn}`;/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+  <p class="meta" style="margin:0">${msg}</p>${warn}`;
 }
 function refreshCorteAvg(materiaId){
   const cortes=state.cortes.filter(c=>c.materiaId===materiaId);
@@ -658,11 +725,112 @@ function secReadHTML(sc){
   const p=puntosDe(sc);
   return `<div class="txt">${fmtBody(sc.body)}</div>${p.length?`<div class="puntos"><small>Ideas clave</small><ul>${p.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}`;
 }
+/* ===== Esquemas: ramificado, radial y matricial ===== */
+const ESQ_ESTILOS=[
+  {id:'ramificado',nombre:'Ramificado',desc:'Jerarquía con ramas y tarjetas',icono:'<rect x="3" y="4" width="7" height="4" rx="1"/><rect x="14" y="10" width="7" height="4" rx="1"/><rect x="14" y="16" width="7" height="4" rx="1"/><path d="M6.5 8v10M6.5 12H14M6.5 18H14"/>'},
+  {id:'radial',nombre:'Radial',desc:'Tema central y ramas alrededor',icono:'<circle cx="12" cy="12" r="2.5"/><circle cx="12" cy="4" r="2"/><circle cx="19" cy="16.5" r="2"/><circle cx="5" cy="16.5" r="2"/><path d="M12 9.5V6M14.2 13.3l3 1.8M9.8 13.3l-3 1.8"/>'},
+  {id:'matricial',nombre:'Matricial',desc:'Filas y columnas comparativas',icono:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9.5h18M9.5 4v16"/>'}
+];
+const ESQ_COLS={definicion:'Definición',caracteristica:'Características',ejemplo:'Ejemplo'};
+const ESQ_TIPOS=Object.keys(ESQ_COLS);
+const ESQ_TAGS={def:'definicion',car:'caracteristica',ej:'ejemplo'};
+const ESQ_TAGOF={definicion:'def',caracteristica:'car',ejemplo:'ej'};
+function esqEstilo(){
+  if(ESQ_ESTILOS.some(e=>e.id===ui.esqEstilo))return ui.esqEstilo;
+  try{const v=localStorage.getItem('esquema-estilo');if(ESQ_ESTILOS.some(e=>e.id===v)){ui.esqEstilo=v;return v}}catch(e){}
+  return 'ramificado';
+}
+function esqGuardar(id){ui.esqEstilo=id;try{localStorage.setItem('esquema-estilo',id)}catch(e){}}
+/* Cada idea tiene un tipo (definición, característica o ejemplo). Lo trae la IA; si falta, se deduce del texto. */
+function ideasDe(sc){
+  const tp=Array.isArray(sc.tipos)?sc.tipos:[];
+  const out=puntosDe(sc).map((texto,i)=>({texto,tipo:ESQ_TIPOS.includes(tp[i])?tp[i]:null}));
+  let hayDef=out.some(x=>x.tipo==='definicion');
+  out.forEach((x,i)=>{
+    if(x.tipo)return;
+    if(/^(por ejemplo|ejemplo|p\.\s?ej|e\.g\.)/i.test(x.texto))x.tipo='ejemplo';
+    else if(!hayDef&&i===0&&/\b(es|son|se define|se denomina|consiste|se entiende|significa)\b/i.test(x.texto)){x.tipo='definicion';hayDef=true}
+    else x.tipo='caracteristica';
+  });
+  return out;
+}
+/* Edición: una idea por línea; opcionalmente empieza con [def], [car] o [ej] para fijar su tipo. */
+function ideasTexto(sc){
+  const pts=Array.isArray(sc.puntos)?sc.puntos:[],tp=Array.isArray(sc.tipos)?sc.tipos:[];
+  return pts.map((p,i)=>ESQ_TIPOS.includes(tp[i])?`[${ESQ_TAGOF[tp[i]]}] ${p}`:p).join('\n');
+}
+function ideasParse(valor){
+  const puntos=[],tipos=[];
+  String(valor||'').split('\n').forEach(l=>{
+    l=l.trim();if(!l)return;
+    const m=l.match(/^\[(def|car|ej)\]\s*(.*)$/i);
+    if(m){if(!m[2].trim())return;puntos.push(m[2].trim());tipos.push(ESQ_TAGS[m[1].toLowerCase()])}
+    else{puntos.push(l);tipos.push(null)}
+  });
+  return{puntos,tipos};
+}
+function esqRamificado(t,secs){
+  return `<div class="esqx-ram"><div class="esqx-root">${esc(t.title)||'Tema'}</div><div class="esqx-cats">${secs.map(sc=>{const ids=ideasDe(sc);return `<section class="esqx-cat"><div class="esqx-catnode">${esc(sc.title)||'(sin título)'}</div>${ids.length?`<ul class="esqx-ideas">${ids.map(i=>`<li class="esqx-idea"><div class="esqx-ideacard">${esc(i.texto)}</div></li>`).join('')}</ul>`:''}</section>`}).join('')}</div></div>`;
+}
+function esqRadial(t,secs){
+  return `<div class="esqx-scroll"><div class="esqx-stage"><svg class="esqx-lines" aria-hidden="true"></svg><div class="esqx-center">${esc(t.title)||'Tema'}</div>${secs.map(sc=>`<article class="esqx-rcard"><div class="esqx-rtitle">${esc(sc.title)||'(sin título)'}</div><ul>${ideasDe(sc).map(i=>`<li>${esc(i.texto)}</li>`).join('')}</ul></article>`).join('')}</div></div>`;
+}
+function esqMatricial(t,secs){
+  return `<div class="esqx-tscroll" tabindex="0" role="region" aria-label="Matriz comparativa, desplazable horizontalmente"><table class="esqx-matriz"><caption>${esc(t.title)||'Tema'}</caption><thead><tr><th scope="col">Concepto</th>${ESQ_TIPOS.map(k=>`<th scope="col">${ESQ_COLS[k]}</th>`).join('')}</tr></thead><tbody>${secs.map(sc=>{const ids=ideasDe(sc);return `<tr><th scope="row">${esc(sc.title)||'(sin título)'}</th>${ESQ_TIPOS.map(k=>{const it=ids.filter(x=>x.tipo===k);return `<td>${!it.length?'<span class="vacio">—</span>':it.length===1?`<p>${esc(it[0].texto)}</p>`:`<ul>${it.map(x=>`<li>${esc(x.texto)}</li>`).join('')}</ul>`}</td>`}).join('')}</tr>`}).join('')}</tbody></table></div>`;
+}
 function esquemaHTML(t){
   const secs=Array.isArray(t.secciones)?t.secciones:[];
   if(!secs.length)return'<div class="empty">Este tema no tiene secciones, así que todavía no hay esquema.</div>';
-  return `<div class="esq"><div class="esqRoot">${esc(t.title)||'Tema'}</div><div class="esqTree">${secs.map(sc=>{const p=puntosDe(sc);return `<div class="esqBranch"><div class="esqNode">${esc(sc.title)||'(sin título)'}</div>${p.length?`<ul class="esqLeaves">${p.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}</div>`}).join('')}</div></div>`;
-}/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+  const est=esqEstilo(),info=ESQ_ESTILOS.find(e=>e.id===est);
+  const view=est==='radial'?esqRadial(t,secs):est==='matricial'?esqMatricial(t,secs):esqRamificado(t,secs);
+  const items=ESQ_ESTILOS.map(e=>`<li role="none"><button type="button" class="esqx-mi" role="menuitemradio" aria-checked="${e.id===est}" data-action="esqStyle" data-estilo="${e.id}" tabindex="-1"><svg class="esqx-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${e.icono}</svg><span><span class="esqx-nm">${e.nombre}</span><span class="esqx-ds">${e.desc}</span></span></button></li>`).join('');
+  return `<div class="esqx" data-esqtema="${t.id}"><div class="esqx-bar"><div class="esqx-tabs"><button type="button" class="esqx-tab" data-action="esqMenu" aria-haspopup="menu" aria-expanded="false"><span>Esquema</span><span class="esqx-cur">${info.nombre}</span><svg class="esqx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><ul class="esqx-menu" role="menu" aria-label="Estilo de esquema" hidden>${items}</ul></div></div><div class="esqx-view esqx-anim">${view}</div></div>`;
+}
+/* Vista radial: se coloca cada rama en círculo y se agranda el radio hasta que nada se superponga. */
+function esqChocan(a,b,g){return a.x-g<b.x+b.w&&b.x-g<a.x+a.w&&a.y-g<b.y+b.h&&b.y-g<a.y+a.h}
+function layoutRadial(stage){
+  const svg=stage.querySelector('.esqx-lines'),center=stage.querySelector('.esqx-center'),cards=[...stage.querySelectorAll('.esqx-rcard')];
+  while(svg.firstChild)svg.removeChild(svg.firstChild);
+  if(window.innerWidth<720){stage.classList.add('stacked','laid');stage.style.width='';stage.style.height='';return}
+  stage.classList.remove('stacked');
+  const n=cards.length;if(!n){stage.classList.add('laid');return}
+  const cw=center.offsetWidth,ch=center.offsetHeight,sizes=cards.map(c=>({w:c.offsetWidth,h:c.offsetHeight})),gap=28;
+  let r=140,pts=[],rects=[];
+  for(let it=0;it<800;it++){
+    const rx=r*1.3,ry=r;
+    pts=cards.map((_,k)=>{const an=(-90+k*360/n)*Math.PI/180;return{x:rx*Math.cos(an),y:ry*Math.sin(an)}});
+    rects=pts.map((q,k)=>({x:q.x-sizes[k].w/2,y:q.y-sizes[k].h/2,w:sizes[k].w,h:sizes[k].h}));
+    const todos=[{x:-cw/2,y:-ch/2,w:cw,h:ch}].concat(rects);
+    let ok=true;
+    for(let i=0;i<todos.length&&ok;i++)for(let j=i+1;j<todos.length;j++)if(esqChocan(todos[i],todos[j],gap)){ok=false;break}
+    if(ok)break;
+    r+=14;
+  }
+  const pad=36,all=[{x:-cw/2,y:-ch/2,w:cw,h:ch}].concat(rects);
+  const minX=Math.min(...all.map(q=>q.x)),maxX=Math.max(...all.map(q=>q.x+q.w)),minY=Math.min(...all.map(q=>q.y)),maxY=Math.max(...all.map(q=>q.y+q.h));
+  const ox=pad-minX,oy=pad-minY,W=Math.ceil(maxX-minX+pad*2),H=Math.ceil(maxY-minY+pad*2);
+  stage.style.width=W+'px';stage.style.height=H+'px';
+  svg.setAttribute('width',W);svg.setAttribute('height',H);svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  center.style.left=(-cw/2+ox)+'px';center.style.top=(-ch/2+oy)+'px';
+  cards.forEach((c,k)=>{
+    c.style.left=(rects[k].x+ox)+'px';c.style.top=(rects[k].y+oy)+'px';
+    const ln=document.createElementNS('http://www.w3.org/2000/svg','line');
+    ln.setAttribute('x1',ox);ln.setAttribute('y1',oy);ln.setAttribute('x2',pts[k].x+ox);ln.setAttribute('y2',pts[k].y+oy);
+    svg.appendChild(ln);
+  });
+  stage.classList.add('laid');
+}
+function layoutRadials(root){(root||document).querySelectorAll('.esqx-stage').forEach(st=>{if(st.offsetParent!==null)layoutRadial(st)})}
+function esqCerrarMenus(except){
+  document.querySelectorAll('.esqx-menu:not([hidden])').forEach(m=>{
+    if(m===except)return;
+    m.hidden=true;const tb=m.parentElement.querySelector('.esqx-tab');if(tb)tb.setAttribute('aria-expanded','false');
+  });
+}
+function esqRefrescar(){
+  document.querySelectorAll('.esqx').forEach(h=>{const t=state.temas.find(x=>x.id===h.dataset.esqtema);if(t)h.outerHTML=esquemaHTML(t)});
+  requestAnimationFrame(()=>layoutRadials());
+}
 function temaBlock(t){
   const cards=state.cards.filter(c=>c.temaId===t.id);
   const hasSec=Array.isArray(t.secciones);
@@ -703,7 +871,8 @@ function secBlock(temaId,sc){
         <label class="lbl">Contenido</label>
         <textarea class="fld" data-action="editSecBody" data-id="${temaId}" data-sid="${sc.id}" placeholder="Contenido de la sección…">${esc(sc.body)}</textarea>
         <label class="lbl">Ideas clave (una por línea, alimentan el esquema)</label>
-        <textarea class="fld" data-action="editSecPuntos" data-id="${temaId}" data-sid="${sc.id}" placeholder="Una idea corta por línea…">${esc((Array.isArray(sc.puntos)?sc.puntos:[]).join('\n'))}</textarea>
+        <textarea class="fld" data-action="editSecPuntos" data-id="${temaId}" data-sid="${sc.id}" placeholder="Una idea corta por línea…">${esc(ideasTexto(sc))}</textarea>
+        <small class="meta">Opcional: empieza la línea con [def], [car] o [ej] para ubicarla como definición, característica o ejemplo en el esquema matricial.</small>
       </div>
       <div class="secFoot">
         <button class="sec" data-action="editSec" data-id="${temaId}" data-sid="${sc.id}"><span class="lbRead">✏️ Editar</span><span class="lbEdit">✓ Listo</span></button>
@@ -743,7 +912,7 @@ function startTool(tool,materiaId){
       if(pool.length<3){
         const extra=state.cards.filter(x=>x.id!==c.id && x.back.trim() && x.materiaId!==c.materiaId);
         pool=pool.concat(shuffle(extra).slice(0,3-pool.length));
-      }/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+      }
       const distractors=shuffle(pool).slice(0,3).map(x=>x.back);
       const opts=shuffle([c.back,...distractors]);
       return{card:c,options:opts,selected:null};
@@ -767,7 +936,7 @@ function startTool(tool,materiaId){
     },1000);
   }
 }
-/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+
 function viewToolHTML(){
   const{tool,materiaId}=route;
   const m=state.materias.find(x=>x.id===materiaId);
@@ -811,7 +980,7 @@ function toolMemorizarHTML(m){
   ${cards.map(c=>`<div class="card"><b>${esc(c.front)}</b><p class="meta" style="margin:6px 0 0">${esc(c.back)}</p></div>`).join('')}`;
 }
 
-function toolConceptoHTML(){/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+function toolConceptoHTML(){
   const{cards,idx,flipped}=toolState;
   if(!cards.length)return noCardsMsg();
   if(idx>=cards.length)return `<div class="empty"><h2>🎉 ¡Listo!</h2><p>Repasaste ${cards.length} conceptos.</p><button class="pr" data-action="redoTool">Repetir</button></div>`;
@@ -840,7 +1009,7 @@ function toolRepasoHTML(){
   <div class="row" style="justify-content:center">
     <button class="sec" data-action="cardAnswer" data-know="0">😕 Repasar</button>
     <button class="pr" data-action="cardAnswer" data-know="1">😊 La sé</button>
-  </div>`;/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+  </div>`;
 }
 
 function toolQuizHTML(isExam){
@@ -868,7 +1037,7 @@ function toolQuizHTML(isExam){
   </div>
   ${q.selected?'<button class="pr" data-action="nextQuestion">Siguiente →</button>':''}`;
 }
-/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+
 function toolCompararHTML(m){
   const others=state.materias.filter(x=>x.id!==m.id);
   if(!others.length)return'<div class="empty">Necesitás al menos 2 materias para comparar.</div>';
@@ -888,7 +1057,7 @@ function toolCompararHTML(m){
 }
 
 function toolProgresoHTML(m){
-  const cards=getCards(m.id);/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+  const cards=getCards(m.id);
   const known=cards.filter(c=>c.known===true).length;
   const attempts=state.attempts.filter(a=>a.materiaId===m.id).sort((a,b)=>b.date-a.date).slice(0,15);
   const pct=cards.length?Math.round(known/cards.length*100):0;
@@ -926,7 +1095,7 @@ function viewCalendarioHTML(){
   }
   const sel=calView.sel;
   const selEvents=sel?(evByDate[sel]||[]):[];
-  const upcoming=state.events.filter(e=>e.date>=todayStr).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,8);/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+  const upcoming=state.events.filter(e=>e.date>=todayStr).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,8);
   return `
     <div class="viewhead"><h1>🗓️ Calendario</h1></div>
     <div class="calNav">
@@ -941,9 +1110,9 @@ function viewCalendarioHTML(){
       <button class="sec" style="margin-top:10px" data-action="addEvent" data-date="${sel}">+ Agregar evento</button>
     </div>`:'<p class="meta">Toca un día para ver o agregar eventos.</p>'}
     <h3>Próximos</h3>
-    ${upcoming.length?upcoming.map(e=>`<div class="li"><span><b>${TY[e.type]||'📌'}</b> ${esc(e.title)}<br><small>${fmtDateLong(e.date)} · ${relDate(e.date)}</small></span></div>`).join(''):'<p class="meta">No tienes eventos próximos.</p>'} 
+    ${upcoming.length?upcoming.map(e=>`<div class="li"><span><b>${TY[e.type]||'📌'}</b> ${esc(e.title)}<br><small>${fmtDateLong(e.date)} · ${relDate(e.date)}</small></span></div>`).join(''):'<p class="meta">No tienes eventos próximos.</p>'}
   `;
-}/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+}
 
 /* ================= VISTA: PERFIL ================= */
 function viewPerfilHTML(){
@@ -967,7 +1136,7 @@ function viewPerfilHTML(){
       <label class="lbl">Carrera y universidad</label><input class="fld" data-action="profileField" data-f="career" value="${esc(p.career)}" maxlength="80">
       <div class="two">
         <div><label class="lbl">Próximo examen</label><input class="fld" type="date" data-action="profileField" data-f="examDate" value="${p.examDate||''}"></div>
-        <div><label class="lbl">Escala de notas</label><select class="fld" data-action="setScale">${[5,10,100].map(n=>`<option value="${n}" ${scaleMax()===n?'selected':''}>0 a ${n}</option>`).join('')}</select></div> 
+        <div><label class="lbl">Escala de notas</label><select class="fld" data-action="setScale">${[5,10,100].map(n=>`<option value="${n}" ${scaleMax()===n?'selected':''}>0 a ${n}</option>`).join('')}</select></div>
       </div>
       <div class="two">
         <div><label class="lbl">Meta de promedio (sobre ${scaleMax()})</label><input class="fld" type="number" min="0" max="${scaleMax()}" step="0.1" data-action="profileField" data-f="goal" value="${p.goal}"></div>
@@ -981,7 +1150,7 @@ function viewPerfilHTML(){
       <button class="sec" data-action="logout">🚪 Cerrar sesión</button>
     </div>
   `;
-}/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+}
 
 /* ================= BÚSQUEDA ================= */
 $('searchBox').addEventListener('input',e=>{
@@ -1005,7 +1174,7 @@ $('searchBox').addEventListener('input',e=>{
   });
 });
 document.addEventListener('click',e=>{if(!e.target.closest('#searchWrap'))$('searchResults').innerHTML=''});
-/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+
 /* ================= ACCIONES (clicks) ================= */
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-action]');if(!b)return;
@@ -1040,7 +1209,7 @@ document.addEventListener('click',e=>{
         s.attempts=s.attempts.filter(x=>!matIds.includes(x.materiaId));
         s.semesters=s.semesters.filter(x=>x.id!==b.dataset.id);
       });
-    }/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+    }
   }
   else if(a==='addMateria'){
     const name=prompt('Nombre de la materia:');
@@ -1049,6 +1218,7 @@ document.addEventListener('click',e=>{
       mutate(s=>s.materias.push({id:uid(),name:name.trim(),icon,semesterId:b.dataset.sem,refs:''}));
     }
   }
+     /* hecho por Sebastian Poveda y Santiago Romero. 2026*/
   else if(a==='delMateria'){
     if(confirm('¿Eliminar esta materia y todo su contenido (temas, tarjetas y cortes)? Esta acción no se puede deshacer.')){
       mutate(s=>{
@@ -1057,7 +1227,7 @@ document.addEventListener('click',e=>{
         s.temas=s.temas.filter(t=>t.materiaId!==b.dataset.id);
         s.cortes=s.cortes.filter(c=>c.materiaId!==b.dataset.id);
         s.materias=s.materias.filter(m=>m.id!==b.dataset.id);
-      });/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+      });
     }
   }
   else if(a==='openMateria'){route={view:'materiaDetail',materiaId:b.dataset.id};render();}
@@ -1071,16 +1241,26 @@ document.addEventListener('click',e=>{
     const box=b.closest('.b');
     box.querySelectorAll('.tabsT button').forEach(x=>x.classList.toggle('on',x===b));
     box.querySelectorAll('.tp').forEach(p=>{p.hidden=p.dataset.panel!==b.dataset.tab});
-    requestAnimationFrame(()=>fitCards());
+    requestAnimationFrame(()=>{fitCards();layoutRadials()});
+  }
+  else if(a==='esqMenu'){
+    const menu=b.parentElement.querySelector('.esqx-menu'),abrir=menu.hidden;
+    esqCerrarMenus(abrir?menu:null);
+    menu.hidden=!abrir;b.setAttribute('aria-expanded',String(abrir));
+  }
+  else if(a==='esqStyle'){
+    const id=b.closest('.esqx').dataset.esqtema;
+    esqGuardar(b.dataset.estilo);esqRefrescar();
+    const nb=document.querySelector('.esqx[data-esqtema="'+id+'"] .esqx-tab');if(nb)nb.focus();
   }
   else if(a==='editSec'){
     const el=b.closest('.secAcc');
     if(el.classList.contains('editing')){
       const t=state.temas.find(x=>x.id===b.dataset.id),sc=t&&t.secciones&&t.secciones.find(x=>x.id===b.dataset.sid);
-      if(sc){/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+      if(sc){
         el.querySelector('.secRead').innerHTML=secReadHTML(sc);
         const pan=el.closest('.b').querySelector('[data-panel="esquema"]');
-        if(pan)pan.innerHTML=esquemaHTML(t);
+        if(pan){pan.innerHTML=esquemaHTML(t);requestAnimationFrame(()=>layoutRadials(pan))}
       }
       el.classList.remove('editing');
     }else{el.classList.add('editing');el.querySelectorAll('textarea').forEach(fitTA)}
@@ -1099,7 +1279,7 @@ document.addEventListener('click',e=>{
   }
   else if(a==='delCard'){
     if(confirm('¿Eliminar esta tarjeta?'))mutate(s=>s.cards=s.cards.filter(c=>c.id!==b.dataset.id));
-  }/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+  }
   else if(a==='addCorte'){
     const name=prompt('Nombre del nuevo corte:','Corte '+(state.cortes.filter(c=>c.materiaId===b.dataset.mat).length+1));
     if(name&&name.trim())mutate(s=>{
@@ -1124,7 +1304,7 @@ document.addEventListener('click',e=>{
       s.cards=s.cards.filter(k=>!ids.includes(k.temaId));
       s.temas=s.temas.filter(t=>t.corteId!==id);
       s.cortes=s.cortes.filter(x=>x.id!==id);
-    });/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+    });
   }
   else if(a==='openTool'){startTool(b.dataset.tool,b.dataset.mat);}
   else if(a==='redoTool'){startTool(route.tool,route.materiaId);}
@@ -1145,7 +1325,7 @@ document.addEventListener('click',e=>{
     if(q.selected===q.card.back)toolState.score++;
     render();
   }
-  else if(a==='nextQuestion'){/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+  else if(a==='nextQuestion'){
     toolState.idx++;
     if(toolState.idx>=toolState.questions.length){
       mutate(s=>s.attempts.push({id:uid(),materiaId:route.materiaId,type:route.tool,score:toolState.score,total:toolState.questions.length,date:Date.now()}));
@@ -1164,7 +1344,7 @@ document.addEventListener('click',e=>{
       mutate(s=>s.events.push({id:uid(),date:b.dataset.date,title:title.trim(),type}));
     }
   }
-  else if(a==='delEvent'){/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+  else if(a==='delEvent'){
     if(confirm('¿Eliminar este evento?'))mutate(s=>s.events=s.events.filter(x=>x.id!==b.dataset.id));
   }
   else if(a==='setAvatar'){mutate(s=>s.profile.avatar=b.dataset.a);}
@@ -1190,10 +1370,10 @@ document.addEventListener('input',e=>{
   else if(a==='editSecPuntos'){
     const t=state.temas.find(x=>x.id===id);
     const sc=t&&t.secciones&&t.secciones.find(x=>x.id===e.target.dataset.sid);if(!sc)return;
-    sc.puntos=e.target.value.split('\n').map(x=>x.trim()).filter(Boolean);
+    const pr=ideasParse(e.target.value);sc.puntos=pr.puntos;sc.tipos=pr.tipos;
     t.updatedAt=Date.now();persist();
   }
-  else if(a==='editSecTitle'||a==='editSecBody'){/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+  else if(a==='editSecTitle'||a==='editSecBody'){
     const t=state.temas.find(x=>x.id===id);if(!t||!t.secciones)return;
     const sc=t.secciones.find(x=>x.id===e.target.dataset.sid);if(!sc)return;
     if(a==='editSecTitle'){
@@ -1232,7 +1412,7 @@ document.addEventListener('input',e=>{
   else if(a==='editMateriaRefs'){
     const m=state.materias.find(x=>x.id===id);if(!m)return;
     m.refs=e.target.value;persist();
-  }/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+  }
 });
 document.addEventListener('change',e=>{
   if(e.target.dataset.action==='setCompareMateria'){
@@ -1251,17 +1431,36 @@ document.addEventListener('change',e=>{
     s.cortes.forEach(c=>{if(c.score!=null&&c.score!=='')c.score=conv(+c.score)});
   });
 });
-/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+
 /* Auto-ajuste de altura de las secciones (solo estético) */
 function fitTA(t){t.style.height='auto';t.style.height=(t.scrollHeight+4)+'px'}
 /* Tarjetas: cada campo crece según su texto. Los campos ocultos (pestaña cerrada) se ajustan al mostrarse. */
 function fitCards(root){(root||document).querySelectorAll('.cardRow textarea').forEach(t=>{if(t.offsetParent!==null)fitTA(t)})}
-window.addEventListener('resize',()=>fitCards());
+let esqRz;
+window.addEventListener('resize',()=>{fitCards();clearTimeout(esqRz);esqRz=setTimeout(()=>layoutRadials(),120)});
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>layoutRadials());
+document.addEventListener('click',e=>{if(!e.target.closest('.esqx-tabs'))esqCerrarMenus()});
+document.addEventListener('keydown',e=>{
+  const tab=e.target.closest&&e.target.closest('.esqx-tab');
+  if(tab&&(e.key==='ArrowDown'||e.key==='ArrowUp')){
+    e.preventDefault();const menu=tab.parentElement.querySelector('.esqx-menu');
+    esqCerrarMenus(menu);menu.hidden=false;tab.setAttribute('aria-expanded','true');
+    const it=[...menu.querySelectorAll('.esqx-mi')];(it.find(x=>x.getAttribute('aria-checked')==='true')||it[0]).focus();return;
+  }
+  const menu=e.target.closest&&e.target.closest('.esqx-menu');if(!menu)return;
+  const it=[...menu.querySelectorAll('.esqx-mi')],i=it.indexOf(document.activeElement);
+  if(e.key==='ArrowDown'){e.preventDefault();it[(i+1)%it.length].focus()}
+  else if(e.key==='ArrowUp'){e.preventDefault();it[(i-1+it.length)%it.length].focus()}
+  else if(e.key==='Home'){e.preventDefault();it[0].focus()}
+  else if(e.key==='End'){e.preventDefault();it[it.length-1].focus()}
+  else if(e.key==='Escape'){e.preventDefault();esqCerrarMenus();const tb=menu.parentElement.querySelector('.esqx-tab');if(tb)tb.focus()}
+  else if(e.key==='Tab')esqCerrarMenus();
+});
 document.addEventListener('toggle',e=>{const d=e.target;if(!d.matches||!d.matches('details'))return;
   if(d.dataset.tema)ui.open[d.dataset.tema]=d.open;
   if(d.dataset.sec)ui.sec[d.dataset.sec]=d.open;
   if(d.dataset.corte)ui.open[d.dataset.corte]=d.open;
-  if(d.open)requestAnimationFrame(()=>fitCards(d));
+  if(d.open)requestAnimationFrame(()=>{fitCards(d);layoutRadials(d)});
 },true);
 document.addEventListener('input',e=>{if(e.target.matches&&e.target.matches('.secAcc textarea, .cardRow textarea'))fitTA(e.target)});
 
@@ -1271,7 +1470,7 @@ async function extraerTextoPDF(file){
   const pdf=await window.pdfjsLib.getDocument({data:buf}).promise;
   let texto='';
   for(let i=1;i<=pdf.numPages;i++){
-    const page=await pdf.getPage(i);/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+    const page=await pdf.getPage(i);
     const content=await page.getTextContent();
     texto+=content.items.map(it=>it.str).join(' ')+'\n\n';
   }
@@ -1293,7 +1492,7 @@ async function extraerTextoPPTX(file){
     texto+=Array.from(nodes).map(n=>n.textContent).join(' ')+'\n\n';
   }
   return texto.trim();
-}/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+}
 
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-action="iaPickFile"]');
@@ -1308,7 +1507,7 @@ document.addEventListener('change',async e=>{
   const statusEl=$('iaStatus');
   const btn=$('iaUploadBtn');
   const nombre=file.name.toLowerCase();
-/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+
   try{
     btn.disabled=true;
     statusEl.textContent='📄 Leyendo el archivo…';
@@ -1341,10 +1540,10 @@ document.addEventListener('change',async e=>{
       statusEl.textContent='❌ La IA no devolvió un resultado válido. Probá de nuevo.';
       btn.disabled=false; return;
     }
-/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+
     mutate(s=>{
       const temaId=uid();
-      const secs=Array.isArray(data.secciones)?data.secciones.filter(x=>x&&x.titulo&&x.contenido).map(x=>({id:uid(),title:String(x.titulo),body:String(x.contenido),puntos:Array.isArray(x.puntos)?x.puntos.map(p=>String(p).trim()).filter(Boolean).slice(0,6):[]})):[];
+      const secs=Array.isArray(data.secciones)?data.secciones.filter(x=>x&&x.titulo&&x.contenido).map(x=>({id:uid(),title:String(x.titulo),body:String(x.contenido),...(()=>{const pr=(Array.isArray(x.puntos)?x.puntos:[]).map((p,i)=>({p:String(p).trim(),t:Array.isArray(x.tipos)?x.tipos[i]:null})).filter(o=>o.p).slice(0,6);return{puntos:pr.map(o=>o.p),tipos:pr.map(o=>ESQ_TIPOS.includes(o.t)?o.t:null)}})()})):[];
       const sel=$('iaCorte');const corteId=(sel&&sel.value)||(s.cortes.find(c=>c.materiaId===materiaId)||{}).id;
       ui.open[corteId]=true;ui.open[temaId]=true;
       const tema={id:temaId,materiaId,corteId,title:data.titulo,body:data.resumen||'',updatedAt:Date.now()};
@@ -1363,7 +1562,8 @@ document.addEventListener('change',async e=>{
   }finally{
     const bt=$('iaUploadBtn'); if(bt)bt.disabled=false;
     e.target.value='';
-  }/* hecho por Santiago Romero Y Sebastian Poveda 2026*/
+  }
+   /* hecho por Sebastian Poveda y Santiago Romero. 2026*/
 });
 })();
 </script>
