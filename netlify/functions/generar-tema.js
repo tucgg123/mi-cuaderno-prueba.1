@@ -10,7 +10,7 @@ const json = (statusCode, obj) => ({
   headers: { 'content-type': 'application/json; charset=utf-8' },
   body: JSON.stringify(obj)
 });
-// hecho por Sebastian Poveda y Santiago Romero. 2026 
+
 // Tiempo máximo total esperando a la IA. Si se pasa, respondemos con un error claro
 // en vez de dejar que Netlify corte la función con un 502 sin explicación.
 const LIMITE_MS = 25000;
@@ -82,7 +82,7 @@ function leerJSON(raw) {
   }
   return null;
 }
-// hecho por Sebastian Poveda y Santiago Romero. 2026 
+
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return json(405, { error: 'Método no permitido.' });
@@ -92,7 +92,7 @@ exports.handler = async (event) => {
   if (!apiKey) {
     return json(500, { error: 'Falta configurar APIKEYGEMINIS en Netlify (Site settings > Environment variables).' });
   }
-// hecho por Sebastian Poveda y Santiago Romero. 2026 
+
   let texto, materia;
   try {
     const body = JSON.parse(event.body || '{}');
@@ -108,7 +108,7 @@ exports.handler = async (event) => {
 
   // Tope de seguridad: no mandamos textos gigantes a la IA (cuesta más y no hace falta).
   const textoRecortado = texto.slice(0, 20000);
-// hecho por Sebastian Poveda y Santiago Romero. 2026 
+
   const prompt = `Eres un asistente que ayuda a estudiantes universitarios a convertir apuntes de clase (sacados de un PDF o una presentación) en material de estudio.
 
 Materia: "${materia || 'sin especificar'}"
@@ -123,12 +123,12 @@ REGLAS DE LAS SECCIONES:
 - Incluye una sección solo si el texto tiene material para ella. Por ejemplo, "Autor y año" solo si el texto menciona un autor o una fecha; "Ejemplos" solo si hay ejemplos; "Limitaciones o críticas" solo si se discuten; "Fórmulas" solo si hay fórmulas; "Pasos del procedimiento" solo si hay un procedimiento.
 - Los títulos deben ser específicos del contenido (por ejemplo "Componentes de la memoria de trabajo"), no genéricos.
 - No inventes datos que no estén en el texto. Si algo no aparece, no crees la sección.
-- "puntos" son de 2 a 5 ideas clave de la sección, cada una corta (máximo 12 palabras), tomadas del contenido. Alimentan un esquema visual, así que deben poder leerse solas.
+- "ideas" son de 2 a 5 ideas clave por sección, tomadas del contenido, cada texto de máximo 14 palabras y que se entienda solo. Alimentan un esquema visual. Cada idea lleva un "tipo", que debe ser EXACTAMENTE uno de estos tres: "definicion" (qué es el concepto), "caracteristica" (rasgos, propiedades, pasos, datos, causas) o "ejemplo" (un caso que aparezca en el texto). Usa "ejemplo" solo si el texto lo trae: no inventes ejemplos. Procura que cada sección tenga al menos una definición si el texto la da.
 - "contenido" debe ser claro y bien organizado, 1 o 2 párrafos cortos, o una lista de 3 a 6 guiones cuando sea más claro. Sé conciso. Texto plano, sin markdown con asteriscos.
 
 Devuelve EXCLUSIVAMENTE un JSON válido, sin explicación adicional, con esta forma exacta:
 
-{"titulo":"título corto para el tema (máx 8 palabras)","secciones":[{"titulo":"título de la sección","contenido":"contenido de la sección","puntos":["idea clave corta","otra idea clave corta"]}],"tarjetas":[{"frente":"término o pregunta corta","reverso":"definición o respuesta clara y no muy larga"}]}
+{"titulo":"título corto para el tema (máx 8 palabras)","secciones":[{"titulo":"título de la sección","contenido":"contenido de la sección","ideas":[{"tipo":"definicion","texto":"idea clave corta"},{"tipo":"caracteristica","texto":"otra idea clave corta"},{"tipo":"ejemplo","texto":"un ejemplo breve"}]}],"tarjetas":[{"frente":"término o pregunta corta","reverso":"definición o respuesta clara y no muy larga"}]}
 
 Genera entre 8 y 12 tarjetas que cubran los conceptos, definiciones y términos clave del texto. El "frente" debe ser corto (un término o una pregunta). El "reverso" debe responder con precisión sin ser un párrafo entero.
 
@@ -136,7 +136,7 @@ TEXTO A ANALIZAR:
 """
 ${textoRecortado}
 """`;
-// hecho por Sebastian Poveda y Santiago Romero. 2026 
+
   try {
     const resp = await llamarGemini(apiKey, prompt);
 
@@ -157,7 +157,7 @@ ${textoRecortado}
     if (!raw) {
       return json(502, { error: 'La IA no devolvió contenido. Puede que el archivo sea muy largo o el contenido haya sido bloqueado.' });
     }
-// hecho por Sebastian Poveda y Santiago Romero. 2026 
+
     const finish = candidate && candidate.finishReason;
     let parsed = leerJSON(raw);
     if (!parsed) {
@@ -167,6 +167,21 @@ ${textoRecortado}
         : 'La IA no devolvió un resultado con el formato esperado. Prueba de nuevo.' });
     }
     if (finish === 'MAX_TOKENS') console.error('Respuesta cortada por MAX_TOKENS; se rescató parte del JSON.');
+    // Cada sección: "ideas" [{tipo, texto}] pasan a "puntos" (textos) y "tipos" (paralelo).
+    const TIPOS = ['definicion', 'caracteristica', 'ejemplo'];
+    if (Array.isArray(parsed.secciones)) {
+      parsed.secciones.forEach(sec => {
+        if (!sec || typeof sec !== 'object') return;
+        const fuente = Array.isArray(sec.ideas) ? sec.ideas : (Array.isArray(sec.puntos) ? sec.puntos : []);
+        const pares = fuente.map(x => (typeof x === 'string')
+          ? { texto: x, tipo: null }
+          : { texto: String((x && x.texto) || ''), tipo: x && TIPOS.includes(x.tipo) ? x.tipo : null }
+        ).map(o => ({ texto: o.texto.trim(), tipo: o.tipo })).filter(o => o.texto).slice(0, 6);
+        sec.puntos = pares.map(o => o.texto);
+        sec.tipos = pares.map(o => o.tipo);
+        delete sec.ideas;
+      });
+    }
     if (!Array.isArray(parsed.tarjetas)) parsed.tarjetas = [];
     if (!Array.isArray(parsed.secciones) || !parsed.secciones.length) {
       if (!parsed.tarjetas.length) return json(502, { error: 'La IA devolvió una respuesta incompleta. Prueba de nuevo.' });
@@ -175,7 +190,7 @@ ${textoRecortado}
     if (!parsed.titulo || !Array.isArray(parsed.tarjetas)) {
       return json(502, { error: 'La respuesta de la IA no tiene el formato esperado.' });
     }
-// hecho por Sebastian Poveda y Santiago Romero. 2026 
+
     return json(200, parsed);
   } catch (err) {
     if (err.message === 'TIMEOUT') {
