@@ -1,13 +1,17 @@
 <!DOCTYPE html>
+<!-- Hecho por Sebastián Poveda y Santiago Romero. 2026 -->
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<meta name="author" content="Sebastián Poveda y Santiago Romero">
+<meta name="copyright" content="© 2026 Sebastián Poveda y Santiago Romero">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mi cuaderno de estudio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+/* Hecho por Sebastián Poveda y Santiago Romero. 2026 — Mi cuaderno de estudio · estilos */
 :root{
   --bg:#f5f1e8;--c:#fffdf8;--t:#25211d;--m:#8a7f70;--a:#7a2e2c;--al:#f2e2dc;--b:#e6ddc9;--ok:#3f7d5c;--no:#a8433a;
   --serif:'Fraunces',Georgia,"Times New Roman",serif;--sans:'Inter',system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -85,7 +89,7 @@ textarea{min-height:110px;resize:vertical;font-family:inherit}
 .optBtn.chosen{border-color:var(--a);background:var(--al)}
 .optBtn:disabled{cursor:default;opacity:.9}
 
- /* hecho por Sebastian Poveda y Santiago Romero. 2026*/
+
 /* Auth screen */
 #authScreen{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(120% 100% at 50% 0%,color-mix(in srgb,var(--al) 55%,var(--bg)),var(--bg))}
 #authScreen[hidden]{display:none}
@@ -115,7 +119,7 @@ nav#mainNav button{white-space:nowrap;border:0;padding:8px 16px;border-radius:99
 nav#mainNav button.on{background:var(--al);color:var(--a)}
 main#view{max-width:900px;margin:0 auto;padding:20px 16px 70px;animation:f .25s}
 @keyframes f{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
- /* hecho por Sebastian Poveda y Santiago Romero. 2026*/
+
 /* Calendar */
 .calNav{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:12px}
 .calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:16px}
@@ -185,7 +189,7 @@ main#view{max-width:900px;margin:0 auto;padding:20px 16px 70px;animation:f .25s}
 .puntos ul{margin:6px 0 0;padding-left:1.1em}
 .puntos li{line-height:1.6;margin-bottom:4px}
 .puntos li::marker{color:var(--a)}
-  /* hecho por Sebastian Poveda y Santiago Romero. 2026*/
+/* Hecho por Sebastián Poveda y Santiago Romero. 2026 · esquemas */
 /* ===== Esquemas: ramificado, radial y matricial ===== */
 .esqx{--esqL:color-mix(in srgb,var(--m) 45%,transparent)}
 .esqx-bar{margin:0 0 16px;position:relative;z-index:5}
@@ -205,63 +209,91 @@ main#view{max-width:900px;margin:0 auto;padding:20px 16px 70px;animation:f .25s}
 .esqx-mi[aria-checked="true"] .esqx-nm,.esqx-mi[aria-checked="true"] .esqx-ico{color:var(--a)}
 .esqx-anim{animation:esqIn .28s ease both}
 @keyframes esqIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* tipos de idea */
+.esqx-t-definicion{--tc:var(--a)}
+.esqx-t-caracteristica{--tc:#5b8db8}
+.esqx-t-ejemplo{--tc:#4e9a73}
+.esqx-leg{display:flex;flex-wrap:wrap;gap:6px 16px;margin:0 0 16px;font-size:.8rem;color:var(--m)}
+.esqx-lg{display:inline-flex;align-items:center;gap:6px}
+.esqx-lg i{width:10px;height:10px;border-radius:3px;background:var(--tc)}
+.esqx-tag{font-size:.66rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--tc)}
+.esqx-term{font-family:var(--serif);font-weight:600;color:var(--t)}
 /* ramificado */
 .esqx-root{display:inline-block;max-width:100%;padding:12px 26px;background:var(--a);color:var(--bg);border-radius:14px;font:600 1.15rem/1.3 var(--serif)}
-.esqx-cats{margin-left:30px}
-.esqx-cat{--pt:18px;position:relative;padding:var(--pt) 0 4px 34px}
+.esqx-cats{margin-left:26px}
+.esqx-cat{--pt:20px;position:relative;padding:var(--pt) 0 6px 32px}
 .esqx-cat::before{content:"";position:absolute;left:0;top:0;bottom:0;border-left:1.5px solid var(--esqL)}
 .esqx-cat:last-child::before{bottom:auto;height:calc(var(--pt) + 20px)}
-.esqx-cat::after{content:"";position:absolute;left:0;top:calc(var(--pt) + 20px);width:30px;border-top:1.5px solid var(--esqL)}
-.esqx-catnode{display:inline-flex;align-items:center;min-height:40px;max-width:100%;padding:6px 18px;background:var(--al);border:1px solid var(--a);border-radius:12px;color:var(--a);font:600 1rem/1.3 var(--serif)}
-.esqx-ideas{list-style:none;margin:12px 0 0 20px;padding:0}
-.esqx-idea{position:relative;padding:0 0 10px 28px}
-.esqx-idea::before{content:"";position:absolute;left:0;top:0;bottom:0;border-left:1.5px dotted var(--esqL)}
-.esqx-idea:last-child::before{bottom:auto;height:calc(50% - 5px)}
-.esqx-idea::after{content:"";position:absolute;left:0;top:calc(50% - 5px);width:24px;border-top:1.5px dotted var(--esqL)}
-.esqx-ideacard{padding:10px 16px;background:var(--bg);border:1px solid var(--b);border-radius:12px;font-size:.95rem;font-weight:500;line-height:1.5}
+.esqx-cat::after{content:"";position:absolute;left:0;top:calc(var(--pt) + 20px);width:28px;border-top:1.5px solid var(--esqL)}
+.esqx-catnode{display:inline-flex;align-items:center;gap:10px;min-height:40px;max-width:100%;padding:6px 18px 6px 8px;background:var(--al);border:1px solid var(--a);border-radius:12px;color:var(--a);font:600 1.02rem/1.3 var(--serif)}
+.esqx-num{flex:none;display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--a);color:var(--bg);font:700 .8rem var(--sans)}
+.esqx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;margin-top:12px}
+.esqx-card{display:flex;flex-direction:column;gap:3px;padding:10px 14px 12px 14px;background:var(--bg);border:1px solid var(--b);border-left:4px solid var(--tc);border-radius:12px;font-size:.92rem;line-height:1.45}
+.esqx-card .esqx-term{font-size:1rem;line-height:1.3}
+.esqx-desc{color:var(--t)}
 /* radial */
 .esqx-scroll{overflow-x:auto;padding-bottom:8px}
-.esqx-stage{position:relative;margin:0 auto}
+.esqx-fit{position:relative;margin:0 auto}
+.esqx-stage{position:relative;transform-origin:0 0}
 .esqx-stage:not(.laid):not(.stacked){visibility:hidden;min-height:320px}
 .esqx-lines{position:absolute;left:0;top:0;pointer-events:none}
 .esqx-lines line{stroke:var(--a);stroke-opacity:.45;stroke-width:1.5;stroke-linecap:round}
-.esqx-center{position:absolute;width:250px;padding:18px 20px;background:var(--a);color:var(--bg);border-radius:20px;box-shadow:0 0 0 8px color-mix(in srgb,var(--a) 14%,transparent);font:600 1.15rem/1.3 var(--serif);text-align:center}
-.esqx-rcard{position:absolute;width:290px;padding:14px 16px 12px;background:var(--bg);border:1px solid var(--b);border-radius:16px}
-.esqx-rtitle{margin:0 0 8px;padding-bottom:8px;border-bottom:1px solid color-mix(in srgb,var(--a) 45%,transparent);color:var(--a);font:600 .98rem/1.3 var(--serif)}
-.esqx-rcard ul{margin:0;padding-left:18px;font-size:.86rem}
-.esqx-rcard li{margin:0 0 6px;line-height:1.5}
-.esqx-rcard li::marker{color:var(--a)}
-.esqx-stage.stacked{display:flex;flex-direction:column;align-items:center;width:auto!important;height:auto!important}
+.esqx-center{position:absolute;width:220px;padding:16px 18px;background:var(--a);color:var(--bg);border-radius:20px;box-shadow:0 0 0 8px color-mix(in srgb,var(--a) 14%,transparent);font:600 1.12rem/1.3 var(--serif);text-align:center}
+.esqx-rcard{position:absolute;width:240px;padding:12px 14px;background:var(--bg);border:1px solid var(--b);border-radius:16px}
+.esqx-rtitle{margin:0 0 10px;padding-bottom:8px;border-bottom:1px solid color-mix(in srgb,var(--a) 45%,transparent);color:var(--a);font:600 .95rem/1.3 var(--serif)}
+.esqx-chips{display:flex;flex-wrap:wrap;gap:6px}
+.esqx-chip{padding:3px 10px;border-radius:12px;border:1px solid var(--tc);background:color-mix(in srgb,var(--tc) 12%,transparent);color:var(--t);font-size:.78rem;font-weight:600;line-height:1.4}
+.esqx-stage.stacked{display:flex;flex-direction:column;align-items:center;width:auto!important;height:auto!important;transform:none!important}
 .esqx-stage.stacked .esqx-lines{display:none}
-.esqx-stage.stacked .esqx-center,.esqx-stage.stacked .esqx-rcard{position:relative;left:auto!important;top:auto!important;width:100%;max-width:440px}
+.esqx-stage.stacked .esqx-center,.esqx-stage.stacked .esqx-rcard{position:relative;left:auto!important;top:auto!important;width:100%;max-width:460px}
 .esqx-stage.stacked .esqx-rcard{margin-top:30px}
 .esqx-stage.stacked .esqx-rcard::before{content:"";position:absolute;left:50%;top:-30px;height:30px;border-left:1.5px solid color-mix(in srgb,var(--a) 45%,transparent)}
 /* matricial */
-.esqx-tscroll{overflow-x:auto;border-radius:16px}
-.esqx-matriz{width:100%;min-width:820px;border-collapse:separate;border-spacing:0;background:var(--bg);font-size:.93rem}
+.esqx-tscroll{overflow-x:auto}
+.esqx-matriz{width:100%;table-layout:fixed;border-collapse:separate;border-spacing:0;background:var(--bg);font-size:.9rem}
 .esqx-matriz caption{caption-side:top;padding:0 0 14px;text-align:left;color:var(--a);font:600 1.15rem var(--serif)}
-.esqx-matriz th,.esqx-matriz td{padding:14px 16px;vertical-align:top;text-align:left;border-bottom:1px solid var(--b);border-right:1px solid var(--b)}
+.esqx-matriz th,.esqx-matriz td{padding:14px 14px;vertical-align:top;text-align:left;border-bottom:1px solid var(--b);border-right:1px solid var(--b);overflow-wrap:anywhere}
 .esqx-matriz thead th{background:var(--c);color:var(--a);font:600 .95rem var(--serif);border-top:1px solid var(--b);border-bottom:1px solid color-mix(in srgb,var(--a) 45%,transparent)}
-.esqx-matriz thead th:first-child{border-top-left-radius:14px;border-left:1px solid var(--b)}
+.esqx-matriz thead th:first-child{width:21%;border-top-left-radius:14px;border-left:1px solid var(--b)}
+.esqx-matriz thead th:nth-child(2){width:27%}
+.esqx-matriz thead th:nth-child(3){width:32%}
+.esqx-matriz thead th:nth-child(4){width:20%}
 .esqx-matriz thead th:last-child{border-top-right-radius:14px}
-.esqx-matriz tbody th[scope="row"]{position:sticky;left:0;min-width:170px;background:var(--c);color:var(--a);font:600 1rem var(--serif);border-left:1px solid var(--b)}
+.esqx-matriz tbody th[scope="row"]{background:var(--c);color:var(--a);font:600 .98rem var(--serif);border-left:1px solid var(--b)}
 .esqx-matriz tbody tr:last-child th{border-bottom-left-radius:14px}
 .esqx-matriz tbody tr:last-child td:last-child{border-bottom-right-radius:14px}
 .esqx-matriz td p{margin:0}
 .esqx-matriz td ul{margin:0;padding-left:18px}
-.esqx-matriz td li{margin:0 0 6px}
+.esqx-matriz td li{margin:0 0 7px;line-height:1.45}
 .esqx-matriz td li:last-child{margin-bottom:0}
 .esqx-matriz td li::marker{color:var(--a)}
+.esqx-matriz .esqx-term{display:block}
 .esqx-matriz .vacio{color:var(--m)}
+.esqx-mcards{display:none;flex-direction:column;gap:14px}
+.esqx-mc{background:var(--bg);border:1px solid var(--b);border-radius:16px;padding:14px}
+.esqx-mc .esqx-catnode{margin-bottom:10px}
+.esqx-mrow{margin-top:10px;padding:8px 12px 10px;border-left:4px solid var(--tc);background:color-mix(in srgb,var(--tc) 7%,transparent);border-radius:0 10px 10px 0}
+.esqx-mrow p{margin:4px 0 0;font-size:.92rem;line-height:1.45}
+.esqx-mrow ul{margin:4px 0 0;padding-left:18px;font-size:.92rem}
+.esqx-mrow li{margin:0 0 6px;line-height:1.45}
+.esqx-mrow li:last-child{margin-bottom:0}
+.esqx-mrow .esqx-term{display:block}
+@media(max-width:700px){
+  .esqx-tscroll{display:none}
+  .esqx-mcards{display:flex}
+}
 @media(max-width:620px){
   .esqx-root{font-size:1.02rem;padding:10px 18px}
-  .esqx-cats{margin-left:14px}.esqx-cat{padding-left:22px}.esqx-cat::after{width:18px}
-  .esqx-ideas{margin-left:8px}.esqx-idea{padding-left:18px}.esqx-idea::after{width:14px}
-  .esqx-ideacard{font-size:.9rem;padding:9px 12px}
+  .esqx-cats{margin-left:8px}
+  .esqx-cat{padding-left:18px}
+  .esqx-cat::after{width:14px}
+  .esqx-grid{grid-template-columns:1fr}
+  .esqx-catnode{font-size:.98rem}
   .esqx-menu{min-width:min(270px,calc(100vw - 60px))}
 }
 @media(prefers-reduced-motion:reduce){.esqx-anim{animation:none}.esqx-chev{transition:none}}
 
+/* Hecho por Sebastián Poveda y Santiago Romero. 2026 · cortes y carpetas */
 /* ===== Cortes como carpetas ===== */
 select.fld{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--b);border-radius:10px;padding:9px 12px;width:100%}
 .folder{background:var(--c);border:1px solid var(--b);border-radius:18px;margin-bottom:14px;overflow:hidden;box-shadow:0 14px 30px -24px rgba(60,40,20,.45)}
@@ -291,6 +323,7 @@ select.fld{font:inherit;color:inherit;background:var(--bg);border:1px solid var(
 </head>
 <body>
 
+<!-- Hecho por Sebastián Poveda y Santiago Romero. 2026 · pantalla de acceso -->
 <div id="authScreen">
   <div class="authCard">
     <h1>📚 Mi cuaderno</h1>
@@ -309,6 +342,7 @@ select.fld{font:inherit;color:inherit;background:var(--bg);border:1px solid var(
   </div>
 </div>
 
+<!-- Hecho por Sebastián Poveda y Santiago Romero. 2026 · aplicación -->
 <div id="appRoot" hidden>
   <header id="topbar">
     <b id="ct">📚 Mi cuaderno</b>
@@ -358,6 +392,7 @@ const db = firebase.firestore();
 </script>
 
 <script>
+/* Hecho por Sebastián Poveda y Santiago Romero. 2026 — lógica principal de la aplicación */
 (()=>{
 /* ================= UTILIDADES ================= */
 const $=id=>document.getElementById(id);
@@ -382,6 +417,7 @@ function defaultState(){return{
   attempts:[],
   events:[]
 }}
+/* Hecho por Sebastián Poveda y Santiago Romero. 2026 · estado y cortes */
 const CORTES_DEFECTO=[['Corte 1',30],['Corte 2',30],['Corte 3',40]];
 /* Garantiza: escala de notas, al menos un corte por materia y que cada tema esté dentro de un corte. */
 function ensureCortes(){
@@ -725,6 +761,7 @@ function secReadHTML(sc){
   const p=puntosDe(sc);
   return `<div class="txt">${fmtBody(sc.body)}</div>${p.length?`<div class="puntos"><small>Ideas clave</small><ul>${p.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}`;
 }
+/* Hecho por Sebastián Poveda y Santiago Romero. 2026 · sistema de esquemas */
 /* ===== Esquemas: ramificado, radial y matricial ===== */
 const ESQ_ESTILOS=[
   {id:'ramificado',nombre:'Ramificado',desc:'Jerarquía con ramas y tarjetas',icono:'<rect x="3" y="4" width="7" height="4" rx="1"/><rect x="14" y="10" width="7" height="4" rx="1"/><rect x="14" y="16" width="7" height="4" rx="1"/><path d="M6.5 8v10M6.5 12H14M6.5 18H14"/>'},
@@ -769,14 +806,29 @@ function ideasParse(valor){
   });
   return{puntos,tipos};
 }
+const ESQ_TAGTXT={definicion:'Definición',caracteristica:'Característica',ejemplo:'Ejemplo'};
+/* Una idea puede venir como "Término: explicación". El término se resalta para que el esquema use el vocabulario del tema. */
+function ideaParts(texto){
+  const t=String(texto||'').trim();
+  const m=t.match(/^([^:.\n]{2,52}):\s+([\s\S]+)$/);
+  if(m&&m[1].trim().split(/\s+/).length<=6){const d=m[2].trim();return{term:m[1].trim(),desc:d.charAt(0).toUpperCase()+d.slice(1)}}
+  return{term:'',desc:t};
+}
+function esqCorto(t,max){if(t.length<=max)return t;const c=t.slice(0,max-1),i=c.lastIndexOf(' ');return (i>12?c.slice(0,i):c).replace(/[\s,;:.]+$/,'')+'…'}
+function ideaHTML(i){const p=ideaParts(i.texto);return p.term?`<b class="esqx-term">${esc(p.term)}</b> ${esc(p.desc)}`:esc(p.desc)}
+function esqLeyenda(){return `<div class="esqx-leg" aria-hidden="true">${ESQ_TIPOS.map(k=>`<span class="esqx-lg esqx-t-${k}"><i></i>${ESQ_TAGTXT[k]}</span>`).join('')}</div>`}
+function esqNodo(sc,n){return `<div class="esqx-catnode"><span class="esqx-num">${n+1}</span>${esc(sc.title)||'(sin título)'}</div>`}
 function esqRamificado(t,secs){
-  return `<div class="esqx-ram"><div class="esqx-root">${esc(t.title)||'Tema'}</div><div class="esqx-cats">${secs.map(sc=>{const ids=ideasDe(sc);return `<section class="esqx-cat"><div class="esqx-catnode">${esc(sc.title)||'(sin título)'}</div>${ids.length?`<ul class="esqx-ideas">${ids.map(i=>`<li class="esqx-idea"><div class="esqx-ideacard">${esc(i.texto)}</div></li>`).join('')}</ul>`:''}</section>`}).join('')}</div></div>`;
+  return `${esqLeyenda()}<div class="esqx-ram"><div class="esqx-root">${esc(t.title)||'Tema'}</div><div class="esqx-cats">${secs.map((sc,n)=>{const ids=ideasDe(sc);return `<section class="esqx-cat">${esqNodo(sc,n)}${ids.length?`<div class="esqx-grid">${ids.map(i=>{const p=ideaParts(i.texto);return `<div class="esqx-card esqx-t-${i.tipo}"><span class="esqx-tag">${ESQ_TAGTXT[i.tipo]}</span>${p.term?`<b class="esqx-term">${esc(p.term)}</b>`:''}<span class="esqx-desc">${esc(p.desc)}</span></div>`}).join('')}</div>`:''}</section>`}).join('')}</div></div>`;
 }
 function esqRadial(t,secs){
-  return `<div class="esqx-scroll"><div class="esqx-stage"><svg class="esqx-lines" aria-hidden="true"></svg><div class="esqx-center">${esc(t.title)||'Tema'}</div>${secs.map(sc=>`<article class="esqx-rcard"><div class="esqx-rtitle">${esc(sc.title)||'(sin título)'}</div><ul>${ideasDe(sc).map(i=>`<li>${esc(i.texto)}</li>`).join('')}</ul></article>`).join('')}</div></div>`;
+  return `${esqLeyenda()}<div class="esqx-scroll"><div class="esqx-fit"><div class="esqx-stage"><svg class="esqx-lines" aria-hidden="true"></svg><div class="esqx-center">${esc(t.title)||'Tema'}</div>${secs.map(sc=>`<article class="esqx-rcard"><div class="esqx-rtitle">${esc(sc.title)||'(sin título)'}</div><div class="esqx-chips">${ideasDe(sc).map(i=>{const p=ideaParts(i.texto);const lbl=p.term||esqCorto(p.desc,40);return `<span class="esqx-chip esqx-t-${i.tipo}" title="${esc(i.texto)}">${esc(lbl)}</span>`}).join('')}</div></article>`).join('')}</div></div></div>`;
 }
 function esqMatricial(t,secs){
-  return `<div class="esqx-tscroll" tabindex="0" role="region" aria-label="Matriz comparativa, desplazable horizontalmente"><table class="esqx-matriz"><caption>${esc(t.title)||'Tema'}</caption><thead><tr><th scope="col">Concepto</th>${ESQ_TIPOS.map(k=>`<th scope="col">${ESQ_COLS[k]}</th>`).join('')}</tr></thead><tbody>${secs.map(sc=>{const ids=ideasDe(sc);return `<tr><th scope="row">${esc(sc.title)||'(sin título)'}</th>${ESQ_TIPOS.map(k=>{const it=ids.filter(x=>x.tipo===k);return `<td>${!it.length?'<span class="vacio">—</span>':it.length===1?`<p>${esc(it[0].texto)}</p>`:`<ul>${it.map(x=>`<li>${esc(x.texto)}</li>`).join('')}</ul>`}</td>`}).join('')}</tr>`}).join('')}</tbody></table></div>`;
+  const lista=it=>it.length===1?`<p>${ideaHTML(it[0])}</p>`:`<ul>${it.map(x=>`<li>${ideaHTML(x)}</li>`).join('')}</ul>`;
+  const tabla=`<div class="esqx-tscroll" tabindex="0" role="region" aria-label="Matriz comparativa"><table class="esqx-matriz"><caption>${esc(t.title)||'Tema'}</caption><thead><tr><th scope="col">Concepto</th>${ESQ_TIPOS.map(k=>`<th scope="col">${ESQ_COLS[k]}</th>`).join('')}</tr></thead><tbody>${secs.map(sc=>{const ids=ideasDe(sc);return `<tr><th scope="row">${esc(sc.title)||'(sin título)'}</th>${ESQ_TIPOS.map(k=>{const it=ids.filter(x=>x.tipo===k);return `<td>${it.length?lista(it):'<span class="vacio">—</span>'}</td>`}).join('')}</tr>`}).join('')}</tbody></table></div>`;
+  const tarjetas=`<div class="esqx-mcards">${secs.map((sc,n)=>{const ids=ideasDe(sc);return `<section class="esqx-mc">${esqNodo(sc,n)}${ESQ_TIPOS.map(k=>{const it=ids.filter(x=>x.tipo===k);return it.length?`<div class="esqx-mrow esqx-t-${k}"><span class="esqx-tag">${ESQ_COLS[k]}</span>${lista(it)}</div>`:''}).join('')}</section>`}).join('')}</div>`;
+  return tabla+tarjetas;
 }
 function esquemaHTML(t){
   const secs=Array.isArray(t.secciones)?t.secciones:[];
@@ -786,29 +838,43 @@ function esquemaHTML(t){
   const items=ESQ_ESTILOS.map(e=>`<li role="none"><button type="button" class="esqx-mi" role="menuitemradio" aria-checked="${e.id===est}" data-action="esqStyle" data-estilo="${e.id}" tabindex="-1"><svg class="esqx-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${e.icono}</svg><span><span class="esqx-nm">${e.nombre}</span><span class="esqx-ds">${e.desc}</span></span></button></li>`).join('');
   return `<div class="esqx" data-esqtema="${t.id}"><div class="esqx-bar"><div class="esqx-tabs"><button type="button" class="esqx-tab" data-action="esqMenu" aria-haspopup="menu" aria-expanded="false"><span>Esquema</span><span class="esqx-cur">${info.nombre}</span><svg class="esqx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><ul class="esqx-menu" role="menu" aria-label="Estilo de esquema" hidden>${items}</ul></div></div><div class="esqx-view esqx-anim">${view}</div></div>`;
 }
-/* Vista radial: se coloca cada rama en círculo y se agranda el radio hasta que nada se superponga. */
+/* Vista radial: ramas en círculo, sin superposiciones, y se reduce la escala para que SIEMPRE quepa en el panel. */
 function esqChocan(a,b,g){return a.x-g<b.x+b.w&&b.x-g<a.x+a.w&&a.y-g<b.y+b.h&&b.y-g<a.y+a.h}
 function layoutRadial(stage){
+  const fit=stage.parentElement,wrap=fit.parentElement;
   const svg=stage.querySelector('.esqx-lines'),center=stage.querySelector('.esqx-center'),cards=[...stage.querySelectorAll('.esqx-rcard')];
   while(svg.firstChild)svg.removeChild(svg.firstChild);
-  if(window.innerWidth<720){stage.classList.add('stacked','laid');stage.style.width='';stage.style.height='';return}
+  const avail=wrap.clientWidth;
+  stage.style.transform='';fit.style.width='';fit.style.height='';
+  if(avail&&avail<560){stage.classList.add('stacked','laid');stage.style.width='';stage.style.height='';return}
   stage.classList.remove('stacked');
   const n=cards.length;if(!n){stage.classList.add('laid');return}
-  const cw=center.offsetWidth,ch=center.offsetHeight,sizes=cards.map(c=>({w:c.offsetWidth,h:c.offsetHeight})),gap=28;
-  let r=140,pts=[],rects=[];
-  for(let it=0;it<800;it++){
-    const rx=r*1.3,ry=r;
-    pts=cards.map((_,k)=>{const an=(-90+k*360/n)*Math.PI/180;return{x:rx*Math.cos(an),y:ry*Math.sin(an)}});
-    rects=pts.map((q,k)=>({x:q.x-sizes[k].w/2,y:q.y-sizes[k].h/2,w:sizes[k].w,h:sizes[k].h}));
-    const todos=[{x:-cw/2,y:-ch/2,w:cw,h:ch}].concat(rects);
-    let ok=true;
-    for(let i=0;i<todos.length&&ok;i++)for(let j=i+1;j<todos.length;j++)if(esqChocan(todos[i],todos[j],gap)){ok=false;break}
-    if(ok)break;
-    r+=14;
+  const cw=center.offsetWidth,ch=center.offsetHeight,sizes=cards.map(c=>({w:c.offsetWidth,h:c.offsetHeight})),gap=26,pad=24;
+  /* Se prueban varias formas (óvalo ancho, círculo, óvalo alto) y se elige la que menos hay que reducir para que quepa. */
+  function resolver(ratio){
+    let r=110,pts=[],rects=[];
+    for(let it=0;it<900;it++){
+      const rx=r*ratio,ry=r;
+      pts=cards.map((_,k)=>{const an=(-90+k*360/n)*Math.PI/180;return{x:rx*Math.cos(an),y:ry*Math.sin(an)}});
+      rects=pts.map((q,k)=>({x:q.x-sizes[k].w/2,y:q.y-sizes[k].h/2,w:sizes[k].w,h:sizes[k].h}));
+      const todos=[{x:-cw/2,y:-ch/2,w:cw,h:ch}].concat(rects);
+      let ok=true;
+      for(let i=0;i<todos.length&&ok;i++)for(let j=i+1;j<todos.length;j++)if(esqChocan(todos[i],todos[j],gap)){ok=false;break}
+      if(ok)break;
+      r+=10;
+    }
+    const all=[{x:-cw/2,y:-ch/2,w:cw,h:ch}].concat(rects);
+    const minX=Math.min(...all.map(q=>q.x)),maxX=Math.max(...all.map(q=>q.x+q.w)),minY=Math.min(...all.map(q=>q.y)),maxY=Math.max(...all.map(q=>q.y+q.h));
+    return{pts,rects,minX,minY,W:Math.ceil(maxX-minX+pad*2),H:Math.ceil(maxY-minY+pad*2)};
   }
-  const pad=36,all=[{x:-cw/2,y:-ch/2,w:cw,h:ch}].concat(rects);
-  const minX=Math.min(...all.map(q=>q.x)),maxX=Math.max(...all.map(q=>q.x+q.w)),minY=Math.min(...all.map(q=>q.y)),maxY=Math.max(...all.map(q=>q.y+q.h));
-  const ox=pad-minX,oy=pad-minY,W=Math.ceil(maxX-minX+pad*2),H=Math.ceil(maxY-minY+pad*2);
+  let mejor=null;
+  [1.35,1.1,0.9,0.75].forEach(ratio=>{
+    const c=resolver(ratio);
+    c.k=avail?Math.min(1,avail/c.W):1;
+    if(!mejor||c.k>mejor.k+0.02||(Math.abs(c.k-mejor.k)<=0.02&&c.H<mejor.H))mejor=c;
+  });
+  const {pts,rects,minX,minY,W,H}=mejor;
+  const ox=pad-minX,oy=pad-minY;
   stage.style.width=W+'px';stage.style.height=H+'px';
   svg.setAttribute('width',W);svg.setAttribute('height',H);svg.setAttribute('viewBox','0 0 '+W+' '+H);
   center.style.left=(-cw/2+ox)+'px';center.style.top=(-ch/2+oy)+'px';
@@ -818,6 +884,9 @@ function layoutRadial(stage){
     ln.setAttribute('x1',ox);ln.setAttribute('y1',oy);ln.setAttribute('x2',pts[k].x+ox);ln.setAttribute('y2',pts[k].y+oy);
     svg.appendChild(ln);
   });
+  const k=(avail&&W>avail)?Math.max(0.72,avail/W):1;
+  if(k<1)stage.style.transform='scale('+k+')';
+  fit.style.width=Math.round(W*k)+'px';fit.style.height=Math.round(H*k)+'px';
   stage.classList.add('laid');
 }
 function layoutRadials(root){(root||document).querySelectorAll('.esqx-stage').forEach(st=>{if(st.offsetParent!==null)layoutRadial(st)})}
@@ -1218,7 +1287,6 @@ document.addEventListener('click',e=>{
       mutate(s=>s.materias.push({id:uid(),name:name.trim(),icon,semesterId:b.dataset.sem,refs:''}));
     }
   }
-     /* hecho por Sebastian Poveda y Santiago Romero. 2026*/
   else if(a==='delMateria'){
     if(confirm('¿Eliminar esta materia y todo su contenido (temas, tarjetas y cortes)? Esta acción no se puede deshacer.')){
       mutate(s=>{
@@ -1464,6 +1532,7 @@ document.addEventListener('toggle',e=>{const d=e.target;if(!d.matches||!d.matche
 },true);
 document.addEventListener('input',e=>{if(e.target.matches&&e.target.matches('.secAcc textarea, .cardRow textarea'))fitTA(e.target)});
 
+/* Hecho por Sebastián Poveda y Santiago Romero. 2026 · generación de temas con IA */
 /* ================= IA: SUBIR PDF/PPTX Y GENERAR TEMA + TARJETAS ================= */
 async function extraerTextoPDF(file){
   const buf=await file.arrayBuffer();
@@ -1563,8 +1632,8 @@ document.addEventListener('change',async e=>{
     const bt=$('iaUploadBtn'); if(bt)bt.disabled=false;
     e.target.value='';
   }
-   /* hecho por Sebastian Poveda y Santiago Romero. 2026*/
 });
+/* Hecho por Sebastián Poveda y Santiago Romero. 2026 */
 })();
 </script>
 </body>
