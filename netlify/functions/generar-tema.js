@@ -6,7 +6,55 @@
 
 // Si el primero está saturado o no existe, se prueba el siguiente.
 // Hecho por Sebastián Poveda y Santiago Romero. 2026 · modelos de IA
-const MODELOS = ['gemini-3.8-flash', 'gemini-3.5-flash'];
+// El límite diario de peticiones (RPD) se cuenta por modelo y por proyecto. Cuando uno se agota (429),
+// se pasa al siguiente, que tiene su propio cupo. Los últimos son versiones "lite", con cupos más altos.
+// Si algún nombre no existe en tu cuenta, devuelve 404 y simplemente se salta al siguiente.
+const MODELOS = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'];
+
+// Esquema que Gemini está obligado a respetar: la respuesta siempre llega con la forma correcta,
+// así no se gastan peticiones repitiendo por un JSON mal formado.
+const ESQUEMA_RESPUESTA = {
+  type: 'OBJECT',
+  properties: {
+    titulo: { type: 'STRING' },
+    secciones: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          titulo: { type: 'STRING' },
+          contenido: { type: 'STRING' },
+          ideas: {
+            type: 'ARRAY',
+            items: {
+              type: 'OBJECT',
+              properties: {
+                tipo: { type: 'STRING', enum: ['definicion', 'caracteristica', 'ejemplo'] },
+                termino: { type: 'STRING' },
+                texto: { type: 'STRING' }
+              },
+              required: ['tipo', 'termino', 'texto'],
+              propertyOrdering: ['tipo', 'termino', 'texto']
+            }
+          }
+        },
+        required: ['titulo', 'contenido', 'ideas'],
+        propertyOrdering: ['titulo', 'contenido', 'ideas']
+      }
+    },
+    tarjetas: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: { frente: { type: 'STRING' }, reverso: { type: 'STRING' } },
+        required: ['frente', 'reverso'],
+        propertyOrdering: ['frente', 'reverso']
+      }
+    }
+  },
+  required: ['titulo', 'secciones', 'tarjetas'],
+  propertyOrdering: ['titulo', 'secciones', 'tarjetas']
+};
 
 const json = (statusCode, obj) => ({
   statusCode,
@@ -24,8 +72,9 @@ async function llamarGemini(apiKey, prompt) {
   const inicio = Date.now();
   let ultima;
   for (const modelo of MODELOS) {
-    let conPensamientoCorto = true; // thinkingLevel "low": razona menos y responde antes
-    for (let intento = 0; intento < 3; intento++) {
+    let usaPensamientoCorto = true; // thinkingLevel "low": razona menos y responde antes
+    let usaEsquema = true;          // responseSchema: fuerza la forma exacta del JSON
+    for (let intento = 0; intento < 4; intento++) {
       const restante = LIMITE_MS - (Date.now() - inicio);
       if (restante < 3000) throw new Error('TIMEOUT');
       const ctrl = new AbortController();
@@ -35,7 +84,8 @@ async function llamarGemini(apiKey, prompt) {
         temperature: 0.4,
         maxOutputTokens: 8192
       };
-      if (conPensamientoCorto) generationConfig.thinkingConfig = { thinkingLevel: 'low' };
+      if (usaEsquema) generationConfig.responseSchema = ESQUEMA_RESPUESTA;
+      if (usaPensamientoCorto) generationConfig.thinkingConfig = { thinkingLevel: 'low' };
       let resp;
       try {
         resp = await fetch(
@@ -62,13 +112,17 @@ async function llamarGemini(apiKey, prompt) {
       if (resp.ok) return resp;
       ultima = resp;
       console.error('Gemini respondió', resp.status, 'con el modelo', modelo);
-      // 400 con el pensamiento corto activado: puede que ese modelo no acepte el parámetro. Se reintenta sin él.
-      if (resp.status === 400 && conPensamientoCorto) { conPensamientoCorto = false; continue; }
+      // 400: puede que ese modelo no acepte el razonamiento corto o el esquema. Se quitan de a uno y se reintenta.
+      if (resp.status === 400) {
+        if (usaPensamientoCorto) { usaPensamientoCorto = false; continue; }
+        if (usaEsquema) { usaEsquema = false; continue; }
+        return resp;
+      }
       // 404 = modelo no disponible, 429 = cuota agotada: reintentar solo gastaría más cuota,
       // así que se pasa directo al siguiente modelo (cada modelo tiene su propio límite).
       if (resp.status === 404 || resp.status === 429) break;
       if (![500, 503].includes(resp.status)) return resp; // error que no se arregla reintentando
-      if (intento < 2) await new Promise(r => setTimeout(r, 800));
+      if (intento < 3) await new Promise(r => setTimeout(r, 800));
     }
   }
   return ultima;
