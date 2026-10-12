@@ -88,7 +88,7 @@ textarea{min-height:110px;resize:vertical;font-family:inherit}
 .optBtn.no{border-color:var(--no);background:color-mix(in srgb,var(--no) 16%,transparent)}
 .optBtn.chosen{border-color:var(--a);background:var(--al)}
 .optBtn:disabled{cursor:default;opacity:.9}
-
+/* Hecho por Sebastián Poveda y Santiago Romero. 2026 — Mi cuaderno de estudio · estilos */
 
 /* Auth screen */
 #authScreen{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(120% 100% at 50% 0%,color-mix(in srgb,var(--al) 55%,var(--bg)),var(--bg))}
@@ -560,7 +560,7 @@ $('themeBtn').onclick=()=>{
   state.theme=state.theme==='dark'?'light':state.theme==='light'?null:'dark';
   applyTheme();updateThemeBtn();persist();
 };
-
+/* Hecho por Sebastián Poveda y Santiago Romero. 2026 — Mi cuaderno de estudio · estilos */
 /* ================= NAVEGACIÓN PRINCIPAL ================= */
 document.querySelectorAll('#mainNav [data-nav]').forEach(b=>b.onclick=()=>{
   route={view:b.dataset.nav,materiaId:null};
@@ -1534,6 +1534,28 @@ document.addEventListener('input',e=>{if(e.target.matches&&e.target.matches('.se
 
 /* Hecho por Sebastián Poveda y Santiago Romero. 2026 · generación de temas con IA */
 /* ================= IA: SUBIR PDF/PPTX Y GENERAR TEMA + TARJETAS ================= */
+/* Caché de resultados de IA: si subes otra vez el mismo archivo, se reutiliza el resultado
+   y NO se gasta una petición del límite diario de Gemini (que cuenta peticiones, no tokens). */
+const IA_CACHE_VER='v4';   // súbela cada vez que cambies las instrucciones de la IA, para no reutilizar resultados viejos
+const IA_CACHE_MAX=15;     // cuántos resultados se recuerdan en este navegador
+async function iaHash(texto){
+  try{
+    const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(IA_CACHE_VER+'|'+String(texto).trim().slice(0,60000)));
+    return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+  }catch(e){return null}
+}
+function iaCacheLeer(){try{return JSON.parse(localStorage.getItem('iaCache')||'{}')||{}}catch(e){return{}}}
+async function iaCacheGet(texto){
+  const k=await iaHash(texto);if(!k)return null;
+  const e=iaCacheLeer()[k];
+  return e&&e.d&&e.v===IA_CACHE_VER?e.d:null;
+}
+async function iaCacheSet(texto,data){
+  const k=await iaHash(texto);if(!k)return;
+  const c=iaCacheLeer();c[k]={t:Date.now(),v:IA_CACHE_VER,d:data};
+  Object.keys(c).sort((a,b)=>c[b].t-c[a].t).slice(IA_CACHE_MAX).forEach(x=>delete c[x]);
+  try{localStorage.setItem('iaCache',JSON.stringify(c))}catch(e){/* sin espacio: no pasa nada */}
+}
 async function extraerTextoPDF(file){
   const buf=await file.arrayBuffer();
   const pdf=await window.pdfjsLib.getDocument({data:buf}).promise;
@@ -1590,25 +1612,29 @@ document.addEventListener('change',async e=>{
       btn.disabled=false; return;
     }
 
-    statusEl.textContent='🤖 La IA está armando el tema y las tarjetas… puede tardar unos segundos.';
     const materia=state.materias.find(m=>m.id===materiaId);
-    const resp=await fetch('/.netlify/functions/generar-tema',{
-      method:'POST',
-      headers:{'content-type':'application/json'},
-      body:JSON.stringify({texto:texto.slice(0,60000), materia:materia?materia.name:''})
-    });
-
-    let data;
-    try{ data=await resp.json(); }catch(e){ data=null; }
-
-    if(!resp.ok||!data){
-      statusEl.textContent='❌ '+((data&&data.error)||('El servidor no pudo completar la petición (código '+resp.status+'). Suele pasar cuando la IA tarda demasiado; prueba con un archivo más corto o inténtalo de nuevo.'));
-      btn.disabled=false; return;
+    let data=await iaCacheGet(texto);
+    const desdeCache=!!data;
+    if(desdeCache){
+      statusEl.textContent='♻️ Ya había analizado este archivo: reutilicé el resultado sin gastar IA.';
+    }else{
+      statusEl.textContent='🤖 La IA está armando el tema y las tarjetas… puede tardar hasta un minuto.';
+      const resp=await fetch('/.netlify/functions/generar-tema',{
+        method:'POST',
+        headers:{'content-type':'application/json'},
+        body:JSON.stringify({texto:texto.slice(0,60000), materia:materia?materia.name:''})
+      });
+      try{ data=await resp.json(); }catch(e){ data=null; }
+      if(!resp.ok||!data){
+        statusEl.textContent='❌ '+((data&&data.error)||('El servidor no pudo completar la petición (código '+resp.status+'). Suele pasar cuando la IA tarda demasiado; prueba con un archivo más corto o inténtalo de nuevo.'));
+        btn.disabled=false; return;
+      }
     }
     if(!data.titulo||!Array.isArray(data.tarjetas)){
       statusEl.textContent='❌ La IA no devolvió un resultado válido. Probá de nuevo.';
       btn.disabled=false; return;
     }
+    if(!desdeCache)iaCacheSet(texto,data);
 
     mutate(s=>{
       const temaId=uid();
@@ -1623,7 +1649,7 @@ document.addEventListener('change',async e=>{
       });
     });
     const st=$('iaStatus');
-    if(st) st.textContent=`✅ Listo — se creó el tema "${data.titulo}" con ${(data.tarjetas||[]).length} tarjetas.`;
+    if(st) st.textContent=`✅ Listo — se creó el tema "${data.titulo}" con ${(data.tarjetas||[]).length} tarjetas.${desdeCache?' (resultado reutilizado, sin gastar IA)':''}`;
   }catch(err){
     console.error(err);
     const st=$('iaStatus');
