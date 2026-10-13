@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Datos personales: solo la propia persona
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Materias compartidas
+    match /temarios/{id} {
+      // Solo los miembros leen
+      allow read: if request.auth != null && request.auth.uid in resource.data.members;
+
+      // Crear: quien crea queda como dueño y único miembro
+      allow create: if request.auth != null
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.members == [request.auth.uid];
+
+      allow update: if request.auth != null && (
+        // Unirse con el código: solo puede agregarse a sí misma a la lista de miembros
+        ( !(request.auth.uid in resource.data.members)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'memberNames'])
+          && request.resource.data.members == resource.data.members.concat([request.auth.uid]) )
+        ||
+        // Un miembro puede salirse o editar datos del grupo, pero nunca cambiar al dueño
+        ( request.auth.uid in resource.data.members
+          && request.resource.data.ownerUid == resource.data.ownerUid )
+      );
+
+      // Solo el dueño elimina el grupo
+      allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+
+      // Temas y tarjetas: solo miembros del grupo
+      match /temas/{temaId} {
+        allow read, write: if request.auth != null
+          && request.auth.uid in get(/databases/$(database)/documents/temarios/$(id)).data.members;
+      }
+    }
+  }
+}

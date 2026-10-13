@@ -1,0 +1,2053 @@
+<!DOCTYPE html>
+<!-- Hecho por Sebastián Poveda y Santiago Romero. 2026 -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="Sebastián Poveda y Santiago Romero">
+<meta name="copyright" content="© 2026 Sebastián Poveda y Santiago Romero">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mi cuaderno de estudio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Hecho por Sebastián Poveda y Santiago Romero. 2026 — Mi cuaderno de estudio · estilos */
+:root{
+  --bg:#f5f1e8;--c:#fffdf8;--t:#25211d;--m:#8a7f70;--a:#7a2e2c;--al:#f2e2dc;--b:#e6ddc9;--ok:#3f7d5c;--no:#a8433a;
+  --serif:'Fraunces',Georgia,"Times New Roman",serif;--sans:'Inter',system-ui,-apple-system,"Segoe UI",sans-serif;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)
+}
+:root[data-theme=dark]{--bg:#1b1e24;--c:#242830;--t:#e7e9ec;--m:#9aa1ac;--a:#dc9c86;--al:#333944;--b:#343a45}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#1b1e24;--c:#242830;--t:#e7e9ec;--m:#9aa1ac;--a:#dc9c86;--al:#333944;--b:#343a45}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--t);font:15.5px/1.65 var(--sans);-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--serif);font-weight:500;margin:.4em 0;letter-spacing:-.01em}
+h1{font-size:1.7em}h2{font-size:1.25em;color:var(--a)}h3{font-size:1.08em}
+p.meta,small,.meta{color:var(--m)}
+button{font:inherit;color:inherit;cursor:pointer;background:none}
+input,textarea{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--b);border-radius:10px;padding:9px 12px;width:100%}
+input:focus,textarea:focus{outline:0;border-color:var(--a);box-shadow:0 0 0 3px color-mix(in srgb,var(--a) 14%,transparent)}
+textarea{min-height:110px;resize:vertical;font-family:inherit}
+.pr{border:1px solid var(--a);background:var(--a);color:#fff;border-radius:10px;padding:9px 16px;font-weight:600}
+.sec{border:1px solid var(--b);background:transparent;border-radius:10px;padding:8px 14px;color:var(--t)}
+.sec:hover,.pr:hover{filter:brightness(1.05)}
+.icon-btn{border:1px solid var(--b);background:transparent;border-radius:50%;width:36px;height:36px;flex:none;display:flex;align-items:center;justify-content:center}
+.icon-btn:hover{background:var(--al);border-color:var(--a)}
+.card{background:var(--c);border:1px solid var(--b);border-radius:14px;padding:18px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.row{display:flex;gap:8px;align-items:center;margin-top:10px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:520px){.two{grid-template-columns:1fr}}
+.lbl{display:block;font-size:.82em;color:var(--m);margin:10px 0 4px;font-weight:600}
+.fld{margin-bottom:6px}
+.viewhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:4px 0 16px}
+.bar{height:9px;background:var(--b);border-radius:8px;overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;background:var(--a);transition:width .3s}
+.li{display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid var(--b);padding:9px 0}
+.li:last-child{border-bottom:0}
+.s{background:var(--c);border:1px solid var(--b);border-radius:14px;margin-bottom:12px;overflow:hidden}
+.s summary{cursor:pointer;padding:13px 16px;font-weight:600;font-family:var(--serif);font-size:1.05em;display:flex;justify-content:space-between;align-items:center;list-style:none}
+.s summary::-webkit-details-marker{display:none}
+.s>.b{padding:0 16px 16px}
+.matCard{display:flex;flex-direction:column}
+.matCard .row{margin-top:auto}
+.corteRow{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.corteRow .fld.sm{flex:2}.corteRow .fld.xs{flex:1;min-width:0}
+.cardRow{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.cardRow .fld.sm{flex:1;margin-bottom:0}
+.temaList details{background:var(--bg)}
+.secAcc{background:var(--c);border:1px solid var(--b);border-radius:16px;margin:10px 0;overflow:hidden;transition:border-color .2s}
+.secAcc[open]{border-color:var(--a)}
+.secAcc>summary{cursor:pointer;list-style:none;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-family:var(--serif);font-size:1.05em;font-weight:500}
+.secAcc>summary::-webkit-details-marker{display:none}
+.secAcc>summary::after{content:'+';color:var(--a);font-size:1.5em;line-height:1;font-family:var(--sans);transition:transform .2s}
+.secAcc[open]>summary::after{transform:rotate(45deg)}
+.secAcc>summary .sn{flex:1}
+.secAcc>.b{padding:0 18px 18px}
+.secAcc textarea{min-height:130px}
+.secTools{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.secTools .fld{margin-bottom:0}
+.temaTitleBig{font-family:var(--serif);font-size:1.5em;font-weight:500}
+.pfhero{display:flex;align-items:center;gap:14px}
+.pfav{width:56px;height:56px;border-radius:50%;background:var(--al);display:flex;align-items:center;justify-content:center;font-size:1.6em;flex:none}
+.pgs{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px}
+.pgs div{font-size:.85em;color:var(--m)}.pgs b{display:block;font-size:1.3em;color:var(--t);font-family:var(--serif)}
+.avatarPicker{display:flex;flex-wrap:wrap;gap:6px}
+.avBtn{border:2px solid var(--b);background:var(--c);border-radius:10px;width:42px;height:42px;font-size:1.2em}
+.avBtn.on{border-color:var(--a);background:var(--al)}
+.empty{border:1px dashed var(--b);border-radius:14px;padding:24px;text-align:center;color:var(--m)}
+
+/* Study tools */
+.toolGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin:10px 0 4px}
+.flashcard{perspective:1200px;height:220px;margin:18px 0;cursor:pointer}
+.fcInner{position:relative;width:100%;height:100%;transition:transform .5s;transform-style:preserve-3d}
+.flashcard.flip .fcInner{transform:rotateY(180deg)}
+.fcFace{position:absolute;inset:0;backface-visibility:hidden;display:flex;align-items:center;justify-content:center;text-align:center;padding:22px;border-radius:16px;border:1px solid var(--b);background:var(--c);font-family:var(--serif);font-size:1.25em;overflow:auto}
+.fcBack{transform:rotateY(180deg);background:var(--al)}
+.optBtn{display:block;width:100%;text-align:left;margin-bottom:8px}
+.optBtn.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 16%,transparent)}
+.optBtn.no{border-color:var(--no);background:color-mix(in srgb,var(--no) 16%,transparent)}
+.optBtn.chosen{border-color:var(--a);background:var(--al)}
+.optBtn:disabled{cursor:default;opacity:.9}
+/* Hecho por Sebastián Poveda y Santiago Romero. 2026 — Mi cuaderno de estudio · estilos */
+
+/* Auth screen */
+#authScreen{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(120% 100% at 50% 0%,color-mix(in srgb,var(--al) 55%,var(--bg)),var(--bg))}
+#authScreen[hidden]{display:none}
+.authCard{background:var(--c);border:1px solid var(--b);border-radius:16px;padding:28px 26px;max-width:380px;width:100%;box-shadow:0 20px 50px -20px rgba(0,0,0,.25)}
+.authCard h1{text-align:center;margin-bottom:2px}
+.authCard>p.meta{text-align:center;margin-top:0}
+.authTabs{display:flex;gap:6px;background:var(--bg);border-radius:10px;padding:4px;margin:16px 0}
+.authTabs button{flex:1;padding:8px;border-radius:8px;font-weight:600;color:var(--m)}
+.authTabs button.on{background:var(--a);color:#fff}
+#authForm input{margin-bottom:10px}
+#authForm .pr{width:100%}
+.authError{background:#a8433a20;color:var(--no);border-radius:10px;padding:10px 12px;font-size:.9em;margin-top:12px}
+#authLoading{text-align:center;margin-top:12px}
+
+/* Header / nav */
+header#topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;display:flex;gap:8px;align-items:center;padding:10px 14px;background:color-mix(in srgb,var(--c) 90%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--b)}
+header#topbar b{font-family:var(--serif);font-size:1.1em;white-space:nowrap}
+#searchWrap{position:relative;flex:1;min-width:0}
+#searchBox{border-radius:999px;padding:9px 16px}
+#searchResults{position:absolute;left:0;right:0;top:calc(100% + 6px);background:var(--c);border:1px solid var(--b);border-radius:12px;max-height:60vh;overflow:auto;z-index:20;box-shadow:0 14px 30px -14px rgba(0,0,0,.3)}
+#searchResults:empty{display:none}
+#searchResults div{padding:10px 14px;border-bottom:1px solid var(--b);cursor:pointer}
+#searchResults div:last-child{border-bottom:0}
+#searchResults div:hover{background:var(--al)}
+nav#mainNav{display:flex;gap:6px;overflow-x:auto;padding:10px 14px;background:var(--c);border-bottom:1px solid var(--b)}
+nav#mainNav button{white-space:nowrap;border:0;padding:8px 16px;border-radius:999px;color:var(--m);font-weight:600}
+nav#mainNav button.on{background:var(--al);color:var(--a)}
+main#view{max-width:900px;margin:0 auto;padding:20px 16px 70px;animation:f .25s}
+@keyframes f{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* Calendar */
+.calNav{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:12px}
+.calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:16px}
+.calGrid .dh{text-align:center;font-size:.75em;color:var(--m);font-style:normal}
+.dcell{aspect-ratio:1;border:1px solid var(--b);border-radius:8px;background:var(--c);position:relative;font-size:.85em}
+.dcell.empty{border:0;background:transparent}
+.dcell.today{border-color:var(--a);font-weight:700}
+.dcell.sel{background:var(--al);border-color:var(--a)}
+.dcell .dot{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--a)}
+
+/* ===== Mejora estética de temas y tarjetas (solo diseño) ===== */
+.temaList{display:flex;flex-direction:column;gap:16px}
+.temaList>.s{background:var(--c);margin-bottom:0;border-radius:18px;box-shadow:0 14px 30px -24px rgba(60,40,20,.45)}
+.temaList>.s>summary{padding:18px 20px;gap:14px}
+.temaList>.s>.b{padding:4px 20px 22px}
+.temaHead{display:flex;flex-direction:column;gap:8px;min-width:0}
+.temaHead .tt{font-size:1.12em;font-weight:500;line-height:1.3}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font:600 .72em/1 var(--sans);color:var(--m);background:var(--bg);border:1px solid var(--b);border-radius:999px;padding:5px 10px}
+.tituloTema{font-family:var(--serif);font-size:1.4em;font-weight:500;border:0;border-bottom:1px solid var(--b);border-radius:0;background:transparent;padding:10px 2px;margin-bottom:16px}
+.tituloTema:focus{box-shadow:none;border-bottom-color:var(--a)}
+.resumenCard{background:var(--al);border-radius:14px;padding:14px 18px;margin:0 0 16px}
+.resumenCard small{font-weight:600;color:var(--a)}
+.resumenCard p{margin:4px 0 0;font-family:var(--serif);line-height:1.7}
+.secList{display:flex;flex-direction:column;gap:10px;margin:0 0 14px}
+.temaList .secAcc{background:var(--bg);margin:0;border-radius:14px;border:1px solid var(--b);border-left:4px solid var(--a)}
+.temaList .secAcc>summary{padding:14px 18px}
+.temaList .secAcc>.b{padding:2px 18px 18px}
+.secAcc .sn{display:flex;flex-direction:column;gap:3px;min-width:0}
+.secAcc .st{font-weight:500}
+.secAcc .sp{color:var(--m);font:400 .82em/1.45 var(--sans);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.secAcc[open] .sp{display:none}
+.secAcc .secTools{margin-bottom:12px}
+.secAcc .secTools input{border:0;border-bottom:1px solid var(--b);border-radius:0;background:transparent;padding:6px 2px;font-family:var(--serif);font-size:1.05em;font-weight:500}
+.secAcc .secTools input:focus{box-shadow:none;border-bottom-color:var(--a)}
+.secAcc textarea{background:var(--c);padding:14px 16px;line-height:1.75;min-height:96px;overflow:hidden;resize:none}
+.cardList{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin:12px 0 14px}
+.cardList>p.meta{grid-column:1/-1}
+.cardRow{position:relative;flex-direction:column;align-items:stretch;gap:6px;margin:0;padding:14px;background:var(--bg);border:1px solid var(--b);border-radius:14px}
+.cardRow .cl{font-size:.7em;font-weight:600;color:var(--m)}
+.cardRow .fld.sm{flex:none;width:100%;margin-bottom:6px}
+.cardRow .cf{font-family:var(--serif);font-weight:500}
+.cardRow .icon-btn{position:absolute;top:8px;right:8px;width:30px;height:30px}
+
+/* ===== Pestañas del tema, lectura limpia y esquema ===== */
+.tabsT{display:flex;gap:4px;margin:0 0 18px;border-bottom:1px solid var(--b);overflow-x:auto}
+.tabsT button{display:flex;align-items:center;gap:6px;border:0;border-bottom:3px solid transparent;border-radius:0;padding:10px 14px;font-weight:600;color:var(--m);white-space:nowrap}
+.tabsT button.on{color:var(--a);border-bottom-color:var(--a)}
+.tp[hidden]{display:none}
+.tarjIntro{margin:0 0 4px}
+.secAcc .secEdit{display:none}
+.secAcc.editing .secEdit{display:block}
+.secAcc.editing .secRead{display:none}
+.secAcc .lbEdit{display:none}
+.secAcc.editing .lbRead{display:none}
+.secAcc.editing .lbEdit{display:inline}
+.secEdit .fld{margin-bottom:8px}
+.secEdit input.fld{font-family:var(--sans);font-size:1em;border:1px solid var(--b);border-radius:10px;background:var(--bg);padding:9px 12px}
+.secFoot{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:18px}
+.secRead .txt{max-width:68ch}
+.secRead .txt p{margin:0 0 .9em;line-height:1.8}
+.secRead .txt ul.lista{margin:0 0 .9em;padding-left:1.2em;line-height:1.8}
+.secRead .txt ul.lista li{margin-bottom:.35em}
+.secRead .txt ul.lista li::marker{color:var(--a)}
+.puntos{background:var(--al);border-radius:12px;padding:14px 18px;margin-top:6px}
+.puntos small{font-weight:600;color:var(--a)}
+.puntos ul{margin:6px 0 0;padding-left:1.1em}
+.puntos li{line-height:1.6;margin-bottom:4px}
+.puntos li::marker{color:var(--a)}
+/* Hecho por Sebastián Poveda y Santiago Romero. 2026 · esquemas */
+/* ===== Esquemas: ramificado, radial y matricial ===== */
+.esqx{--esqL:color-mix(in srgb,var(--m) 45%,transparent)}
+.esqx-bar{margin:0 0 16px;position:relative;z-index:5}
+.esqx-tabs{position:relative;display:inline-block}
+.esqx-tab{display:inline-flex;align-items:center;gap:10px;padding:9px 14px;border:1px solid var(--b);border-radius:12px;background:var(--bg);color:var(--t);font-weight:600}
+.esqx-tab:hover{border-color:var(--a)}
+.esqx-cur{color:var(--m);font-weight:400;font-size:.9em}
+.esqx-chev{width:14px;height:14px;color:var(--a);transition:transform .2s ease}
+.esqx-tab[aria-expanded="true"] .esqx-chev{transform:rotate(180deg)}
+.esqx-menu{position:absolute;top:calc(100% + 6px);left:0;min-width:270px;margin:0;padding:6px;list-style:none;background:var(--c);border:1px solid var(--b);border-radius:14px;box-shadow:0 18px 40px rgba(0,0,0,.3);z-index:20}
+.esqx-menu[hidden]{display:none}
+.esqx-mi{display:grid;grid-template-columns:28px 1fr;align-items:center;column-gap:12px;width:100%;padding:10px 12px;border:0;border-radius:10px;text-align:left}
+.esqx-mi:hover,.esqx-mi:focus-visible{background:var(--al)}
+.esqx-ico{width:24px;height:24px;color:var(--m)}
+.esqx-nm{display:block;font-weight:600}
+.esqx-ds{display:block;font-size:.85em;color:var(--m)}
+.esqx-mi[aria-checked="true"] .esqx-nm,.esqx-mi[aria-checked="true"] .esqx-ico{color:var(--a)}
+.esqx-anim{animation:esqIn .28s ease both}
+@keyframes esqIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* tipos de idea */
+.esqx-t-definicion{--tc:var(--a)}
+.esqx-t-caracteristica{--tc:#5b8db8}
+.esqx-t-ejemplo{--tc:#4e9a73}
+.esqx-leg{display:flex;flex-wrap:wrap;gap:6px 16px;margin:0 0 16px;font-size:.8rem;color:var(--m)}
+.esqx-lg{display:inline-flex;align-items:center;gap:6px}
+.esqx-lg i{width:10px;height:10px;border-radius:3px;background:var(--tc)}
+.esqx-tag{font-size:.66rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--tc)}
+.esqx-term{font-family:var(--serif);font-weight:600;color:var(--t)}
+/* ramificado */
+.esqx-root{display:inline-block;max-width:100%;padding:12px 26px;background:var(--a);color:var(--bg);border-radius:14px;font:600 1.15rem/1.3 var(--serif)}
+.esqx-cats{margin-left:26px}
+.esqx-cat{--pt:20px;position:relative;padding:var(--pt) 0 6px 32px}
+.esqx-cat::before{content:"";position:absolute;left:0;top:0;bottom:0;border-left:1.5px solid var(--esqL)}
+.esqx-cat:last-child::before{bottom:auto;height:calc(var(--pt) + 20px)}
+.esqx-cat::after{content:"";position:absolute;left:0;top:calc(var(--pt) + 20px);width:28px;border-top:1.5px solid var(--esqL)}
+.esqx-catnode{display:inline-flex;align-items:center;gap:10px;min-height:40px;max-width:100%;padding:6px 18px 6px 8px;background:var(--al);border:1px solid var(--a);border-radius:12px;color:var(--a);font:600 1.02rem/1.3 var(--serif)}
+.esqx-num{flex:none;display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--a);color:var(--bg);font:700 .8rem var(--sans)}
+.esqx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;margin-top:12px}
+.esqx-card{display:flex;flex-direction:column;gap:3px;padding:10px 14px 12px 14px;background:var(--bg);border:1px solid var(--b);border-left:4px solid var(--tc);border-radius:12px;font-size:.92rem;line-height:1.45}
+.esqx-card .esqx-term{font-size:1rem;line-height:1.3}
+.esqx-desc{color:var(--t)}
+/* radial */
+.esqx-scroll{overflow-x:auto;padding-bottom:8px}
+.esqx-fit{position:relative;margin:0 auto}
+.esqx-stage{position:relative;transform-origin:0 0}
+.esqx-stage:not(.laid):not(.stacked){visibility:hidden;min-height:320px}
+.esqx-lines{position:absolute;left:0;top:0;pointer-events:none}
+.esqx-lines line{stroke:var(--a);stroke-opacity:.45;stroke-width:1.5;stroke-linecap:round}
+.esqx-center{position:absolute;width:220px;padding:16px 18px;background:var(--a);color:var(--bg);border-radius:20px;box-shadow:0 0 0 8px color-mix(in srgb,var(--a) 14%,transparent);font:600 1.12rem/1.3 var(--serif);text-align:center}
+.esqx-rcard{position:absolute;width:240px;padding:12px 14px;background:var(--bg);border:1px solid var(--b);border-radius:16px}
+.esqx-rtitle{margin:0 0 10px;padding-bottom:8px;border-bottom:1px solid color-mix(in srgb,var(--a) 45%,transparent);color:var(--a);font:600 .95rem/1.3 var(--serif)}
+.esqx-chips{display:flex;flex-wrap:wrap;gap:6px}
+.esqx-chip{padding:3px 10px;border-radius:12px;border:1px solid var(--tc);background:color-mix(in srgb,var(--tc) 12%,transparent);color:var(--t);font-size:.78rem;font-weight:600;line-height:1.4}
+.esqx-stage.stacked{display:flex;flex-direction:column;align-items:center;width:auto!important;height:auto!important;transform:none!important}
+.esqx-stage.stacked .esqx-lines{display:none}
+.esqx-stage.stacked .esqx-center,.esqx-stage.stacked .esqx-rcard{position:relative;left:auto!important;top:auto!important;width:100%;max-width:460px}
+.esqx-stage.stacked .esqx-rcard{margin-top:30px}
+.esqx-stage.stacked .esqx-rcard::before{content:"";position:absolute;left:50%;top:-30px;height:30px;border-left:1.5px solid color-mix(in srgb,var(--a) 45%,transparent)}
+/* matricial */
+.esqx-tscroll{overflow-x:auto}
+.esqx-matriz{width:100%;table-layout:fixed;border-collapse:separate;border-spacing:0;background:var(--bg);font-size:.9rem}
+.esqx-matriz caption{caption-side:top;padding:0 0 14px;text-align:left;color:var(--a);font:600 1.15rem var(--serif)}
+.esqx-matriz th,.esqx-matriz td{padding:14px 14px;vertical-align:top;text-align:left;border-bottom:1px solid var(--b);border-right:1px solid var(--b);overflow-wrap:anywhere}
+.esqx-matriz thead th{background:var(--c);color:var(--a);font:600 .95rem var(--serif);border-top:1px solid var(--b);border-bottom:1px solid color-mix(in srgb,var(--a) 45%,transparent)}
+.esqx-matriz thead th:first-child{width:21%;border-top-left-radius:14px;border-left:1px solid var(--b)}
+.esqx-matriz thead th:nth-child(2){width:27%}
+.esqx-matriz thead th:nth-child(3){width:32%}
+.esqx-matriz thead th:nth-child(4){width:20%}
+.esqx-matriz thead th:last-child{border-top-right-radius:14px}
+.esqx-matriz tbody th[scope="row"]{background:var(--c);color:var(--a);font:600 .98rem var(--serif);border-left:1px solid var(--b)}
+.esqx-matriz tbody tr:last-child th{border-bottom-left-radius:14px}
+.esqx-matriz tbody tr:last-child td:last-child{border-bottom-right-radius:14px}
+.esqx-matriz td p{margin:0}
+.esqx-matriz td ul{margin:0;padding-left:18px}
+.esqx-matriz td li{margin:0 0 7px;line-height:1.45}
+.esqx-matriz td li:last-child{margin-bottom:0}
+.esqx-matriz td li::marker{color:var(--a)}
+.esqx-matriz .esqx-term{display:block}
+.esqx-matriz .vacio{color:var(--m)}
+.esqx-mcards{display:none;flex-direction:column;gap:14px}
+.esqx-mc{background:var(--bg);border:1px solid var(--b);border-radius:16px;padding:14px}
+.esqx-mc .esqx-catnode{margin-bottom:10px}
+.esqx-mrow{margin-top:10px;padding:8px 12px 10px;border-left:4px solid var(--tc);background:color-mix(in srgb,var(--tc) 7%,transparent);border-radius:0 10px 10px 0}
+.esqx-mrow p{margin:4px 0 0;font-size:.92rem;line-height:1.45}
+.esqx-mrow ul{margin:4px 0 0;padding-left:18px;font-size:.92rem}
+.esqx-mrow li{margin:0 0 6px;line-height:1.45}
+.esqx-mrow li:last-child{margin-bottom:0}
+.esqx-mrow .esqx-term{display:block}
+@media(max-width:700px){
+  .esqx-tscroll{display:none}
+  .esqx-mcards{display:flex}
+}
+@media(max-width:620px){
+  .esqx-root{font-size:1.02rem;padding:10px 18px}
+  .esqx-cats{margin-left:8px}
+  .esqx-cat{padding-left:18px}
+  .esqx-cat::after{width:14px}
+  .esqx-grid{grid-template-columns:1fr}
+  .esqx-catnode{font-size:.98rem}
+  .esqx-menu{min-width:min(270px,calc(100vw - 60px))}
+}
+@media(prefers-reduced-motion:reduce){.esqx-anim{animation:none}.esqx-chev{transition:none}}
+
+/* Hecho por Sebastián Poveda y Santiago Romero. 2026 · cortes y carpetas */
+/* ===== Cortes como carpetas ===== */
+select.fld{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--b);border-radius:10px;padding:9px 12px;width:100%}
+.folder{background:var(--c);border:1px solid var(--b);border-radius:18px;margin-bottom:14px;overflow:hidden;box-shadow:0 14px 30px -24px rgba(60,40,20,.45)}
+.folder[open]{border-color:color-mix(in srgb,var(--a) 55%,var(--b))}
+.folder>summary{cursor:pointer;list-style:none;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.folder>summary::-webkit-details-marker{display:none}
+.fHead{display:flex;flex-direction:column;gap:8px;min-width:0;flex:1}
+.fHead .ft{font-family:var(--serif);font-size:1.2em;font-weight:500;line-height:1.3}
+.fAct{display:flex;gap:6px;flex:none}
+.folder>.b{padding:2px 18px 20px}
+.chipOk{color:var(--ok);border-color:var(--ok)}
+.corteEdit{display:none;background:var(--bg);border:1px solid var(--b);border-radius:14px;padding:6px 14px 12px;margin:0 0 16px}
+.folder.editing .corteEdit{display:block}
+.corteGrid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}
+@media(max-width:560px){.corteGrid{grid-template-columns:1fr 1fr}.corteGrid>:first-child{grid-column:1/-1}}
+.goalBar{position:relative;height:12px}
+.goalMark{position:absolute;top:-2px;bottom:-2px;width:3px;margin-left:-1px;background:var(--t);opacity:.75;border-radius:2px}
+
+/* ===== Tarjetas legibles: el texto completo se ve, sin cortes ===== */
+.cardList{grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.cardRow{padding:16px 16px 12px}
+.cardRow textarea.fld.sm{min-height:46px;height:auto;resize:none;overflow:hidden;line-height:1.5;padding:10px 12px;margin-bottom:8px;white-space:pre-wrap;overflow-wrap:anywhere}
+.cardRow textarea.cf{font-family:var(--serif);font-weight:600;font-size:1.05em;line-height:1.4;padding-right:44px}
+.cardRow textarea.cb{font-size:.95em;color:var(--t)}
+.cardRow .cl{letter-spacing:.04em;text-transform:uppercase}
+
+/* ===== Acceso con Google y materias compartidas ===== */
+.googleBtn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;border:1px solid var(--b);background:var(--c);border-radius:10px;padding:10px 14px;font-weight:600;margin-top:16px}
+.googleBtn:hover{background:var(--al)}
+.googleBtn:disabled{opacity:.6;cursor:wait}
+.authSep{display:flex;align-items:center;gap:10px;color:var(--m);font-size:.82em;margin:14px 0 0}
+.authSep:before,.authSep:after{content:"";flex:1;height:1px;background:var(--b)}
+.shareBox .members{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.shareBox code{background:var(--bg);border:1px solid var(--b);border-radius:8px;padding:3px 8px;font-size:.85em;word-break:break-all}
+.shareBox .row{flex-wrap:wrap}
+</style>
+</head>
+<body>
+
+<!-- Hecho por Sebastián Poveda y Santiago Romero. 2026 · pantalla de acceso -->
+<div id="authScreen">
+  <div class="authCard">
+    <h1>📚 Mi cuaderno</h1>
+    <p class="meta">Organiza las materias y temas de tu carrera. Tus datos quedan guardados en tu cuenta.</p>
+    <button type="button" class="googleBtn" id="googleBtn">
+      <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/><path fill="#FBBC05" d="M10.5 28.7A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.7l-7.9-6.1A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.9 2.3-8.4 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
+      Continuar con Google
+    </button>
+    <div class="authSep">o con tu correo</div>
+    <div class="authTabs">
+      <button class="on" data-authtab="login" type="button">Iniciar sesión</button>
+      <button data-authtab="register" type="button">Crear cuenta</button>
+    </div>
+    <form id="authForm">
+      <input id="authEmail" type="email" placeholder="Correo electrónico" required autocomplete="email">
+      <input id="authPass" type="password" placeholder="Contraseña (mínimo 6 caracteres)" required minlength="6" autocomplete="current-password">
+      <button class="pr" type="submit" id="authSubmit">Iniciar sesión</button>
+    </form>
+    <p id="authError" class="authError" hidden></p>
+    <p id="authLoading" class="meta" hidden>Conectando…</p>
+  </div>
+</div>
+
+<!-- Hecho por Sebastián Poveda y Santiago Romero. 2026 · aplicación -->
+<div id="appRoot" hidden>
+  <header id="topbar">
+    <b id="ct">📚 Mi cuaderno</b>
+    <div id="searchWrap">
+      <input id="searchBox" placeholder="Buscar materia o tema…">
+      <div id="searchResults"></div>
+    </div>
+    <button id="themeBtn" class="icon-btn" title="Cambiar tema"></button>
+    <button id="logoutBtn" class="icon-btn" title="Cerrar sesión">🚪</button>
+  </header>
+  <nav id="mainNav">
+    <button data-nav="materias" class="on">📚 Materias</button>
+    <button data-nav="calendario">🗓️ Calendario</button>
+    <button data-nav="perfil">👤 Perfil</button>
+  </nav>
+  <main id="view"></main>
+</div>
+
+<!-- ============== FIREBASE (edita FIREBASE_CONFIG con tus propias llaves) ============== -->
+<script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script type="module">
+import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.54/build/pdf.min.mjs';
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.54/build/pdf.worker.min.mjs';
+window.pdfjsLib = pdfjsLib;
+</script>
+<script>
+
+/* ======================================================================
+   PEGA AQUÍ LA CONFIGURACIÓN DE TU PROYECTO DE FIREBASE
+   (Firebase console > ⚙️ Configuración del proyecto > Tus apps > Config)
+   ====================================================================== */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAAPnrXUzON42Hmtb4hOxQqTTQ1HBv0nR0",
+  authDomain: "mi-cuaderno-904fa.firebaseapp.com",
+  projectId: "mi-cuaderno-904fa",
+  storageBucket: "mi-cuaderno-904fa.firebasestorage.app",
+  messagingSenderId: "1001521698205",
+  appId: "1:1001521698205:web:9e83b5010ea3d0a339cb74"
+  
+};
+firebase.initializeApp(FIREBASE_CONFIG);
+const auth = firebase.auth();
+const db = firebase.firestore();
+</script>
+
+<script>
+/* Hecho por Sebastián Poveda y Santiago Romero. 2026 — lógica principal de la aplicación */
+(()=>{
+/* ================= UTILIDADES ================= */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const fmtDateLong=s=>new Date(s+'T00:00').toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'});
+const relDate=s=>{const n=Math.round((new Date(s+'T00:00')-new Date(ymd(new Date())+'T00:00'))/864e5);return n==0?'hoy':n==1?'mañana':n>1?`en ${n} días`:`hace ${-n} días`};
+const TY={ex:'📝 Examen',en:'📤 Entrega',ot:'📌 Otro'};
+const AV=['🎓','📚','🦉','🐱','🦊','🐼','🌸','⭐','🔥','🌙'];
+
+/* ================= ESTADO ================= */
+function defaultState(){return{
+  profile:{name:'',career:'',avatar:'🎓',examDate:'',scale:5,goal:4,notes:''},
+  theme:null,
+  semesters:[{id:uid(),name:'Semestre 1'}],
+  materias:[],
+  temas:[],
+  cortes:[],
+  cards:[],
+  attempts:[],
+  events:[]
+}}
+/* Hecho por Sebastián Poveda y Santiago Romero. 2026 · estado y cortes */
+const CORTES_DEFECTO=[['Corte 1',30],['Corte 2',30],['Corte 3',40]];
+/* Garantiza: escala de notas, al menos un corte por materia y que cada tema esté dentro de un corte. */
+function ensureCortes(){
+  let changed=false;
+  const pf=state.profile=state.profile||{};
+  if(pf.scale==null){const g=+pf.goal;pf.scale=g>10?100:(g>5?10:5);changed=true}
+  if(!(+pf.goal>=0)){pf.goal=pf.scale===100?80:(pf.scale===10?8:4);changed=true}
+  state.cortes=state.cortes||[];state.temas=state.temas||[];
+  (state.materias||[]).forEach(m=>{
+    let cs=state.cortes.filter(c=>c.materiaId===m.id);
+    if(!cs.length){
+      CORTES_DEFECTO.forEach(([name,weight])=>state.cortes.push({id:uid(),materiaId:m.id,name,weight,score:null}));
+      cs=state.cortes.filter(c=>c.materiaId===m.id);changed=true;
+    }
+    const ids=new Set(cs.map(c=>c.id));
+    state.temas.forEach(t=>{if(t.materiaId===m.id&&!ids.has(t.corteId)){t.corteId=cs[0].id;changed=true}});
+  });
+  return changed;
+}
+function normalizeState(){
+  if(ensureCortes())scheduleCloud();
+  state.cards=state.cards||[];
+  state.attempts=state.attempts||[];
+  state.events=state.events||[];
+  (state.materias||[]).forEach(m=>{if(m.refs==null)m.refs=''});
+  state.cards.forEach(c=>{if(c.known===undefined)c.known=null});
+}
+let state=defaultState();
+let currentUid=null;
+let route={view:'materias',materiaId:null};
+let calView={y:new Date().getFullYear(),m:new Date().getMonth(),sel:null};
+let toolState=null;
+let repasoTimer=null;
+function clearRepasoTimer(){if(repasoTimer){clearInterval(repasoTimer);repasoTimer=null}}
+
+function localKey(){return 'cuaderno_'+(currentUid||'anon')}
+function saveLocal(){try{localStorage.setItem(localKey(),JSON.stringify(state))}catch(e){}}
+function loadLocal(){try{const raw=localStorage.getItem(localKey());return raw?JSON.parse(raw):null}catch(e){return null}}
+
+let cloudTimer=null;
+function scheduleCloud(){
+  if(!currentUid)return;
+  clearTimeout(cloudTimer);
+  cloudTimer=setTimeout(pushCloudNow,1000);
+}
+async function pushCloudNow(){
+  if(!currentUid)return;
+  pushShared();
+  try{
+    await db.collection('users').doc(currentUid).set({
+      data:JSON.stringify(state),
+      updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }catch(e){console.error('No se pudo sincronizar con la nube:',e)}
+}
+async function hydrateFromCloud(u){
+  currentUid=u;
+  try{
+    const doc=await db.collection('users').doc(u).get();
+    if(doc.exists && doc.data().data){
+      state=JSON.parse(doc.data().data);
+    }else{
+      state=loadLocal()||defaultState();
+      await pushCloudNow();
+    }
+  }catch(e){
+    console.error('No se pudo leer la nube, uso datos locales:',e);
+    state=loadLocal()||defaultState();
+  }
+  normalizeState();
+  saveLocal();
+}
+
+/* mutate(): cambio estructural -> guarda + sincroniza + vuelve a pintar */
+function mutate(fn){fn(state);ensureCortes();saveLocal();scheduleCloud();render()}
+/* persist(): cambio de texto (inputs) -> guarda + sincroniza SIN repintar, para no perder el foco */
+function persist(){saveLocal();scheduleCloud()}
+
+/* ================= AUTENTICACIÓN ================= */
+let authMode='login';
+document.querySelectorAll('[data-authtab]').forEach(b=>b.onclick=()=>{
+  authMode=b.dataset.authtab;
+  document.querySelectorAll('[data-authtab]').forEach(x=>x.classList.toggle('on',x===b));
+  $('authSubmit').textContent=authMode==='login'?'Iniciar sesión':'Crear cuenta';
+  $('authError').hidden=true;
+});
+function mapAuthError(err){
+  const c=err&&err.code||'';
+  const M={
+    'auth/invalid-email':'Ese correo no es válido.',
+    'auth/user-not-found':'No existe una cuenta con ese correo.',
+    'auth/wrong-password':'Contraseña incorrecta.',
+    'auth/invalid-credential':'Correo o contraseña incorrectos.',
+    'auth/email-already-in-use':'Ya existe una cuenta con ese correo. Prueba iniciar sesión.',
+    'auth/weak-password':'La contraseña debe tener al menos 6 caracteres.',
+    'auth/too-many-requests':'Demasiados intentos. Espera un momento e inténtalo de nuevo.',
+    'auth/network-request-failed':'Sin conexión a internet.',
+    'auth/unauthorized-domain':'Este dominio no está autorizado en Firebase (Authentication > Settings > Authorized domains).',
+    'auth/operation-not-allowed':'El acceso con Google no está activado en Firebase (Authentication > Sign-in method).',
+    'auth/account-exists-with-different-credential':'Ya existe una cuenta con ese correo usando otro método de acceso.',
+    'auth/popup-blocked':'El navegador bloqueó la ventana de Google. Permite las ventanas emergentes e inténtalo de nuevo.'
+  };
+  return M[c]||'Ocurrió un error. Inténtalo de nuevo.';
+}
+$('authForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const email=$('authEmail').value.trim(),pass=$('authPass').value;
+  $('authError').hidden=true;$('authSubmit').disabled=true;
+  try{
+    if(authMode==='login') await auth.signInWithEmailAndPassword(email,pass);
+    else await auth.createUserWithEmailAndPassword(email,pass);
+  }catch(err){
+    $('authError').textContent=mapAuthError(err);$('authError').hidden=false;
+  }finally{
+    $('authSubmit').disabled=false;
+  }
+});
+$('logoutBtn').onclick=()=>{if(confirm('¿Cerrar sesión?'))auth.signOut()};
+
+/* Acceso con Google (ventana emergente; si el navegador la bloquea, se usa redirección) */
+$('googleBtn').addEventListener('click',async()=>{
+  const provider=new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({prompt:'select_account'});
+  $('authError').hidden=true;$('googleBtn').disabled=true;
+  try{
+    await auth.signInWithPopup(provider);
+  }catch(err){
+    const c=err&&err.code||'';
+    if(c==='auth/popup-blocked'){try{await auth.signInWithRedirect(provider);return}catch(e2){err=e2}}
+    if(c!=='auth/popup-closed-by-user'&&c!=='auth/cancelled-popup-request'){
+      console.error('Google:',err);
+      $('authError').textContent=mapAuthError(err);$('authError').hidden=false;
+    }
+  }finally{
+    $('googleBtn').disabled=false;
+  }
+});
+
+auth.onAuthStateChanged(async user=>{
+  if(user){
+    $('authLoading').hidden=false;
+    await hydrateFromCloud(user.uid);
+    if(!state.profile.name&&user.displayName){state.profile.name=user.displayName;persist()}
+    $('authLoading').hidden=true;
+    $('authScreen').hidden=true;
+    $('appRoot').hidden=false;
+    applyTheme();updateThemeBtn();
+    route={view:'materias',materiaId:null};
+    render();
+    startShared();
+    procesarUnirsePendiente();
+  }else{
+    stopShared();
+    currentUid=null;
+    state=defaultState();
+    $('appRoot').hidden=true;
+    $('authScreen').hidden=false;
+  }
+});
+
+/* ================= TEMA CLARO/OSCURO ================= */
+function applyTheme(){
+  if(state.theme)document.documentElement.setAttribute('data-theme',state.theme);
+  else document.documentElement.removeAttribute('data-theme');
+}
+function updateThemeBtn(){$('themeBtn').textContent=state.theme==='dark'?'🌙':state.theme==='light'?'☀️':'🌗'}
+$('themeBtn').onclick=()=>{
+  state.theme=state.theme==='dark'?'light':state.theme==='light'?null:'dark';
+  applyTheme();updateThemeBtn();persist();
+};
+/* Hecho por Sebastián Poveda y Santiago Romero. 2026 — Mi cuaderno de estudio · estilos */
+/* ================= NAVEGACIÓN PRINCIPAL ================= */
+document.querySelectorAll('#mainNav [data-nav]').forEach(b=>b.onclick=()=>{
+  route={view:b.dataset.nav,materiaId:null};
+  document.querySelectorAll('#mainNav button').forEach(x=>x.classList.toggle('on',x===b));
+  render();
+});
+function goToView(v){
+  route.view=v;route.materiaId=null;
+  document.querySelectorAll('#mainNav button').forEach(x=>x.classList.toggle('on',x.dataset.nav===v));
+  render();
+}
+
+function render(keep){
+  const _y=window.scrollY;
+  if(route.view!=='tool')clearRepasoTimer();
+  const view=$('view');
+  if(route.view==='materias')view.innerHTML=viewMateriasHTML();
+  else if(route.view==='materiaDetail')view.innerHTML=viewMateriaDetailHTML(route.materiaId);
+  else if(route.view==='tool')view.innerHTML=viewToolHTML();
+  else if(route.view==='calendario')view.innerHTML=viewCalendarioHTML();
+  else if(route.view==='perfil')view.innerHTML=viewPerfilHTML();
+  window.scrollTo(0,keep?_y:0);
+  requestAnimationFrame(()=>{fitCards();layoutRadials()});
+}
+
+/* ================= HELPERS DE DATOS ================= */
+const scaleMax=()=>+(state.profile&&state.profile.scale)||5;
+function fmtN(n){return(+n).toLocaleString('es',{minimumFractionDigits:0,maximumFractionDigits:scaleMax()>10?1:2})}
+function corteStats(cortes){
+  const scale=scaleMax(),goal=clamp(+state.profile.goal||0,0,scale);
+  const W=cortes.reduce((a,c)=>a+(+c.weight||0),0);
+  const scored=cortes.filter(c=>c.score!=null&&c.score!=='');
+  const Ws=scored.reduce((a,c)=>a+(+c.weight||0),0);
+  const sum=scored.reduce((a,c)=>a+(+c.score)*(+c.weight||0),0);
+  const acum=W>0?sum/W:0;
+  const avg=Ws>0?sum/Ws:null;
+  const remW=W>0?(W-Ws)/W:0;
+  const need=remW>0.0001?(goal-acum)/remW:null;
+  return{scale,goal,W,Ws,acum,avg,remW,need,n:scored.length};
+}
+function weightedAvg(cortes){
+  const scored=cortes.filter(c=>c.score!=null && c.score!=='');
+  const totalW=scored.reduce((a,c)=>a+(+c.weight||0),0);
+  if(!scored.length||!totalW)return null;
+  const sum=scored.reduce((a,c)=>a+(+c.score)*(+c.weight),0);
+  return sum/totalW;
+}
+
+/* ================= VISTA: MIS MATERIAS ================= */
+function viewMateriasHTML(){
+  const sems=state.semesters;
+  let html=`<div class="viewhead"><h1>📚 Mis materias</h1><span class="row" style="margin:0"><button class="sec" data-action="joinSharedPrompt">🔗 Unirme con código</button><button class="pr" data-action="addSemester">+ Semestre</button></span></div>`;
+  if(!sems.length){
+    html+=`<div class="empty">Aún no tienes semestres. Agrega uno para empezar a organizar tus materias.</div>`;
+  }
+  html+=sems.map(sem=>{
+    const mats=state.materias.filter(m=>m.semesterId===sem.id);
+    return `<details class="s" open>
+      <summary>🎓 ${esc(sem.name)}
+        <span class="row" style="margin:0">
+          <button class="icon-btn" data-action="renameSemester" data-id="${sem.id}" title="Renombrar semestre">✏️</button>
+          <button class="icon-btn" data-action="delSemester" data-id="${sem.id}" title="Eliminar semestre">🗑️</button>
+        </span>
+      </summary>
+      <div class="b">
+        <div class="grid">${mats.map(materiaCard).join('')||'<p class="meta">Sin materias en este semestre.</p>'}</div>
+        <div class="row" style="flex-wrap:wrap"><button class="sec" data-action="addMateria" data-sem="${sem.id}">+ Agregar materia</button><button class="sec" data-action="createShared" data-sem="${sem.id}">🤝 Materia compartida</button></div>
+      </div>
+    </details>`;
+  }).join('');
+  return html;
+}
+function materiaCard(m){
+  const temasCount=state.temas.filter(t=>t.materiaId===m.id).length;
+  const cortes=state.cortes.filter(c=>c.materiaId===m.id);
+  const avg=weightedAvg(cortes);
+  return `<div class="card matCard">
+    <h3>${esc(m.icon||'📘')} ${esc(m.name)}</h3>
+    ${m.sharedId?`<p class="meta" style="margin:0">🤝 Compartida · ${nMiembros(m)} persona${nMiembros(m)==1?'':'s'}</p>`:''}
+    <p class="meta">${temasCount} tema${temasCount==1?'':'s'} · ${avg==null?'sin notas registradas':'promedio '+fmtN(avg)+' / '+fmtN(scaleMax())}</p>
+    <div class="row">
+      <button class="sec" data-action="openMateria" data-id="${m.id}">Abrir →</button>
+      <button class="icon-btn" data-action="renameMateria" data-id="${m.id}" title="Editar materia">✏️</button>
+      <button class="icon-btn" data-action="delMateria" data-id="${m.id}" title="Eliminar materia">🗑️</button>
+    </div>
+  </div>`;
+}
+
+/* ================= VISTA: DETALLE DE MATERIA ================= */
+function viewMateriaDetailHTML(materiaId){
+  const m=state.materias.find(x=>x.id===materiaId);
+  if(!m){goToView('materias');return'';}
+  const cortes=state.cortes.filter(c=>c.materiaId===materiaId);
+  const iaSel=cortes.some(c=>c.id===ui.iaCorte)?ui.iaCorte:(cortes[0]&&cortes[0].id);
+  return `
+    <button class="sec" data-action="backMaterias">← Mis materias</button>
+    <div class="viewhead" style="margin-top:14px"><h1>${esc(m.icon||'📘')} ${esc(m.name)}</h1></div>
+    ${compartidoBoxHTML(m)}
+
+    <section>
+      <div class="viewhead"><h2>📁 Cortes</h2><button class="pr" data-action="addCorte" data-mat="${materiaId}">+ Agregar corte</button></div>
+      <div class="card notasBox" style="margin-bottom:14px">
+        <b style="font-size:.9em">🧮 Mi promedio en esta materia</b>
+        <div id="corteAvgBox" style="margin-top:8px">${corteAvgHTML(cortes)}</div>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <b style="font-size:.9em">🤖 Generar tema con IA</b>
+        <p class="meta" style="margin-top:4px">Sube un PDF o una presentación (.pptx), elige en qué corte guardarlo y la IA organiza el contenido en secciones y crea las tarjetas.</p>
+        <label class="lbl" for="iaCorte">Guardar en</label>
+        <select class="fld" id="iaCorte" data-action="iaCorteSel">${cortes.map(c=>`<option value="${c.id}" ${c.id===iaSel?'selected':''}>${esc(c.name)||'(corte sin nombre)'}</option>`).join('')}</select>
+        <input type="file" id="iaFileInput" accept=".pdf,.pptx" data-mat="${materiaId}" style="display:none">
+        <button class="sec" id="iaUploadBtn" data-action="iaPickFile" style="margin-top:10px">📎 Subir PDF o PPTX</button>
+        <div id="iaStatus" class="meta" style="margin-top:8px"></div>
+      </div>
+      ${cortes.map(c=>corteFolder(c,materiaId)).join('')}
+    </section>
+
+    <section style="margin-top:22px">
+      <div class="viewhead"><h2>🎯 Estudiar</h2></div>
+      <p class="meta">Estas herramientas usan las tarjetas (frente/reverso) que agregues dentro de cada tema.</p>
+      <div class="toolGrid">
+        <button class="sec" data-action="openTool" data-tool="flashcards" data-mat="${materiaId}">🔄 Flashcards</button>
+        <button class="sec" data-action="openTool" data-tool="memorizar" data-mat="${materiaId}">📖 Memorizar</button>
+        <button class="sec" data-action="openTool" data-tool="quiz" data-mat="${materiaId}">❓ Quiz</button>
+        <button class="sec" data-action="openTool" data-tool="examen" data-mat="${materiaId}">📝 Modo examen</button>
+        <button class="sec" data-action="openTool" data-tool="concepto" data-mat="${materiaId}">💡 ¿Qué concepto?</button>
+        <button class="sec" data-action="openTool" data-tool="repaso" data-mat="${materiaId}">⏱️ Repaso 5 min</button>
+        <button class="sec" data-action="openTool" data-tool="comparar" data-mat="${materiaId}">⚖️ Comparar</button>
+        <button class="sec" data-action="openTool" data-tool="progreso" data-mat="${materiaId}">📊 Mi progreso</button>
+        <button class="sec" data-action="openTool" data-tool="referencias" data-mat="${materiaId}">📚 Referencias</button>
+      </div>
+    </section>
+  `;
+}
+function corteFolder(c,materiaId){
+  const temas=state.temas.filter(t=>t.corteId===c.id).sort((a,b)=>b.updatedAt-a.updatedAt);
+  const hasScore=c.score!=null&&c.score!=='';
+  const open=ui.open[c.id]!==false;
+  return `<details class="folder" data-corte="${c.id}" ${open?'open':''}>
+    <summary>
+      <span class="fHead"><span class="ft">📁 ${esc(c.name)||'(corte sin nombre)'}</span>
+        <span class="chips"><span class="chip">${temas.length} tema${temas.length==1?'':'s'}</span><span class="chip">${fmtN(+c.weight||0)}%</span>${hasScore?`<span class="chip chipOk">Nota ${fmtN(c.score)}</span>`:''}</span></span>
+      <span class="fAct">
+        <button class="icon-btn" data-action="editCorte" data-id="${c.id}" title="Editar corte">✏️</button>
+        <button class="icon-btn" data-action="delCorte" data-id="${c.id}" title="Eliminar corte">🗑️</button>
+      </span>
+    </summary>
+    <div class="b">
+      <div class="corteEdit">
+        <div class="corteGrid">
+          <div><label class="lbl">Nombre del corte</label><input class="fld" data-action="editCorteName" data-id="${c.id}" value="${esc(c.name)}" placeholder="Ej. Corte 1"></div>
+          <div><label class="lbl">Peso (%)</label><input class="fld" type="number" min="0" max="100" step="1" data-action="editCorteWeight" data-id="${c.id}" value="${c.weight}"></div>
+          <div><label class="lbl">Nota (0 a ${fmtN(scaleMax())})</label><input class="fld" type="number" min="0" max="${scaleMax()}" step="0.1" data-action="editCorteScore" data-id="${c.id}" value="${c.score??''}" placeholder="Sin nota"></div>
+        </div>
+        <div class="secFoot"><button class="sec" data-action="doneCorte" data-id="${c.id}">✓ Listo</button></div>
+      </div>
+      <div class="temaList">${temas.map(temaBlock).join('')||'<div class="empty">Este corte aún no tiene temas.</div>'}</div>
+      <button class="pr" style="margin-top:12px" data-action="addTema" data-mat="${materiaId}" data-corte="${c.id}">+ Agregar tema</button>
+    </div>
+  </details>`;
+}
+function corteAvgHTML(cortes){
+  const k=corteStats(cortes);
+  const pct=k.avg==null?0:clamp(k.avg/k.scale*100,0,100);
+  const gpct=clamp(k.goal/k.scale*100,0,100);
+  const ok=k.avg!=null&&k.avg>=k.goal;
+  let msg='';
+  if(k.W<=0)msg='Asigna un peso (%) a tus cortes para calcular el promedio.';
+  else if(k.need==null)msg=k.acum>=k.goal-1e-9?'🎉 Cumpliste tu meta.':'No alcanzaste la meta de '+fmtN(k.goal)+'.';
+  else if(k.need<=0)msg='🎉 Ya aseguraste tu meta, aunque sacaras 0 en lo que falta.';
+  else if(k.need>k.scale+1e-9)msg='Con lo que falta ya no alcanzas la meta (necesitarías '+fmtN(Math.ceil(k.need*100)/100)+' y el máximo es '+fmtN(k.scale)+').';
+  else msg='Necesitas sacar al menos <b>'+fmtN(Math.ceil(k.need*100)/100)+'</b> de promedio en lo que falta ('+Math.round(k.remW*100)+'% restante) para llegar a tu meta.';
+  const warn=k.W>0&&Math.abs(k.W-100)>0.01?`<p class="meta" style="color:var(--no)">⚠️ Los pesos suman ${fmtN(k.W)}%, deberían sumar 100%.</p>`:'';
+  return `<div class="bar goalBar"><i style="width:${pct}%;background:${ok?'var(--ok)':'var(--a)'}"></i><span class="goalMark" style="left:${gpct}%" title="Meta"></span></div>
+  <p class="meta" style="margin:6px 0">${k.avg==null?'Registra la nota de un corte para ver tu promedio.':`Promedio de lo evaluado: <b style="color:${ok?'var(--ok)':'var(--t)'}">${fmtN(k.avg)}</b> / ${fmtN(k.scale)} · meta ${fmtN(k.goal)}`}</p>
+  <p class="meta" style="margin:0">${msg}</p>${warn}`;
+}
+function refreshCorteAvg(materiaId){
+  const cortes=state.cortes.filter(c=>c.materiaId===materiaId);
+  const box=$('corteAvgBox');
+  if(box)box.innerHTML=corteAvgHTML(cortes);
+}
+const ui={open:{},sec:{},tab:{}};
+function fmtBody(txt){
+  const lines=String(txt||'').split(/\n+/).map(x=>x.trim()).filter(Boolean);
+  let out='',list=[];
+  const flush=()=>{if(list.length){out+='<ul class="lista">'+list.map(x=>`<li>${esc(x)}</li>`).join('')+'</ul>';list=[]}};
+  lines.forEach(l=>{const m=l.match(/^[-•–*]\s+(.*)$/);if(m)list.push(m[1]);else{flush();out+=`<p>${esc(l)}</p>`}});
+  flush();
+  return out||'<p class="meta">Esta sección todavía no tiene contenido.</p>';
+}
+function puntosDe(sc){
+  if(Array.isArray(sc.puntos)&&sc.puntos.length)return sc.puntos;
+  const body=String(sc.body||'').trim();
+  const bullets=body.split(/\n+/).map(x=>x.trim()).filter(l=>/^[-•–*]\s+/.test(l)).map(l=>l.replace(/^[-•–*]\s+/,''));
+  let base=bullets;
+  if(!base.length){base=(body.match(/[^.!?]+[.!?]+/g)||[]).map(x=>x.trim());if(!base.length&&body)base=[body]}
+  return base.slice(0,4).map(x=>x.length>110?x.slice(0,107).trim()+'…':x);
+}
+function secReadHTML(sc){
+  const p=puntosDe(sc);
+  return `<div class="txt">${fmtBody(sc.body)}</div>${p.length?`<div class="puntos"><small>Ideas clave</small><ul>${p.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}`;
+}
+/* Hecho por Sebastián Poveda y Santiago Romero. 2026 · sistema de esquemas */
+/* ===== Esquemas: ramificado, radial y matricial ===== */
+const ESQ_ESTILOS=[
+  {id:'ramificado',nombre:'Ramificado',desc:'Jerarquía con ramas y tarjetas',icono:'<rect x="3" y="4" width="7" height="4" rx="1"/><rect x="14" y="10" width="7" height="4" rx="1"/><rect x="14" y="16" width="7" height="4" rx="1"/><path d="M6.5 8v10M6.5 12H14M6.5 18H14"/>'},
+  {id:'radial',nombre:'Radial',desc:'Tema central y ramas alrededor',icono:'<circle cx="12" cy="12" r="2.5"/><circle cx="12" cy="4" r="2"/><circle cx="19" cy="16.5" r="2"/><circle cx="5" cy="16.5" r="2"/><path d="M12 9.5V6M14.2 13.3l3 1.8M9.8 13.3l-3 1.8"/>'},
+  {id:'matricial',nombre:'Matricial',desc:'Filas y columnas comparativas',icono:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9.5h18M9.5 4v16"/>'}
+];
+const ESQ_COLS={definicion:'Definición',caracteristica:'Características',ejemplo:'Ejemplo'};
+const ESQ_TIPOS=Object.keys(ESQ_COLS);
+const ESQ_TAGS={def:'definicion',car:'caracteristica',ej:'ejemplo'};
+const ESQ_TAGOF={definicion:'def',caracteristica:'car',ejemplo:'ej'};
+function esqEstilo(){
+  if(ESQ_ESTILOS.some(e=>e.id===ui.esqEstilo))return ui.esqEstilo;
+  try{const v=localStorage.getItem('esquema-estilo');if(ESQ_ESTILOS.some(e=>e.id===v)){ui.esqEstilo=v;return v}}catch(e){}
+  return 'ramificado';
+}
+function esqGuardar(id){ui.esqEstilo=id;try{localStorage.setItem('esquema-estilo',id)}catch(e){}}
+/* Cada idea tiene un tipo (definición, característica o ejemplo). Lo trae la IA; si falta, se deduce del texto. */
+function ideasDe(sc){
+  const tp=Array.isArray(sc.tipos)?sc.tipos:[];
+  const out=puntosDe(sc).map((texto,i)=>({texto,tipo:ESQ_TIPOS.includes(tp[i])?tp[i]:null}));
+  let hayDef=out.some(x=>x.tipo==='definicion');
+  out.forEach((x,i)=>{
+    if(x.tipo)return;
+    if(/^(por ejemplo|ejemplo|p\.\s?ej|e\.g\.)/i.test(x.texto))x.tipo='ejemplo';
+    else if(!hayDef&&i===0&&/\b(es|son|se define|se denomina|consiste|se entiende|significa)\b/i.test(x.texto)){x.tipo='definicion';hayDef=true}
+    else x.tipo='caracteristica';
+  });
+  return out;
+}
+/* Edición: una idea por línea; opcionalmente empieza con [def], [car] o [ej] para fijar su tipo. */
+function ideasTexto(sc){
+  const pts=Array.isArray(sc.puntos)?sc.puntos:[],tp=Array.isArray(sc.tipos)?sc.tipos:[];
+  return pts.map((p,i)=>ESQ_TIPOS.includes(tp[i])?`[${ESQ_TAGOF[tp[i]]}] ${p}`:p).join('\n');
+}
+function ideasParse(valor){
+  const puntos=[],tipos=[];
+  String(valor||'').split('\n').forEach(l=>{
+    l=l.trim();if(!l)return;
+    const m=l.match(/^\[(def|car|ej)\]\s*(.*)$/i);
+    if(m){if(!m[2].trim())return;puntos.push(m[2].trim());tipos.push(ESQ_TAGS[m[1].toLowerCase()])}
+    else{puntos.push(l);tipos.push(null)}
+  });
+  return{puntos,tipos};
+}
+const ESQ_TAGTXT={definicion:'Definición',caracteristica:'Característica',ejemplo:'Ejemplo'};
+/* Una idea puede venir como "Término: explicación". El término se resalta para que el esquema use el vocabulario del tema. */
+function ideaParts(texto){
+  const t=String(texto||'').trim();
+  const m=t.match(/^([^:.\n]{2,52}):\s+([\s\S]+)$/);
+  if(m&&m[1].trim().split(/\s+/).length<=6){const d=m[2].trim();return{term:m[1].trim(),desc:d.charAt(0).toUpperCase()+d.slice(1)}}
+  return{term:'',desc:t};
+}
+function esqCorto(t,max){if(t.length<=max)return t;const c=t.slice(0,max-1),i=c.lastIndexOf(' ');return (i>12?c.slice(0,i):c).replace(/[\s,;:.]+$/,'')+'…'}
+function ideaHTML(i){const p=ideaParts(i.texto);return p.term?`<b class="esqx-term">${esc(p.term)}</b> ${esc(p.desc)}`:esc(p.desc)}
+function esqLeyenda(){return `<div class="esqx-leg" aria-hidden="true">${ESQ_TIPOS.map(k=>`<span class="esqx-lg esqx-t-${k}"><i></i>${ESQ_TAGTXT[k]}</span>`).join('')}</div>`}
+function esqNodo(sc,n){return `<div class="esqx-catnode"><span class="esqx-num">${n+1}</span>${esc(sc.title)||'(sin título)'}</div>`}
+function esqRamificado(t,secs){
+  return `${esqLeyenda()}<div class="esqx-ram"><div class="esqx-root">${esc(t.title)||'Tema'}</div><div class="esqx-cats">${secs.map((sc,n)=>{const ids=ideasDe(sc);return `<section class="esqx-cat">${esqNodo(sc,n)}${ids.length?`<div class="esqx-grid">${ids.map(i=>{const p=ideaParts(i.texto);return `<div class="esqx-card esqx-t-${i.tipo}"><span class="esqx-tag">${ESQ_TAGTXT[i.tipo]}</span>${p.term?`<b class="esqx-term">${esc(p.term)}</b>`:''}<span class="esqx-desc">${esc(p.desc)}</span></div>`}).join('')}</div>`:''}</section>`}).join('')}</div></div>`;
+}
+function esqRadial(t,secs){
+  return `${esqLeyenda()}<div class="esqx-scroll"><div class="esqx-fit"><div class="esqx-stage"><svg class="esqx-lines" aria-hidden="true"></svg><div class="esqx-center">${esc(t.title)||'Tema'}</div>${secs.map(sc=>`<article class="esqx-rcard"><div class="esqx-rtitle">${esc(sc.title)||'(sin título)'}</div><div class="esqx-chips">${ideasDe(sc).map(i=>{const p=ideaParts(i.texto);const lbl=p.term||esqCorto(p.desc,40);return `<span class="esqx-chip esqx-t-${i.tipo}" title="${esc(i.texto)}">${esc(lbl)}</span>`}).join('')}</div></article>`).join('')}</div></div></div>`;
+}
+function esqMatricial(t,secs){
+  const lista=it=>it.length===1?`<p>${ideaHTML(it[0])}</p>`:`<ul>${it.map(x=>`<li>${ideaHTML(x)}</li>`).join('')}</ul>`;
+  const tabla=`<div class="esqx-tscroll" tabindex="0" role="region" aria-label="Matriz comparativa"><table class="esqx-matriz"><caption>${esc(t.title)||'Tema'}</caption><thead><tr><th scope="col">Concepto</th>${ESQ_TIPOS.map(k=>`<th scope="col">${ESQ_COLS[k]}</th>`).join('')}</tr></thead><tbody>${secs.map(sc=>{const ids=ideasDe(sc);return `<tr><th scope="row">${esc(sc.title)||'(sin título)'}</th>${ESQ_TIPOS.map(k=>{const it=ids.filter(x=>x.tipo===k);return `<td>${it.length?lista(it):'<span class="vacio">—</span>'}</td>`}).join('')}</tr>`}).join('')}</tbody></table></div>`;
+  const tarjetas=`<div class="esqx-mcards">${secs.map((sc,n)=>{const ids=ideasDe(sc);return `<section class="esqx-mc">${esqNodo(sc,n)}${ESQ_TIPOS.map(k=>{const it=ids.filter(x=>x.tipo===k);return it.length?`<div class="esqx-mrow esqx-t-${k}"><span class="esqx-tag">${ESQ_COLS[k]}</span>${lista(it)}</div>`:''}).join('')}</section>`}).join('')}</div>`;
+  return tabla+tarjetas;
+}
+function esquemaHTML(t){
+  const secs=Array.isArray(t.secciones)?t.secciones:[];
+  if(!secs.length)return'<div class="empty">Este tema no tiene secciones, así que todavía no hay esquema.</div>';
+  const est=esqEstilo(),info=ESQ_ESTILOS.find(e=>e.id===est);
+  const view=est==='radial'?esqRadial(t,secs):est==='matricial'?esqMatricial(t,secs):esqRamificado(t,secs);
+  const items=ESQ_ESTILOS.map(e=>`<li role="none"><button type="button" class="esqx-mi" role="menuitemradio" aria-checked="${e.id===est}" data-action="esqStyle" data-estilo="${e.id}" tabindex="-1"><svg class="esqx-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${e.icono}</svg><span><span class="esqx-nm">${e.nombre}</span><span class="esqx-ds">${e.desc}</span></span></button></li>`).join('');
+  return `<div class="esqx" data-esqtema="${t.id}"><div class="esqx-bar"><div class="esqx-tabs"><button type="button" class="esqx-tab" data-action="esqMenu" aria-haspopup="menu" aria-expanded="false"><span>Esquema</span><span class="esqx-cur">${info.nombre}</span><svg class="esqx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><ul class="esqx-menu" role="menu" aria-label="Estilo de esquema" hidden>${items}</ul></div></div><div class="esqx-view esqx-anim">${view}</div></div>`;
+}
+/* Vista radial: ramas en círculo, sin superposiciones, y se reduce la escala para que SIEMPRE quepa en el panel. */
+function esqChocan(a,b,g){return a.x-g<b.x+b.w&&b.x-g<a.x+a.w&&a.y-g<b.y+b.h&&b.y-g<a.y+a.h}
+function layoutRadial(stage){
+  const fit=stage.parentElement,wrap=fit.parentElement;
+  const svg=stage.querySelector('.esqx-lines'),center=stage.querySelector('.esqx-center'),cards=[...stage.querySelectorAll('.esqx-rcard')];
+  while(svg.firstChild)svg.removeChild(svg.firstChild);
+  const avail=wrap.clientWidth;
+  stage.style.transform='';fit.style.width='';fit.style.height='';
+  if(avail&&avail<560){stage.classList.add('stacked','laid');stage.style.width='';stage.style.height='';return}
+  stage.classList.remove('stacked');
+  const n=cards.length;if(!n){stage.classList.add('laid');return}
+  const cw=center.offsetWidth,ch=center.offsetHeight,sizes=cards.map(c=>({w:c.offsetWidth,h:c.offsetHeight})),gap=26,pad=24;
+  /* Se prueban varias formas (óvalo ancho, círculo, óvalo alto) y se elige la que menos hay que reducir para que quepa. */
+  function resolver(ratio){
+    let r=110,pts=[],rects=[];
+    for(let it=0;it<900;it++){
+      const rx=r*ratio,ry=r;
+      pts=cards.map((_,k)=>{const an=(-90+k*360/n)*Math.PI/180;return{x:rx*Math.cos(an),y:ry*Math.sin(an)}});
+      rects=pts.map((q,k)=>({x:q.x-sizes[k].w/2,y:q.y-sizes[k].h/2,w:sizes[k].w,h:sizes[k].h}));
+      const todos=[{x:-cw/2,y:-ch/2,w:cw,h:ch}].concat(rects);
+      let ok=true;
+      for(let i=0;i<todos.length&&ok;i++)for(let j=i+1;j<todos.length;j++)if(esqChocan(todos[i],todos[j],gap)){ok=false;break}
+      if(ok)break;
+      r+=10;
+    }
+    const all=[{x:-cw/2,y:-ch/2,w:cw,h:ch}].concat(rects);
+    const minX=Math.min(...all.map(q=>q.x)),maxX=Math.max(...all.map(q=>q.x+q.w)),minY=Math.min(...all.map(q=>q.y)),maxY=Math.max(...all.map(q=>q.y+q.h));
+    return{pts,rects,minX,minY,W:Math.ceil(maxX-minX+pad*2),H:Math.ceil(maxY-minY+pad*2)};
+  }
+  let mejor=null;
+  [1.35,1.1,0.9,0.75].forEach(ratio=>{
+    const c=resolver(ratio);
+    c.k=avail?Math.min(1,avail/c.W):1;
+    if(!mejor||c.k>mejor.k+0.02||(Math.abs(c.k-mejor.k)<=0.02&&c.H<mejor.H))mejor=c;
+  });
+  const {pts,rects,minX,minY,W,H}=mejor;
+  const ox=pad-minX,oy=pad-minY;
+  stage.style.width=W+'px';stage.style.height=H+'px';
+  svg.setAttribute('width',W);svg.setAttribute('height',H);svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  center.style.left=(-cw/2+ox)+'px';center.style.top=(-ch/2+oy)+'px';
+  cards.forEach((c,k)=>{
+    c.style.left=(rects[k].x+ox)+'px';c.style.top=(rects[k].y+oy)+'px';
+    const ln=document.createElementNS('http://www.w3.org/2000/svg','line');
+    ln.setAttribute('x1',ox);ln.setAttribute('y1',oy);ln.setAttribute('x2',pts[k].x+ox);ln.setAttribute('y2',pts[k].y+oy);
+    svg.appendChild(ln);
+  });
+  const k=(avail&&W>avail)?Math.max(0.72,avail/W):1;
+  if(k<1)stage.style.transform='scale('+k+')';
+  fit.style.width=Math.round(W*k)+'px';fit.style.height=Math.round(H*k)+'px';
+  stage.classList.add('laid');
+}
+function layoutRadials(root){(root||document).querySelectorAll('.esqx-stage').forEach(st=>{if(st.offsetParent!==null)layoutRadial(st)})}
+function esqCerrarMenus(except){
+  document.querySelectorAll('.esqx-menu:not([hidden])').forEach(m=>{
+    if(m===except)return;
+    m.hidden=true;const tb=m.parentElement.querySelector('.esqx-tab');if(tb)tb.setAttribute('aria-expanded','false');
+  });
+}
+function esqRefrescar(){
+  document.querySelectorAll('.esqx').forEach(h=>{const t=state.temas.find(x=>x.id===h.dataset.esqtema);if(t)h.outerHTML=esquemaHTML(t)});
+  requestAnimationFrame(()=>layoutRadials());
+}
+function temaBlock(t){
+  const cards=state.cards.filter(c=>c.temaId===t.id);
+  const hasSec=Array.isArray(t.secciones);
+  let tab=ui.tab[t.id]||'contenido';
+  if(tab==='esquema'&&!hasSec)tab='contenido';
+  const tabs=[['contenido','Contenido'],...(hasSec?[['esquema','Esquema']]:[]),['tarjetas',`Tarjetas <span class="chip">${cards.length}</span>`]];
+  return `<details class="s" data-tema="${t.id}" ${ui.open[t.id]?'open':''}>
+    <summary><span class="temaHead"><span class="tt">📝 ${esc(t.title)||'(tema sin título)'}</span><span class="chips">${t.by&&sharedMateria(t.materiaId)?`<span class="chip" title="${esc(t.fuente||'')}">👤 ${esc(t.by)}</span>`:''}${hasSec?`<span class="chip">${t.secciones.length} sección${t.secciones.length==1?'':'es'}</span>`:''}<span class="chip">${cards.length} tarjeta${cards.length==1?'':'s'}</span></span></span>
+      <button class="icon-btn" data-action="delTema" data-id="${t.id}" title="Eliminar tema">🗑️</button>
+    </summary>
+    <div class="b">
+      <input class="fld tituloTema" data-action="editTemaTitle" data-id="${t.id}" value="${esc(t.title)}" placeholder="Título del tema">
+      ${t.fuente?`<p class="meta" style="margin:4px 0 0">📎 ${esc(t.fuente)}${t.by?' · subido por '+esc(t.by):''}</p>`:''}
+      <div class="tabsT">${tabs.map(([k,l])=>`<button type="button" data-action="temaTab" data-id="${t.id}" data-tab="${k}" class="${tab===k?'on':''}">${l}</button>`).join('')}</div>
+      <div class="tp" data-panel="contenido" ${tab==='contenido'?'':'hidden'}>
+        ${hasSec&&t.body?`<div class="resumenCard"><small>Resumen</small><p>${esc(t.body)}</p></div>`:''}
+        ${hasSec
+          ? `<div class="secList">${t.secciones.map(sc=>secBlock(t.id,sc)).join('')}</div>
+             <button class="sec" data-action="addSec" data-id="${t.id}">+ Agregar sección</button>`
+          : `<textarea class="fld" data-action="editTemaBody" data-id="${t.id}" placeholder="Escribe aquí tus apuntes de este tema…">${esc(t.body)}</textarea>`}
+      </div>
+      ${hasSec?`<div class="tp" data-panel="esquema" ${tab==='esquema'?'':'hidden'}>${esquemaHTML(t)}</div>`:''}
+      <div class="tp" data-panel="tarjetas" ${tab==='tarjetas'?'':'hidden'}>
+        <p class="meta tarjIntro">Frente = término o pregunta. Reverso = definición o respuesta. Con estas se arman Flashcards, Quiz, etc.</p>
+        <div class="cardList">${cards.map(cardRow).join('')||'<p class="meta">Sin tarjetas todavía.</p>'}</div>
+        <button class="sec" data-action="addCard" data-tema="${t.id}" data-mat="${t.materiaId}">+ Agregar tarjeta</button>
+      </div>
+    </div>
+  </details>`;
+}
+function secBlock(temaId,sc){
+  return `<details class="secAcc" data-sec="${sc.id}" ${ui.sec[sc.id]?'open':''}>
+    <summary><span class="sn"><b class="st">${esc(sc.title)||'(sección sin título)'}</b><small class="sp">${esc((sc.body||'').slice(0,120))}</small></span></summary>
+    <div class="b">
+      <div class="secRead">${secReadHTML(sc)}</div>
+      <div class="secEdit">
+        <label class="lbl">Título de la sección</label>
+        <input class="fld" data-action="editSecTitle" data-id="${temaId}" data-sid="${sc.id}" value="${esc(sc.title)}" placeholder="Título de la sección">
+        <label class="lbl">Contenido</label>
+        <textarea class="fld" data-action="editSecBody" data-id="${temaId}" data-sid="${sc.id}" placeholder="Contenido de la sección…">${esc(sc.body)}</textarea>
+        <label class="lbl">Ideas clave (una por línea, alimentan el esquema)</label>
+        <textarea class="fld" data-action="editSecPuntos" data-id="${temaId}" data-sid="${sc.id}" placeholder="Una idea corta por línea…">${esc(ideasTexto(sc))}</textarea>
+        <small class="meta">Opcional: empieza la línea con [def], [car] o [ej] para ubicarla como definición, característica o ejemplo en el esquema matricial.</small>
+      </div>
+      <div class="secFoot">
+        <button class="sec" data-action="editSec" data-id="${temaId}" data-sid="${sc.id}"><span class="lbRead">✏️ Editar</span><span class="lbEdit">✓ Listo</span></button>
+        <button class="sec" data-action="delSec" data-id="${temaId}" data-sid="${sc.id}">🗑️ Eliminar</button>
+      </div>
+    </div>
+  </details>`;
+}
+function cardRow(c){
+  return `<div class="cardRow" data-card="${c.id}">
+    <span class="cl">Frente</span><textarea class="fld sm cf" rows="1" data-action="editCardFront" data-id="${c.id}" placeholder="Frente (término / pregunta)">${esc(c.front)}</textarea>
+    <span class="cl">Reverso</span><textarea class="fld sm cb" rows="1" data-action="editCardBack" data-id="${c.id}" placeholder="Reverso (definición / respuesta)">${esc(c.back)}</textarea>
+    <button class="icon-btn" data-action="delCard" data-id="${c.id}" title="Eliminar tarjeta">🗑️</button>
+  </div>`;
+}
+/* ================= HERRAMIENTAS DE ESTUDIO ================= */
+function shuffle(arr){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function getCards(materiaId){return state.cards.filter(c=>c.materiaId===materiaId && c.front.trim() && c.back.trim())}
+function fmtSecs(s){s=Math.max(0,s);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+function relTime(ts){
+  const d=Math.round((Date.now()-ts)/864e5);
+  if(d<=0)return'hoy';if(d===1)return'ayer';if(d<30)return`hace ${d} días`;
+  const mo=Math.round(d/30);return mo===1?'hace 1 mes':`hace ${mo} meses`;
+}
+function noCardsMsg(){return'<div class="empty">Esta materia todavía no tiene tarjetas con frente y reverso completos. Agregá algunas desde sus temas.</div>'}
+
+function startTool(tool,materiaId){
+  clearRepasoTimer();
+  const cards=getCards(materiaId);
+  if(tool==='flashcards'||tool==='memorizar'||tool==='repaso'||tool==='concepto'){
+    toolState={cards:shuffle(cards),idx:0,flipped:false,known:0,seen:0};
+  }else if(tool==='quiz'||tool==='examen'){
+    const n=tool==='quiz'?Math.min(10,cards.length):cards.length;
+    const picked=shuffle(cards).slice(0,n);
+    const questions=picked.map(c=>{
+      let pool=state.cards.filter(x=>x.id!==c.id && x.back.trim() && x.materiaId===c.materiaId);
+      if(pool.length<3){
+        const extra=state.cards.filter(x=>x.id!==c.id && x.back.trim() && x.materiaId!==c.materiaId);
+        pool=pool.concat(shuffle(extra).slice(0,3-pool.length));
+      }
+      const distractors=shuffle(pool).slice(0,3).map(x=>x.back);
+      const opts=shuffle([c.back,...distractors]);
+      return{card:c,options:opts,selected:null};
+    });
+    toolState={questions,idx:0,score:0};
+  }else if(tool==='comparar'){
+    const other=state.materias.find(m=>m.id!==materiaId);
+    toolState={materiaId2:other?other.id:null};
+  }else{
+    toolState={};
+  }
+  route={view:'tool',tool,materiaId};
+  render();
+  if(tool==='repaso'){
+    toolState.secondsLeft=300;
+    repasoTimer=setInterval(()=>{
+      toolState.secondsLeft--;
+      const el=$('repasoTimerText');
+      if(el)el.textContent=fmtSecs(toolState.secondsLeft);
+      if(toolState.secondsLeft<=0){clearRepasoTimer();render();}
+    },1000);
+  }
+}
+
+function viewToolHTML(){
+  const{tool,materiaId}=route;
+  const m=state.materias.find(x=>x.id===materiaId);
+  if(!m){goToView('materias');return'';}
+  const head=`<button class="sec" data-action="backMateria" data-id="${materiaId}">← ${esc(m.icon)} ${esc(m.name)}</button><div style="margin-top:14px"></div>`;
+  let body='';
+  if(tool==='flashcards')body=toolFlashcardsHTML();
+  else if(tool==='memorizar')body=toolMemorizarHTML(m);
+  else if(tool==='quiz')body=toolQuizHTML(false);
+  else if(tool==='examen')body=toolQuizHTML(true);
+  else if(tool==='concepto')body=toolConceptoHTML();
+  else if(tool==='repaso')body=toolRepasoHTML();
+  else if(tool==='comparar')body=toolCompararHTML(m);
+  else if(tool==='progreso')body=toolProgresoHTML(m);
+  else if(tool==='referencias')body=toolReferenciasHTML(m);
+  return head+body;
+}
+
+function toolFlashcardsHTML(){
+  const{cards,idx,flipped,known,seen}=toolState;
+  if(!cards.length)return noCardsMsg();
+  if(idx>=cards.length)return `<div class="empty"><h2>🎉 ¡Terminaste!</h2><p>Sabías ${known} de ${seen} tarjetas.</p><button class="pr" data-action="redoTool">Repetir</button></div>`;
+  const c=cards[idx];
+  return `
+  <div class="viewhead"><h1>🔄 Flashcards</h1><span class="meta">${idx+1} / ${cards.length}</span></div>
+  <div class="flashcard ${flipped?'flip':''}" data-action="flipCard">
+    <div class="fcInner"><div class="fcFace fcFront">${esc(c.front)}</div><div class="fcFace fcBack">${esc(c.back)}</div></div>
+  </div>
+  <p class="meta" style="text-align:center">Tocá la tarjeta para voltear</p>
+  <div class="row" style="justify-content:center">
+    <button class="sec" data-action="cardAnswer" data-know="0">😕 Repasar</button>
+    <button class="pr" data-action="cardAnswer" data-know="1">😊 La sé</button>
+  </div>`;
+}
+
+function toolMemorizarHTML(m){
+  const cards=getCards(m.id);
+  if(!cards.length)return noCardsMsg();
+  return `<div class="viewhead"><h1>📖 Memorizar</h1></div>
+  <p class="meta">Repasá todas las tarjetas de un vistazo, sin apuros.</p>
+  ${cards.map(c=>`<div class="card"><b>${esc(c.front)}</b><p class="meta" style="margin:6px 0 0">${esc(c.back)}</p></div>`).join('')}`;
+}
+
+function toolConceptoHTML(){
+  const{cards,idx,flipped}=toolState;
+  if(!cards.length)return noCardsMsg();
+  if(idx>=cards.length)return `<div class="empty"><h2>🎉 ¡Listo!</h2><p>Repasaste ${cards.length} conceptos.</p><button class="pr" data-action="redoTool">Repetir</button></div>`;
+  const c=cards[idx];
+  return `
+  <div class="viewhead"><h1>💡 ¿Qué concepto?</h1><span class="meta">${idx+1} / ${cards.length}</span></div>
+  <div class="card">
+    <p class="meta">Definición / pista:</p>
+    <h3>${esc(c.back)}</h3>
+    ${flipped?`<hr style="border-color:var(--b);margin:12px 0"><p class="meta">Concepto:</p><h3>${esc(c.front)}</h3>`:`<button class="sec" data-action="flipCard">Mostrar respuesta</button>`}
+  </div>
+  ${flipped?`<div class="row" style="justify-content:center"><button class="sec" data-action="cardAnswer" data-know="0">😕 Fallé</button><button class="pr" data-action="cardAnswer" data-know="1">😊 Acerté</button></div>`:''}`;
+}
+
+function toolRepasoHTML(){
+  const{cards,idx,flipped,secondsLeft,known,seen}=toolState;
+  if(!cards.length)return noCardsMsg();
+  if(secondsLeft<=0)return `<div class="empty"><h2>⏱️ ¡Tiempo!</h2><p>Repasaste ${seen} tarjetas, sabías ${known}.</p><button class="pr" data-action="redoTool">Repetir</button></div>`;
+  const c=cards[idx%cards.length];
+  return `
+  <div class="viewhead"><h1>⏱️ Repaso 5 min</h1><span class="meta" id="repasoTimerText">${fmtSecs(secondsLeft)}</span></div>
+  <div class="flashcard ${flipped?'flip':''}" data-action="flipCard">
+    <div class="fcInner"><div class="fcFace fcFront">${esc(c.front)}</div><div class="fcFace fcBack">${esc(c.back)}</div></div>
+  </div>
+  <p class="meta" style="text-align:center">Tocá para voltear</p>
+  <div class="row" style="justify-content:center">
+    <button class="sec" data-action="cardAnswer" data-know="0">😕 Repasar</button>
+    <button class="pr" data-action="cardAnswer" data-know="1">😊 La sé</button>
+  </div>`;
+}
+
+function toolQuizHTML(isExam){
+  const{questions,idx,score}=toolState;
+  if(!questions.length)return'<div class="empty">Necesitás al menos 2 tarjetas con frente y reverso en esta materia para generar preguntas.</div>';
+  if(idx>=questions.length){
+    return `<div class="empty"><h2>${isExam?'📝':'❓'} ¡Listo!</h2><p>Resultado: <b>${score} / ${questions.length}</b></p>
+    ${isExam?questions.map((q,i)=>`<p class="meta" style="text-align:left">${i+1}. ${esc(q.card.front)} — ${q.selected===q.card.back?'✅':'❌ correcta: '+esc(q.card.back)}</p>`).join(''):''}
+    <button class="pr" data-action="redoTool">Repetir</button></div>`;
+  }
+  const q=questions[idx];
+  return `
+  <div class="viewhead"><h1>${isExam?'📝 Modo examen':'❓ Quiz'}</h1><span class="meta">${idx+1} / ${questions.length}</span></div>
+  <div class="card"><h3 style="margin-top:0">${esc(q.card.front)}</h3>
+    ${q.options.map(o=>{
+      let cls='sec optBtn';
+      if(!isExam && q.selected){
+        if(o===q.card.back)cls+=' ok';
+        else if(o===q.selected)cls+=' no';
+      }else if(isExam && o===q.selected){
+        cls+=' chosen';
+      }
+      return `<button class="${cls}" data-action="answerQuiz" data-opt="${esc(o)}" ${q.selected?'disabled':''}>${esc(o)}</button>`;
+    }).join('')}
+  </div>
+  ${q.selected?'<button class="pr" data-action="nextQuestion">Siguiente →</button>':''}`;
+}
+
+function toolCompararHTML(m){
+  const others=state.materias.filter(x=>x.id!==m.id);
+  if(!others.length)return'<div class="empty">Necesitás al menos 2 materias para comparar.</div>';
+  if(!toolState.materiaId2)toolState.materiaId2=others[0].id;
+  const m2=state.materias.find(x=>x.id===toolState.materiaId2)||others[0];
+  const c1=getCards(m.id),c2=getCards(m2.id);
+  return `
+  <div class="viewhead"><h1>⚖️ Comparar</h1></div>
+  <label class="lbl">Comparar con:</label>
+  <select class="fld" data-action="setCompareMateria" style="max-width:280px">
+    ${others.map(o=>`<option value="${o.id}" ${o.id===m2.id?'selected':''}>${esc(o.icon)} ${esc(o.name)}</option>`).join('')}
+  </select>
+  <div class="two" style="margin-top:14px">
+    <div class="card"><h3 style="margin-top:0">${esc(m.icon)} ${esc(m.name)}</h3>${c1.map(c=>`<p class="meta"><b style="color:var(--t)">${esc(c.front)}:</b> ${esc(c.back)}</p>`).join('')||'<p class="meta">Sin tarjetas.</p>'}</div>
+    <div class="card"><h3 style="margin-top:0">${esc(m2.icon)} ${esc(m2.name)}</h3>${c2.map(c=>`<p class="meta"><b style="color:var(--t)">${esc(c.front)}:</b> ${esc(c.back)}</p>`).join('')||'<p class="meta">Sin tarjetas.</p>'}</div>
+  </div>`;
+}
+
+function toolProgresoHTML(m){
+  const cards=getCards(m.id);
+  const known=cards.filter(c=>c.known===true).length;
+  const attempts=state.attempts.filter(a=>a.materiaId===m.id).sort((a,b)=>b.date-a.date).slice(0,15);
+  const pct=cards.length?Math.round(known/cards.length*100):0;
+  return `
+  <div class="viewhead"><h1>📊 Mi progreso</h1></div>
+  <div class="card">
+    <p class="meta" style="margin-top:0">Tarjetas dominadas</p>
+    <div class="bar"><i style="width:${pct}%"></i></div>
+    <p class="meta">${known} / ${cards.length} (${pct}%)</p>
+  </div>
+  <h3>Historial de quiz y exámenes</h3>
+  ${attempts.length?attempts.map(a=>`<div class="li"><span>${a.type==='examen'?'📝':'❓'} ${a.score}/${a.total}</span><small>${relTime(a.date)}</small></div>`).join(''):'<p class="meta">Todavía no hiciste ningún quiz o examen en esta materia.</p>'}`;
+}
+
+function toolReferenciasHTML(m){
+  return `
+  <div class="viewhead"><h1>📚 Referencias</h1></div>
+  <p class="meta">Guardá acá tu bibliografía o fuentes de esta materia.</p>
+  <textarea class="fld" style="min-height:220px" data-action="editMateriaRefs" data-id="${m.id}" placeholder="Ej: Papalia, D. (2012). Desarrollo humano...">${esc(m.refs||'')}</textarea>`;
+}
+
+/* ================= VISTA: CALENDARIO ================= */
+function viewCalendarioHTML(){
+  const{y,m}=calView;
+  const monthNames=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const first=new Date(y,m,1),startOff=(first.getDay()+6)%7,daysInMonth=new Date(y,m+1,0).getDate();
+  const todayStr=ymd(new Date());
+  const evByDate={};state.events.forEach(e=>{(evByDate[e.date]=evByDate[e.date]||[]).push(e)});
+  let cells='';
+  for(let i=0;i<startOff;i++)cells+='<div class="dcell empty"></div>';
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=ymd(new Date(y,m,d));
+    const has=evByDate[ds];
+    cells+=`<button class="dcell ${ds===todayStr?'today':''} ${ds===calView.sel?'sel':''}" data-action="selDay" data-date="${ds}">${d}${has?'<i class="dot"></i>':''}</button>`;
+  }
+  const sel=calView.sel;
+  const selEvents=sel?(evByDate[sel]||[]):[];
+  const upcoming=state.events.filter(e=>e.date>=todayStr).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,8);
+  return `
+    <div class="viewhead"><h1>🗓️ Calendario</h1></div>
+    <div class="calNav">
+      <button class="icon-btn" data-action="calPrev">‹</button>
+      <b>${monthNames[m]} ${y}</b>
+      <button class="icon-btn" data-action="calNext">›</button>
+    </div>
+    <div class="calGrid">${['L','M','X','J','V','S','D'].map(x=>`<i class="dh">${x}</i>`).join('')}${cells}</div>
+    ${sel?`<div class="card">
+      <h3>${fmtDateLong(sel)}</h3>
+      ${selEvents.length?selEvents.map(e=>`<div class="li"><span>${TY[e.type]||'📌'} ${esc(e.title)}</span><button class="icon-btn" data-action="delEvent" data-id="${e.id}">🗑️</button></div>`).join(''):'<p class="meta">Sin eventos este día.</p>'}
+      <button class="sec" style="margin-top:10px" data-action="addEvent" data-date="${sel}">+ Agregar evento</button>
+    </div>`:'<p class="meta">Toca un día para ver o agregar eventos.</p>'}
+    <h3>Próximos</h3>
+    ${upcoming.length?upcoming.map(e=>`<div class="li"><span><b>${TY[e.type]||'📌'}</b> ${esc(e.title)}<br><small>${fmtDateLong(e.date)} · ${relDate(e.date)}</small></span></div>`).join(''):'<p class="meta">No tienes eventos próximos.</p>'}
+  `;
+}
+
+/* ================= VISTA: PERFIL ================= */
+function viewPerfilHTML(){
+  const p=state.profile;
+  const avgsAll=state.materias.map(m=>weightedAvg(state.cortes.filter(c=>c.materiaId===m.id))).filter(x=>x!=null);
+  const globalAvg=avgsAll.length?(avgsAll.reduce((a,b)=>a+b,0)/avgsAll.length):null;
+  return `
+    <div class="viewhead"><h1>👤 Mi perfil</h1></div>
+    <div class="card">
+      <div class="pfhero"><div class="pfav">${esc(p.avatar)}</div><div><h2 style="margin:0">${esc(p.name)||'Estudiante'}</h2><p class="meta" style="margin:2px 0 0">${esc(p.career)||'Agrega tu carrera y universidad'}</p></div></div>
+      <div class="pgs">
+        <div><b>${state.materias.length}</b>materias</div>
+        <div><b>${state.temas.length}</b>temas</div>
+        <div><b>${globalAvg==null?'—':fmtN(globalAvg)}</b>promedio global</div>
+      </div>
+    </div>
+    <div class="card"><h3>Avatar</h3><div class="avatarPicker">${AV.map(a=>`<button class="avBtn ${a===p.avatar?'on':''}" data-action="setAvatar" data-a="${a}">${a}</button>`).join('')}</div></div>
+    <div class="card">
+      <h3>Editar perfil</h3>
+      <label class="lbl">Nombre</label><input class="fld" data-action="profileField" data-f="name" value="${esc(p.name)}" maxlength="40">
+      <label class="lbl">Carrera y universidad</label><input class="fld" data-action="profileField" data-f="career" value="${esc(p.career)}" maxlength="80">
+      <div class="two">
+        <div><label class="lbl">Próximo examen</label><input class="fld" type="date" data-action="profileField" data-f="examDate" value="${p.examDate||''}"></div>
+        <div><label class="lbl">Escala de notas</label><select class="fld" data-action="setScale">${[5,10,100].map(n=>`<option value="${n}" ${scaleMax()===n?'selected':''}>0 a ${n}</option>`).join('')}</select></div>
+      </div>
+      <div class="two">
+        <div><label class="lbl">Meta de promedio (sobre ${scaleMax()})</label><input class="fld" type="number" min="0" max="${scaleMax()}" step="0.1" data-action="profileField" data-f="goal" value="${p.goal}"></div>
+        <div></div>
+      </div>
+      <label class="lbl">Notas personales</label><textarea class="fld" data-action="profileField" data-f="notes" placeholder="Ideas, dudas, recordatorios…">${esc(p.notes)}</textarea>
+    </div>
+    <div class="card">
+      <h3>Cuenta</h3>
+      <p class="meta">Conectado como <b>${esc(auth.currentUser&&auth.currentUser.email||'')}</b></p>
+      <button class="sec" data-action="logout">🚪 Cerrar sesión</button>
+    </div>
+  `;
+}
+
+/* ================= BÚSQUEDA ================= */
+$('searchBox').addEventListener('input',e=>{
+  const q=e.target.value.trim().toLowerCase();
+  const box=$('searchResults');
+  if(q.length<2){box.innerHTML='';return}
+  const results=[];
+  state.materias.forEach(m=>{if(m.name.toLowerCase().includes(q))results.push({label:`📘 ${m.name}`,materiaId:m.id})});
+  state.temas.forEach(t=>{
+    if((t.title||'').toLowerCase().includes(q)||(t.body||'').toLowerCase().includes(q)){
+      const mat=state.materias.find(m=>m.id===t.materiaId);
+      results.push({label:`📝 ${t.title||'(sin título)'} — ${mat?mat.name:''}`,materiaId:t.materiaId});
+    }
+  });
+  box.innerHTML=results.slice(0,8).map((r,i)=>`<div data-r="${i}">${esc(r.label)}</div>`).join('');
+  box.querySelectorAll('[data-r]').forEach((el,i)=>el.onclick=()=>{
+    box.innerHTML='';$('searchBox').value='';
+    route={view:'materiaDetail',materiaId:results[i].materiaId};
+    document.querySelectorAll('#mainNav button').forEach(x=>x.classList.remove('on'));
+    render();
+  });
+});
+document.addEventListener('click',e=>{if(!e.target.closest('#searchWrap'))$('searchResults').innerHTML=''});
+
+/* ================= ACCIONES (clicks) ================= */
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-action]');if(!b)return;
+  e.preventDefault();
+  const a=b.dataset.action;
+
+  if(a==='addSemester'){
+    const name=prompt('Nombre del semestre (ej. Semestre 1, 2026-1):');
+    if(name&&name.trim())mutate(s=>s.semesters.push({id:uid(),name:name.trim()}));
+  }
+  else if(a==='renameSemester'){
+    const cur=state.semesters.find(x=>x.id===b.dataset.id);
+    const name=prompt('Nuevo nombre del semestre:',cur?cur.name:'');
+    if(name&&name.trim())mutate(s=>{const x=s.semesters.find(y=>y.id===b.dataset.id);if(x)x.name=name.trim()});
+  }
+  else if(a==='renameMateria'){
+    const cur=state.materias.find(x=>x.id===b.dataset.id);
+    const name=prompt('Nuevo nombre de la materia:',cur?cur.name:'');
+    if(name&&name.trim()){
+      const icon=prompt('Emoji (opcional):',cur?cur.icon:'📘')||(cur?cur.icon:'📘');
+      mutate(s=>{const x=s.materias.find(y=>y.id===b.dataset.id);if(x){x.name=name.trim();x.icon=icon}});
+    }
+  }
+  else if(a==='delSemester'){
+    if(confirm('¿Eliminar este semestre y todas sus materias, temas y cortes? Esta acción no se puede deshacer.')){
+      state.materias.filter(m=>m.semesterId===b.dataset.id&&m.sharedId).forEach(m=>abandonarCompartida(m,{silent:true}));
+      mutate(s=>{
+        const matIds=s.materias.filter(m=>m.semesterId===b.dataset.id).map(m=>m.id);
+        s.materias=s.materias.filter(m=>m.semesterId!==b.dataset.id);
+        s.temas=s.temas.filter(t=>!matIds.includes(t.materiaId));
+        s.cortes=s.cortes.filter(c=>!matIds.includes(c.materiaId));
+        s.cards=s.cards.filter(c=>!matIds.includes(c.materiaId));
+        s.attempts=s.attempts.filter(x=>!matIds.includes(x.materiaId));
+        s.semesters=s.semesters.filter(x=>x.id!==b.dataset.id);
+      });
+    }
+  }
+  else if(a==='addMateria'){
+    const name=prompt('Nombre de la materia:');
+    if(name&&name.trim()){
+      const icon=prompt('Emoji para la materia (opcional):','📘')||'📘';
+      mutate(s=>s.materias.push({id:uid(),name:name.trim(),icon,semesterId:b.dataset.sem,refs:''}));
+    }
+  }
+  else if(a==='delMateria'){
+    const msh=state.materias.find(x=>x.id===b.dataset.id);
+    if(confirm(msh&&msh.sharedId?'Esta materia es compartida: se eliminará de TU cuaderno y saldrás del grupo. Las demás personas conservan todo. ¿Continuar?':'¿Eliminar esta materia y todo su contenido (temas, tarjetas y cortes)? Esta acción no se puede deshacer.')){
+      if(msh&&msh.sharedId)abandonarCompartida(msh,{silent:true});
+      mutate(s=>{
+        s.cards=s.cards.filter(c=>c.materiaId!==b.dataset.id);
+        s.attempts=s.attempts.filter(x=>x.materiaId!==b.dataset.id);
+        s.temas=s.temas.filter(t=>t.materiaId!==b.dataset.id);
+        s.cortes=s.cortes.filter(c=>c.materiaId!==b.dataset.id);
+        s.materias=s.materias.filter(m=>m.id!==b.dataset.id);
+      });
+    }
+  }
+  else if(a==='openMateria'){route={view:'materiaDetail',materiaId:b.dataset.id};render();}
+  else if(a==='backMaterias')goToView('materias');
+  else if(a==='backMateria'){route={view:'materiaDetail',materiaId:b.dataset.id};render();}
+  else if(a==='addTema'){
+    mutate(s=>{ui.open[b.dataset.corte]=true;s.temas.unshift({id:uid(),materiaId:b.dataset.mat,corteId:b.dataset.corte,title:'',body:'',by:miNombre(),updatedAt:Date.now()})});
+  }
+  else if(a==='temaTab'){
+    ui.tab[b.dataset.id]=b.dataset.tab;
+    const box=b.closest('.b');
+    box.querySelectorAll('.tabsT button').forEach(x=>x.classList.toggle('on',x===b));
+    box.querySelectorAll('.tp').forEach(p=>{p.hidden=p.dataset.panel!==b.dataset.tab});
+    requestAnimationFrame(()=>{fitCards();layoutRadials()});
+  }
+  else if(a==='esqMenu'){
+    const menu=b.parentElement.querySelector('.esqx-menu'),abrir=menu.hidden;
+    esqCerrarMenus(abrir?menu:null);
+    menu.hidden=!abrir;b.setAttribute('aria-expanded',String(abrir));
+  }
+  else if(a==='esqStyle'){
+    const id=b.closest('.esqx').dataset.esqtema;
+    esqGuardar(b.dataset.estilo);esqRefrescar();
+    const nb=document.querySelector('.esqx[data-esqtema="'+id+'"] .esqx-tab');if(nb)nb.focus();
+  }
+  else if(a==='editSec'){
+    const el=b.closest('.secAcc');
+    if(el.classList.contains('editing')){
+      const t=state.temas.find(x=>x.id===b.dataset.id),sc=t&&t.secciones&&t.secciones.find(x=>x.id===b.dataset.sid);
+      if(sc){
+        el.querySelector('.secRead').innerHTML=secReadHTML(sc);
+        const pan=el.closest('.b').querySelector('[data-panel="esquema"]');
+        if(pan){pan.innerHTML=esquemaHTML(t);requestAnimationFrame(()=>layoutRadials(pan))}
+      }
+      el.classList.remove('editing');
+    }else{el.classList.add('editing');el.querySelectorAll('textarea').forEach(fitTA)}
+  }
+  else if(a==='addSec'){
+    mutate(s=>{const t=s.temas.find(x=>x.id===b.dataset.id);if(t){t.secciones=t.secciones||[];t.secciones.push({id:uid(),title:'',body:''});t.updatedAt=Date.now()}});
+  }
+  else if(a==='delSec'){
+    if(confirm('¿Eliminar esta sección?'))mutate(s=>{const t=s.temas.find(x=>x.id===b.dataset.id);if(t&&t.secciones)t.secciones=t.secciones.filter(x=>x.id!==b.dataset.sid)});
+  }
+  else if(a==='delTema'){
+    if(confirm(msgDelTema(b.dataset.id)))mutate(s=>{s.cards=s.cards.filter(c=>c.temaId!==b.dataset.id);s.temas=s.temas.filter(t=>t.id!==b.dataset.id)});
+  }
+  else if(a==='addCard'){
+    mutate(s=>s.cards.push({id:uid(),temaId:b.dataset.tema,materiaId:b.dataset.mat,front:'',back:'',known:null}));
+  }
+  else if(a==='delCard'){
+    if(confirm('¿Eliminar esta tarjeta?'))mutate(s=>s.cards=s.cards.filter(c=>c.id!==b.dataset.id));
+  }
+  else if(a==='addCorte'){
+    const name=prompt('Nombre del nuevo corte:','Corte '+(state.cortes.filter(c=>c.materiaId===b.dataset.mat).length+1));
+    if(name&&name.trim())mutate(s=>{
+      const mine=s.cortes.filter(c=>c.materiaId===b.dataset.mat);
+      const used=mine.reduce((x,c)=>x+(+c.weight||0),0);
+      const id=uid();ui.open[id]=true;
+      s.cortes.push({id,materiaId:b.dataset.mat,name:name.trim(),weight:Math.max(0,100-used),score:null});
+    });
+  }
+  else if(a==='editCorte'||a==='doneCorte'){
+    const el=b.closest('.folder');
+    if(el.classList.contains('editing')){el.classList.remove('editing');render();}
+    else{el.classList.add('editing');el.open=true;const i=el.querySelector('.corteEdit input');if(i)i.focus();}
+  }
+  else if(a==='delCorte'){
+    const id=b.dataset.id,c=state.cortes.find(x=>x.id===id);if(!c)return;
+    if(state.cortes.filter(x=>x.materiaId===c.materiaId).length<=1){alert('Cada materia necesita al menos un corte. Puedes editar este en lugar de eliminarlo.');return;}
+    const n=state.temas.filter(t=>t.corteId===id).length;
+    const msg=n?`¿Eliminar "${c.name}" junto con sus ${n} tema${n==1?'':'s'} y sus tarjetas? Esta acción no se puede deshacer.`:`¿Eliminar "${c.name}"?`;
+    const matC=state.materias.find(x=>x.id===c.materiaId);
+    if(matC&&matC.sharedId){
+      /* Los cortes son personales: borrar uno no debe borrar temas que también son de otras personas. */
+      if(confirm(`¿Eliminar "${c.name}"? Los ${n} tema${n==1?'':'s'} de esta materia compartida NO se borran: pasan a otro de tus cortes.`))mutate(s=>{
+        const otro=s.cortes.find(x=>x.materiaId===c.materiaId&&x.id!==id);
+        s.temas.forEach(t=>{if(t.corteId===id)t.corteId=otro.id});
+        s.cortes=s.cortes.filter(x=>x.id!==id);
+      });
+      return;
+    }
+    if(confirm(msg))mutate(s=>{
+      const ids=s.temas.filter(t=>t.corteId===id).map(t=>t.id);
+      s.cards=s.cards.filter(k=>!ids.includes(k.temaId));
+      s.temas=s.temas.filter(t=>t.corteId!==id);
+      s.cortes=s.cortes.filter(x=>x.id!==id);
+    });
+  }
+  else if(a==='openTool'){startTool(b.dataset.tool,b.dataset.mat);}
+  else if(a==='redoTool'){startTool(route.tool,route.materiaId);}
+  else if(a==='flipCard'){toolState.flipped=!toolState.flipped;render();}
+  else if(a==='cardAnswer'){
+    const know=b.dataset.know==='1';
+    const c=toolState.cards[toolState.idx];
+    const real=state.cards.find(x=>x.id===c.id);
+    if(real){real.known=know;persist();}
+    toolState.seen++;if(know)toolState.known++;
+    toolState.idx++;toolState.flipped=false;
+    render();
+  }
+  else if(a==='answerQuiz'){
+    const q=toolState.questions[toolState.idx];
+    if(q.selected)return;
+    q.selected=b.dataset.opt;
+    if(q.selected===q.card.back)toolState.score++;
+    render();
+  }
+  else if(a==='nextQuestion'){
+    toolState.idx++;
+    if(toolState.idx>=toolState.questions.length){
+      mutate(s=>s.attempts.push({id:uid(),materiaId:route.materiaId,type:route.tool,score:toolState.score,total:toolState.questions.length,date:Date.now()}));
+    }else{
+      render();
+    }
+  }
+  else if(a==='calPrev'){calView.m--;if(calView.m<0){calView.m=11;calView.y--}render();}
+  else if(a==='calNext'){calView.m++;if(calView.m>11){calView.m=0;calView.y++}render();}
+  else if(a==='selDay'){calView.sel=b.dataset.date;render();}
+  else if(a==='addEvent'){
+    const title=prompt('Título del evento (ej. Examen final de Ética):');
+    if(title&&title.trim()){
+      const t=(prompt('Tipo: escribe "examen", "entrega" u "otro"','examen')||'otro').toLowerCase();
+      const type=t.startsWith('ex')?'ex':t.startsWith('en')?'en':'ot';
+      mutate(s=>s.events.push({id:uid(),date:b.dataset.date,title:title.trim(),type}));
+    }
+  }
+  else if(a==='delEvent'){
+    if(confirm('¿Eliminar este evento?'))mutate(s=>s.events=s.events.filter(x=>x.id!==b.dataset.id));
+  }
+  else if(a==='setAvatar'){mutate(s=>s.profile.avatar=b.dataset.a);}
+  else if(a==='logout'){if(confirm('¿Cerrar sesión?'))auth.signOut();}
+});
+
+/* ================= ACCIONES (edición en vivo, sin repintar) ================= */
+document.addEventListener('input',e=>{
+  const a=e.target.dataset.action;if(!a)return;
+  const id=e.target.dataset.id;
+
+  if(a==='editTemaTitle'){
+    const t=state.temas.find(x=>x.id===id);if(!t)return;
+    t.title=e.target.value;t.updatedAt=Date.now();persist();
+    const sum=e.target.closest('details')?.querySelector('summary span');
+    if(sum)sum.textContent='📝 '+(t.title||'(tema sin título)');
+  }
+  else if(a==='editTemaBody'){
+    const t=state.temas.find(x=>x.id===id);if(!t)return;
+    t.body=e.target.value;t.updatedAt=Date.now();persist();
+  }
+  else if(a==='iaCorteSel'){ui.iaCorte=e.target.value}
+  else if(a==='editSecPuntos'){
+    const t=state.temas.find(x=>x.id===id);
+    const sc=t&&t.secciones&&t.secciones.find(x=>x.id===e.target.dataset.sid);if(!sc)return;
+    const pr=ideasParse(e.target.value);sc.puntos=pr.puntos;sc.tipos=pr.tipos;
+    t.updatedAt=Date.now();persist();
+  }
+  else if(a==='editSecTitle'||a==='editSecBody'){
+    const t=state.temas.find(x=>x.id===id);if(!t||!t.secciones)return;
+    const sc=t.secciones.find(x=>x.id===e.target.dataset.sid);if(!sc)return;
+    if(a==='editSecTitle'){
+      sc.title=e.target.value;
+      const sn=e.target.closest('details')?.querySelector('summary .st');
+      if(sn)sn.textContent=sc.title||'(sección sin título)';
+    }else{sc.body=e.target.value;const sp=e.target.closest('details')?.querySelector('summary .sp');if(sp)sp.textContent=sc.body.slice(0,120)}
+    t.updatedAt=Date.now();persist();
+  }
+  else if(a==='editCorteName'){
+    const c=state.cortes.find(x=>x.id===id);if(!c)return;
+    c.name=e.target.value;persist();
+    const ft=e.target.closest('.folder')?.querySelector('.ft');if(ft)ft.textContent='📁 '+(c.name||'(corte sin nombre)');
+  }
+  else if(a==='editCorteWeight'){
+    const c=state.cortes.find(x=>x.id===id);if(!c)return;
+    c.weight=clamp(+e.target.value||0,0,100);persist();refreshCorteAvg(route.materiaId);
+  }
+  else if(a==='editCorteScore'){
+    const c=state.cortes.find(x=>x.id===id);if(!c)return;
+    c.score=e.target.value===''?null:clamp(+e.target.value,0,scaleMax());persist();refreshCorteAvg(route.materiaId);
+  }
+  else if(a==='profileField'){
+    const f=e.target.dataset.f;
+    state.profile[f]=f==='goal'?clamp(+e.target.value||0,0,scaleMax()):e.target.value;
+    persist();
+  }
+  else if(a==='editCardFront'){
+    const c=state.cards.find(x=>x.id===id);if(!c)return;
+    c.front=e.target.value;persist();
+  }
+  else if(a==='editCardBack'){
+    const c=state.cards.find(x=>x.id===id);if(!c)return;
+    c.back=e.target.value;persist();
+  }
+  else if(a==='editMateriaRefs'){
+    const m=state.materias.find(x=>x.id===id);if(!m)return;
+    m.refs=e.target.value;persist();
+  }
+});
+document.addEventListener('change',e=>{
+  if(e.target.dataset.action==='setCompareMateria'){
+    toolState.materiaId2=e.target.value;persist();render();
+  }
+});
+
+document.addEventListener('change',e=>{
+  if(!e.target.dataset||e.target.dataset.action!=='setScale')return;
+  const ns=+e.target.value,os=scaleMax();
+  if(ns===os)return;
+  if(!confirm('Cambiar la escala convierte tus notas y tu meta proporcionalmente (por ejemplo, 4,5 sobre 5 pasa a 90 sobre 100). ¿Continuar?')){render();return;}
+  const conv=x=>{const v=x*ns/os;return ns>10?Math.round(v*10)/10:Math.round(v*100)/100};
+  mutate(s=>{
+    s.profile.scale=ns;s.profile.goal=conv(+s.profile.goal||0);
+    s.cortes.forEach(c=>{if(c.score!=null&&c.score!=='')c.score=conv(+c.score)});
+  });
+});
+
+/* Auto-ajuste de altura de las secciones (solo estético) */
+function fitTA(t){t.style.height='auto';t.style.height=(t.scrollHeight+4)+'px'}
+/* Tarjetas: cada campo crece según su texto. Los campos ocultos (pestaña cerrada) se ajustan al mostrarse. */
+function fitCards(root){(root||document).querySelectorAll('.cardRow textarea').forEach(t=>{if(t.offsetParent!==null)fitTA(t)})}
+let esqRz;
+window.addEventListener('resize',()=>{fitCards();clearTimeout(esqRz);esqRz=setTimeout(()=>layoutRadials(),120)});
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>layoutRadials());
+document.addEventListener('click',e=>{if(!e.target.closest('.esqx-tabs'))esqCerrarMenus()});
+document.addEventListener('keydown',e=>{
+  const tab=e.target.closest&&e.target.closest('.esqx-tab');
+  if(tab&&(e.key==='ArrowDown'||e.key==='ArrowUp')){
+    e.preventDefault();const menu=tab.parentElement.querySelector('.esqx-menu');
+    esqCerrarMenus(menu);menu.hidden=false;tab.setAttribute('aria-expanded','true');
+    const it=[...menu.querySelectorAll('.esqx-mi')];(it.find(x=>x.getAttribute('aria-checked')==='true')||it[0]).focus();return;
+  }
+  const menu=e.target.closest&&e.target.closest('.esqx-menu');if(!menu)return;
+  const it=[...menu.querySelectorAll('.esqx-mi')],i=it.indexOf(document.activeElement);
+  if(e.key==='ArrowDown'){e.preventDefault();it[(i+1)%it.length].focus()}
+  else if(e.key==='ArrowUp'){e.preventDefault();it[(i-1+it.length)%it.length].focus()}
+  else if(e.key==='Home'){e.preventDefault();it[0].focus()}
+  else if(e.key==='End'){e.preventDefault();it[it.length-1].focus()}
+  else if(e.key==='Escape'){e.preventDefault();esqCerrarMenus();const tb=menu.parentElement.querySelector('.esqx-tab');if(tb)tb.focus()}
+  else if(e.key==='Tab')esqCerrarMenus();
+});
+document.addEventListener('toggle',e=>{const d=e.target;if(!d.matches||!d.matches('details'))return;
+  if(d.dataset.tema)ui.open[d.dataset.tema]=d.open;
+  if(d.dataset.sec)ui.sec[d.dataset.sec]=d.open;
+  if(d.dataset.corte)ui.open[d.dataset.corte]=d.open;
+  if(d.open)requestAnimationFrame(()=>{fitCards(d);layoutRadials(d)});
+},true);
+document.addEventListener('input',e=>{if(e.target.matches&&e.target.matches('.secAcc textarea, .cardRow textarea'))fitTA(e.target)});
+
+/* Hecho por Sebastián Poveda y Santiago Romero. 2026 · generación de temas con IA */
+/* ================= IA: SUBIR PDF/PPTX Y GENERAR TEMA + TARJETAS ================= */
+/* Caché de resultados de IA: si subes otra vez el mismo archivo, se reutiliza el resultado
+   y NO se gasta una petición del límite diario de Gemini (que cuenta peticiones, no tokens). */
+const IA_CACHE_VER='v4';   // súbela cada vez que cambies las instrucciones de la IA, para no reutilizar resultados viejos
+const IA_CACHE_MAX=15;     // cuántos resultados se recuerdan en este navegador
+async function iaHash(texto){
+  try{
+    const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(IA_CACHE_VER+'|'+String(texto).trim().slice(0,60000)));
+    return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+  }catch(e){return null}
+}
+function iaCacheLeer(){try{return JSON.parse(localStorage.getItem('iaCache')||'{}')||{}}catch(e){return{}}}
+async function iaCacheGet(texto){
+  const k=await iaHash(texto);if(!k)return null;
+  const e=iaCacheLeer()[k];
+  return e&&e.d&&e.v===IA_CACHE_VER?e.d:null;
+}
+async function iaCacheSet(texto,data){
+  const k=await iaHash(texto);if(!k)return;
+  const c=iaCacheLeer();c[k]={t:Date.now(),v:IA_CACHE_VER,d:data};
+  Object.keys(c).sort((a,b)=>c[b].t-c[a].t).slice(IA_CACHE_MAX).forEach(x=>delete c[x]);
+  try{localStorage.setItem('iaCache',JSON.stringify(c))}catch(e){/* sin espacio: no pasa nada */}
+}
+async function extraerTextoPDF(file){
+  const buf=await file.arrayBuffer();
+  const pdf=await window.pdfjsLib.getDocument({data:buf}).promise;
+  let texto='';
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const content=await page.getTextContent();
+    texto+=content.items.map(it=>it.str).join(' ')+'\n\n';
+  }
+  return texto.trim();
+}
+async function extraerTextoPPTX(file){
+  const zip=await JSZip.loadAsync(file);
+  const slideFiles=Object.keys(zip.files)
+    .filter(name=>/^ppt\/slides\/slide\d+\.xml$/.test(name))
+    .sort((a,b)=>{
+      const na=+a.match(/slide(\d+)\.xml/)[1], nb=+b.match(/slide(\d+)\.xml/)[1];
+      return na-nb;
+    });
+  let texto='';
+  for(const name of slideFiles){
+    const xml=await zip.files[name].async('text');
+    const doc=new DOMParser().parseFromString(xml,'application/xml');
+    const nodes=doc.getElementsByTagName('a:t');
+    texto+=Array.from(nodes).map(n=>n.textContent).join(' ')+'\n\n';
+  }
+  return texto.trim();
+}
+
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-action="iaPickFile"]');
+  if(b)$('iaFileInput').click();
+});
+
+document.addEventListener('change',async e=>{
+  if(e.target.id!=='iaFileInput')return;
+  const file=e.target.files[0];
+  if(!file)return;
+  const materiaId=e.target.dataset.mat;
+  const statusEl=$('iaStatus');
+  const btn=$('iaUploadBtn');
+  const nombre=file.name.toLowerCase();
+
+  try{
+    btn.disabled=true;
+    statusEl.textContent='📄 Leyendo el archivo…';
+    let texto='';
+    if(nombre.endsWith('.pdf')) texto=await extraerTextoPDF(file);
+    else if(nombre.endsWith('.pptx')) texto=await extraerTextoPPTX(file);
+    else{ statusEl.textContent='❌ Solo se admiten archivos .pdf o .pptx.'; btn.disabled=false; return; }
+
+    if(!texto||texto.trim().length<40){
+      statusEl.textContent='❌ No pude sacar texto de ese archivo. Si es un PDF escaneado (una foto de las hojas) todavía no lo puedo leer, solo PDFs con texto real.';
+      btn.disabled=false; return;
+    }
+
+    const materia=state.materias.find(m=>m.id===materiaId);
+    if(state.temas.some(t=>t.materiaId===materiaId&&t.fuente===file.name)&&!confirm('Ya hay un tema creado a partir de un archivo llamado "'+file.name+'". ¿Subirlo de todos modos?')){statusEl.textContent='';return}
+    let data=await iaCacheGet(texto);
+    const desdeCache=!!data;
+    if(desdeCache){
+      statusEl.textContent='♻️ Ya había analizado este archivo: reutilicé el resultado sin gastar IA.';
+    }else{
+      statusEl.textContent='🤖 La IA está armando el tema y las tarjetas… puede tardar hasta un minuto.';
+      const resp=await fetch('/.netlify/functions/generar-tema',{
+        method:'POST',
+        headers:{'content-type':'application/json'},
+        body:JSON.stringify({texto:texto.slice(0,60000), materia:materia?materia.name:''})
+      });
+      try{ data=await resp.json(); }catch(e){ data=null; }
+      if(!resp.ok||!data){
+        statusEl.textContent='❌ '+((data&&data.error)||('El servidor no pudo completar la petición (código '+resp.status+'). Suele pasar cuando la IA tarda demasiado; prueba con un archivo más corto o inténtalo de nuevo.'));
+        btn.disabled=false; return;
+      }
+    }
+    if(!data.titulo||!Array.isArray(data.tarjetas)){
+      statusEl.textContent='❌ La IA no devolvió un resultado válido. Probá de nuevo.';
+      btn.disabled=false; return;
+    }
+    if(!desdeCache)iaCacheSet(texto,data);
+
+    mutate(s=>{
+      const temaId=uid();
+      const secs=Array.isArray(data.secciones)?data.secciones.filter(x=>x&&x.titulo&&x.contenido).map(x=>({id:uid(),title:String(x.titulo),body:String(x.contenido),...(()=>{const pr=(Array.isArray(x.puntos)?x.puntos:[]).map((p,i)=>({p:String(p).trim(),t:Array.isArray(x.tipos)?x.tipos[i]:null})).filter(o=>o.p).slice(0,6);return{puntos:pr.map(o=>o.p),tipos:pr.map(o=>ESQ_TIPOS.includes(o.t)?o.t:null)}})()})):[];
+      const sel=$('iaCorte');const corteId=(sel&&sel.value)||(s.cortes.find(c=>c.materiaId===materiaId)||{}).id;
+      ui.open[corteId]=true;ui.open[temaId]=true;
+      const tema={id:temaId,materiaId,corteId,title:data.titulo,body:data.resumen||'',by:miNombre(),fuente:file.name,updatedAt:Date.now()};
+      if(secs.length)tema.secciones=secs;
+      s.temas.unshift(tema);
+      (data.tarjetas||[]).forEach(t=>{
+        if(t.frente&&t.reverso) s.cards.push({id:uid(),materiaId,temaId,front:t.frente,back:t.reverso,known:null});
+      });
+    });
+    const st=$('iaStatus');
+    if(st) st.textContent=`✅ Listo — se creó el tema "${data.titulo}" con ${(data.tarjetas||[]).length} tarjetas.${desdeCache?' (resultado reutilizado, sin gastar IA)':''}`;
+  }catch(err){
+    console.error(err);
+    const st=$('iaStatus');
+    if(st) st.textContent='❌ Algo falló: '+err.message;
+  }finally{
+    const bt=$('iaUploadBtn'); if(bt)bt.disabled=false;
+    e.target.value='';
+  }
+});
+/* Hecho por Sebastián Poveda y Santiago Romero. 2026 */
+/* ======================================================================
+   MATERIAS COMPARTIDAS
+   Una materia compartida vive en Firestore como  temarios/{sharedId}
+     - documento:           nombre, icono, dueño, miembros
+     - subcolección temas:  un documento por tema (con sus tarjetas dentro)
+   Cada persona conserva su propia copia local (m.sharedId la enlaza con el grupo).
+   Es PERSONAL de cada quien: cortes, notas, calendario y si "sabía" una tarjeta.
+   Es COMPARTIDO: temas, secciones, tarjetas y el autor / archivo de origen.
+   ====================================================================== */
+const SESION=uid();        // distingue mis escrituras de las de otras personas o dispositivos
+const sharedLast={};       // temaId -> {sid,k}: último contenido sincronizado (evita reenviar lo que no cambió)
+const sharedMeta={};       // sharedId -> datos del documento del grupo
+const sharedUnsub={};      // sharedId -> funciones para dejar de escuchar
+const sharedFirst={};      // sharedId -> true cuando ya llegó la primera lectura de temas
+let pendingRender=false;
+
+const refTemario=sid=>db.collection('temarios').doc(sid);
+function miNombre(){
+  const u=auth.currentUser;
+  return String((state.profile&&state.profile.name)||(u&&u.displayName)||(u&&u.email&&u.email.split('@')[0])||'Alguien').trim();
+}
+function sharedMateria(materiaId){const m=state.materias.find(x=>x.id===materiaId);return m&&m.sharedId?m:null}
+function nMiembros(m){const x=sharedMeta[m.sharedId];return x&&x.members?x.members.length:1}
+function msgDelTema(id){
+  const t=state.temas.find(x=>x.id===id);
+  return t&&sharedMateria(t.materiaId)
+    ?'Esta materia es compartida: el tema se eliminará para TODAS las personas del grupo. ¿Continuar?'
+    :'¿Eliminar este tema y sus tarjetas?';
+}
+
+/* Contenido compartible de un tema (sin nada personal como corteId o "known") */
+function contenidoTema(t){
+  return{
+    title:t.title||'',body:t.body||'',
+    secciones:Array.isArray(t.secciones)?t.secciones:null,
+    by:t.by||'',fuente:t.fuente||'',
+    cards:state.cards.filter(c=>c.temaId===t.id).map(c=>({id:c.id,front:c.front||'',back:c.back||''}))
+  };
+}
+
+/* ---------- Subir mis cambios ---------- */
+let pushingShared=false,repushShared=false;
+async function pushShared(){
+  if(!currentUid)return;
+  if(pushingShared){repushShared=true;return}
+  pushingShared=true;
+  try{
+    for(const m of state.materias.filter(x=>x.sharedId)){
+      try{await pushSharedMateria(m,false)}
+      catch(e){console.error('No se pudo sincronizar "'+m.name+'":',e)}
+    }
+  }finally{
+    pushingShared=false;
+    if(repushShared){repushShared=false;pushShared()}
+  }
+}
+/* force=true solo al compartir una materia que ya existía: sube todo lo que hay antes de escuchar */
+async function pushSharedMateria(m,force){
+  const sid=m.sharedId;
+  if(!force&&!sharedFirst[sid])return;       // hasta no ver lo que ya hay en la nube, no se escribe nada
+  const base=refTemario(sid).collection('temas');
+  const temas=state.temas.filter(t=>t.materiaId===m.id);
+  const ids=new Set(temas.map(t=>t.id));
+  const ops=[],hechos={},borrados=[];
+  temas.forEach(t=>{
+    const c=contenidoTema(t),k=JSON.stringify(c);
+    if(sharedLast[t.id]&&sharedLast[t.id].k===k)return;
+    const data=JSON.parse(JSON.stringify({...c,updatedAt:t.updatedAt||Date.now(),sess:SESION,editor:currentUid}));
+    ops.push(b=>b.set(base.doc(t.id),data));
+    hechos[t.id]=k;
+  });
+  Object.keys(sharedLast).forEach(id=>{
+    if(sharedLast[id].sid===sid&&!ids.has(id)){ops.push(b=>b.delete(base.doc(id)));borrados.push(id)}
+  });
+  for(let i=0;i<ops.length;i+=400){
+    const batch=db.batch();
+    ops.slice(i,i+400).forEach(f=>f(batch));
+    await batch.commit();
+  }
+  Object.keys(hechos).forEach(id=>{sharedLast[id]={sid,k:hechos[id]}});
+  borrados.forEach(id=>delete sharedLast[id]);
+}
+
+/* ---------- Recibir cambios de otras personas ---------- */
+function aplicarTemaRemoto(m,id,d){
+  let t=state.temas.find(x=>x.id===id);
+  if(!t){t={id,materiaId:m.id,corteId:null};state.temas.unshift(t)}
+  t.materiaId=m.id;
+  t.title=d.title||'';t.body=d.body||'';t.by=d.by||'';t.fuente=d.fuente||'';
+  if(Array.isArray(d.secciones))t.secciones=d.secciones;else delete t.secciones;
+  t.updatedAt=d.updatedAt||Date.now();
+  const viejas=new Map(state.cards.filter(c=>c.temaId===id).map(c=>[c.id,c]));
+  state.cards=state.cards.filter(c=>c.temaId!==id);
+  (d.cards||[]).forEach(c=>state.cards.push({
+    id:c.id,temaId:id,materiaId:m.id,front:c.front||'',back:c.back||'',
+    known:viejas.has(c.id)?viejas.get(c.id).known:null     // "sabía esta tarjeta" es solo mío
+  }));
+  sharedLast[id]={sid:m.sharedId,k:JSON.stringify(contenidoTema(t))};
+}
+function quitarTemaLocal(id){
+  state.temas=state.temas.filter(t=>t.id!==id);
+  state.cards=state.cards.filter(c=>c.temaId!==id);
+  delete sharedLast[id];
+}
+/* Repinta sin interrumpir: si estoy escribiendo, espera a que suelte el campo */
+function renderSeguro(){
+  if(!['materias','materiaDetail','perfil'].includes(route.view))return;
+  const a=document.activeElement;
+  if(a&&a.matches&&a.matches('textarea,input,select')&&$('view').contains(a)){pendingRender=true;return}
+  render(true);
+}
+document.addEventListener('focusout',()=>{
+  if(!pendingRender)return;
+  setTimeout(()=>{
+    const a=document.activeElement;
+    if(a&&a.matches&&a.matches('textarea,input,select')&&$('view').contains(a))return;
+    pendingRender=false;renderSeguro();
+  },150);
+});
+
+function escucharCompartida(m){
+  const sid=m.sharedId;
+  if(!sid||sharedUnsub[sid])return;
+  const fallo=err=>{
+    console.error('Materia compartida:',err);
+    if(err&&(err.code==='permission-denied'||err.code==='not-found'))
+      desvincularCompartida(sid,'Ya no tienes acceso a la materia compartida "'+m.name+'". Conservas una copia en tu cuaderno que ya no se sincroniza.');
+  };
+  const u1=refTemario(sid).onSnapshot(snap=>{
+    if(!snap.exists||(snap.data()||{}).eliminado){
+      desvincularCompartida(sid,'La materia compartida "'+m.name+'" fue eliminada por quien la creó. Conservas una copia en tu cuaderno que ya no se sincroniza.');
+      return;
+    }
+    sharedMeta[sid]=snap.data();
+    renderSeguro();
+  },fallo);
+  const u2=refTemario(sid).collection('temas').onSnapshot(snap=>{
+    const mat=state.materias.find(x=>x.sharedId===sid);
+    if(!mat)return;
+    let cambio=false;
+    if(!sharedFirst[sid]){
+      /* Primera lectura: lo que hay en la nube manda. Se descarta lo local que ya no existe allá. */
+      const remotos=new Set(snap.docs.map(d=>d.id));
+      const viejos=state.temas.filter(t=>t.materiaId===mat.id&&!remotos.has(t.id)).map(t=>t.id);
+      viejos.forEach(quitarTemaLocal);
+      snap.docs.forEach(d=>aplicarTemaRemoto(mat,d.id,d.data()));
+      sharedFirst[sid]=true;cambio=true;
+    }else{
+      snap.docChanges().forEach(ch=>{
+        if(ch.doc.metadata.hasPendingWrites)return;                    // es mi propio cambio todavía en camino
+        if(ch.type==='removed'){
+          if(sharedMeta[sid]&&sharedMeta[sid].eliminado)return;        // el grupo se está borrando: conservo mi copia
+          quitarTemaLocal(ch.doc.id);cambio=true;
+        }else{
+          const d=ch.doc.data();
+          if(d.sess===SESION)return;                                   // lo escribí yo en esta sesión
+          aplicarTemaRemoto(mat,ch.doc.id,d);cambio=true;
+        }
+      });
+    }
+    if(cambio){ensureCortes();saveLocal();renderSeguro()}
+  },fallo);
+  sharedUnsub[sid]=[u1,u2];
+}
+function detener(sid){
+  (sharedUnsub[sid]||[]).forEach(f=>{try{f()}catch(e){}});
+  delete sharedUnsub[sid];delete sharedFirst[sid];delete sharedMeta[sid];
+}
+function olvidarTemas(sid){Object.keys(sharedLast).forEach(id=>{if(sharedLast[id].sid===sid)delete sharedLast[id]})}
+function startShared(){stopShared();state.materias.filter(m=>m.sharedId).forEach(escucharCompartida)}
+function stopShared(){Object.keys(sharedUnsub).forEach(detener);Object.keys(sharedLast).forEach(k=>delete sharedLast[k])}
+
+/* La materia deja de estar enlazada al grupo pero la copia local se conserva */
+function desvincularCompartida(sid,aviso){
+  detener(sid);olvidarTemas(sid);
+  state.materias.forEach(m=>{if(m.sharedId===sid)delete m.sharedId});
+  saveLocal();scheduleCloud();renderSeguro();
+  if(aviso)setTimeout(()=>alert(aviso),50);
+}
+
+/* ---------- Crear, compartir, unirse, salir ---------- */
+async function crearCompartida(semId){
+  const name=prompt('Nombre de la materia compartida (ej. Ética con Santiago):');
+  if(!name||!name.trim())return;
+  const icon=prompt('Emoji (opcional):','📘')||'📘';
+  const ref=db.collection('temarios').doc();
+  try{
+    await ref.set({name:name.trim(),icon,ownerUid:currentUid,members:[currentUid],
+      memberNames:{[currentUid]:miNombre()},createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+  }catch(e){console.error(e);alert('No se pudo crear la materia compartida. Revisa las reglas de Firestore y tu conexión.');return}
+  mutate(s=>s.materias.push({id:uid(),name:name.trim(),icon,semesterId:semId,refs:'',sharedId:ref.id}));
+  const m=state.materias.find(x=>x.sharedId===ref.id);
+  escucharCompartida(m);
+  route={view:'materiaDetail',materiaId:m.id};render();
+}
+async function compartirMateria(m){
+  if(m.sharedId)return;
+  const ref=db.collection('temarios').doc();
+  try{
+    await ref.set({name:m.name,icon:m.icon||'📘',ownerUid:currentUid,members:[currentUid],
+      memberNames:{[currentUid]:miNombre()},createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    m.sharedId=ref.id;
+    await pushSharedMateria(m,true);            // sube los temas que ya tenías antes de empezar a escuchar
+  }catch(e){
+    console.error(e);delete m.sharedId;olvidarTemas(ref.id);
+    alert('No se pudo compartir la materia. Revisa las reglas de Firestore y tu conexión.');return;
+  }
+  persist();escucharCompartida(m);render(true);
+}
+async function unirseCompartida(codigo){
+  codigo=String(codigo||'').trim();
+  const enlace=codigo.match(/[?&]unirse=([A-Za-z0-9]+)/);if(enlace)codigo=enlace[1];
+  if(!/^[A-Za-z0-9]{10,40}$/.test(codigo)){alert('Ese código no es válido. Pídele a tu compañero que te lo envíe de nuevo.');return}
+  const ya=state.materias.find(x=>x.sharedId===codigo);
+  if(ya){route={view:'materiaDetail',materiaId:ya.id};render();return}
+  try{
+    const ref=refTemario(codigo),F=firebase.firestore.FieldValue;
+    await ref.update({members:F.arrayUnion(currentUid),['memberNames.'+currentUid]:miNombre()});
+    const d=(await ref.get()).data();
+    mutate(s=>{
+      if(!s.semesters.length)s.semesters.push({id:uid(),name:'Semestre 1'});
+      s.materias.push({id:uid(),name:d.name,icon:d.icon||'📘',semesterId:s.semesters[s.semesters.length-1].id,refs:'',sharedId:codigo});
+    });
+    const m=state.materias.find(x=>x.sharedId===codigo);
+    escucharCompartida(m);
+    route={view:'materiaDetail',materiaId:m.id};render();
+  }catch(e){
+    console.error(e);
+    alert('No encontré esa materia compartida o no tienes permiso para entrar. Revisa que el código esté completo.');
+  }
+}
+async function abandonarCompartida(m,opts){
+  opts=opts||{};
+  const sid=m.sharedId;if(!sid)return;
+  const meta=sharedMeta[sid]||{};
+  const soyDueno=meta.ownerUid===currentUid;
+  const soyUltimo=Array.isArray(meta.members)&&meta.members.length<=1;
+  detener(sid);olvidarTemas(sid);
+  delete m.sharedId;                            // desde aquí ya no se sincroniza nada de esta materia
+  try{
+    if((opts.todos&&soyDueno)||soyUltimo){
+      const ref=refTemario(sid);
+      if(!soyUltimo){                           // avisa primero para que los demás conserven su copia
+        await ref.update({eliminado:true});
+        await new Promise(r=>setTimeout(r,1500));
+      }
+      const qs=await ref.collection('temas').get();
+      for(let i=0;i<qs.docs.length;i+=400){
+        const b=db.batch();qs.docs.slice(i,i+400).forEach(d=>b.delete(d.ref));await b.commit();
+      }
+      await ref.delete();
+    }else{
+      const F=firebase.firestore.FieldValue;
+      await refTemario(sid).update({members:F.arrayRemove(currentUid),['memberNames.'+currentUid]:F.delete()});
+    }
+  }catch(e){
+    console.error(e);
+    if(!opts.silent)alert('Saliste de la materia en tu cuaderno, pero no se pudo avisar a la nube: '+e.message);
+  }
+}
+function procesarUnirsePendiente(){
+  let c=null;
+  try{c=sessionStorage.getItem('unirse');sessionStorage.removeItem('unirse')}catch(e){}
+  if(c&&confirm('Te invitaron a una materia compartida. ¿Quieres unirte?'))unirseCompartida(c);
+}
+/* Enlace de invitación: tuapp.netlify.app/?unirse=CODIGO (se guarda hasta que la persona inicie sesión) */
+try{
+  const p=new URLSearchParams(location.search).get('unirse');
+  if(p){sessionStorage.setItem('unirse',p);history.replaceState(null,'',location.pathname)}
+}catch(e){}
+
+/* ---------- Interfaz ---------- */
+function compartidoBoxHTML(m){
+  if(!m.sharedId){
+    return `<div class="card shareBox" style="margin-top:14px">
+      <b style="font-size:.9em">🤝 Estudiar con otras personas</b>
+      <p class="meta" style="margin:4px 0 0">Comparte esta materia con tus compañeros: todos pueden subir archivos y editar temas y tarjetas, y el grupo ve los cambios al instante. Tus cortes y notas siguen siendo solo tuyos.</p>
+      <button class="sec" style="margin-top:10px" data-action="shareMateria" data-id="${m.id}">🤝 Compartir esta materia</button>
+    </div>`;
+  }
+  const meta=sharedMeta[m.sharedId];
+  if(!meta)return `<div class="card shareBox" style="margin-top:14px"><b style="font-size:.9em">🤝 Materia compartida</b><p class="meta" style="margin:4px 0 0">Conectando con el grupo…</p></div>`;
+  const dueno=meta.ownerUid===currentUid;
+  const nombres=(meta.members||[]).map(id=>{
+    const n=(meta.memberNames||{})[id]||'Alguien';
+    return `<span class="chip">${id===currentUid?'⭐ Tú':'👤 '+esc(n)}${id===meta.ownerUid?' · creó':''}</span>`;
+  }).join('');
+  return `<div class="card shareBox" style="margin-top:14px">
+    <b style="font-size:.9em">🤝 Materia compartida · ${(meta.members||[]).length} persona${(meta.members||[]).length==1?'':'s'}</b>
+    <div class="members">${nombres}</div>
+    <p class="meta" style="margin:0">Para invitar a alguien, envíale el enlace (o el código). Tiene que iniciar sesión para entrar. Quien tenga el código puede unirse, así que compártelo solo con tu grupo.</p>
+    <p class="meta" style="margin:6px 0 0">Código: <code>${esc(m.sharedId)}</code></p>
+    <div class="row">
+      <button class="sec" data-action="copyInvite" data-id="${m.id}">🔗 Copiar enlace</button>
+      <button class="sec" data-action="copyCode" data-id="${m.id}">📋 Copiar código</button>
+      <button class="sec" data-action="leaveShared" data-id="${m.id}">🚪 Salir del grupo</button>
+      ${dueno?`<button class="sec" data-action="deleteShared" data-id="${m.id}">🗑️ Eliminar para todos</button>`:''}
+    </div>
+  </div>`;
+}
+async function copiar(texto,btn){
+  const viejo=btn.textContent;
+  try{await navigator.clipboard.writeText(texto);btn.textContent='✓ Copiado';setTimeout(()=>{btn.textContent=viejo},1500)}
+  catch(e){prompt('Copia esto:',texto)}
+}
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-action]');if(!b)return;
+  const a=b.dataset.action;
+  const m=b.dataset.id?state.materias.find(x=>x.id===b.dataset.id):null;
+  if(a==='createShared')crearCompartida(b.dataset.sem);
+  else if(a==='joinSharedPrompt'){const c=prompt('Pega el código o el enlace de invitación:');if(c)unirseCompartida(c)}
+  else if(a==='shareMateria'&&m)compartirMateria(m);
+  else if(a==='copyInvite'&&m)copiar(location.origin+location.pathname+'?unirse='+m.sharedId,b);
+  else if(a==='copyCode'&&m)copiar(m.sharedId,b);
+  else if(a==='leaveShared'&&m){
+    if(confirm('¿Salir de esta materia compartida? Conservas una copia en tu cuaderno, pero ya no se sincroniza con el grupo.')){
+      await abandonarCompartida(m);persist();render();
+    }
+  }
+  else if(a==='deleteShared'&&m){
+    if(confirm('¿Eliminar la materia compartida para TODAS las personas? Cada quien conservará una copia en su cuaderno, pero el grupo dejará de existir.')){
+      await abandonarCompartida(m,{todos:true});persist();render();
+    }
+  }
+});
+
+})();
+</script>
+</body>
+</html>
