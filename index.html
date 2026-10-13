@@ -319,6 +319,7 @@ select.fld{font:inherit;color:inherit;background:var(--bg);border:1px solid var(
 .cardRow textarea.cf{font-family:var(--serif);font-weight:600;font-size:1.05em;line-height:1.4;padding-right:44px}
 .cardRow textarea.cb{font-size:.95em;color:var(--t)}
 .cardRow .cl{letter-spacing:.04em;text-transform:uppercase}
+<<<<<<< HEAD
 
 /* ===== Acceso con Google y materias compartidas ===== */
 .googleBtn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;border:1px solid var(--b);background:var(--c);border-radius:10px;padding:10px 14px;font-weight:600;margin-top:16px}
@@ -329,6 +330,8 @@ select.fld{font:inherit;color:inherit;background:var(--bg);border:1px solid var(
 .shareBox .members{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
 .shareBox code{background:var(--bg);border:1px solid var(--b);border-radius:8px;padding:3px 8px;font-size:.85em;word-break:break-all}
 .shareBox .row{flex-wrap:wrap}
+=======
+>>>>>>> 79ed657a4d51aaba48470997cebeb09c81d7ea53
 </style>
 </head>
 <body>
@@ -338,11 +341,14 @@ select.fld{font:inherit;color:inherit;background:var(--bg);border:1px solid var(
   <div class="authCard">
     <h1>📚 Mi cuaderno</h1>
     <p class="meta">Organiza las materias y temas de tu carrera. Tus datos quedan guardados en tu cuenta.</p>
+<<<<<<< HEAD
     <button type="button" class="googleBtn" id="googleBtn">
       <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/><path fill="#FBBC05" d="M10.5 28.7A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.7l-7.9-6.1A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.9 2.3-8.4 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
       Continuar con Google
     </button>
     <div class="authSep">o con tu correo</div>
+=======
+>>>>>>> 79ed657a4d51aaba48470997cebeb09c81d7ea53
     <div class="authTabs">
       <button class="on" data-authtab="login" type="button">Iniciar sesión</button>
       <button data-authtab="register" type="button">Crear cuenta</button>
@@ -480,7 +486,10 @@ function scheduleCloud(){
 }
 async function pushCloudNow(){
   if(!currentUid)return;
+<<<<<<< HEAD
   pushShared();
+=======
+>>>>>>> 79ed657a4d51aaba48470997cebeb09c81d7ea53
   try{
     await db.collection('users').doc(currentUid).set({
       data:JSON.stringify(state),
@@ -529,11 +538,15 @@ function mapAuthError(err){
     'auth/email-already-in-use':'Ya existe una cuenta con ese correo. Prueba iniciar sesión.',
     'auth/weak-password':'La contraseña debe tener al menos 6 caracteres.',
     'auth/too-many-requests':'Demasiados intentos. Espera un momento e inténtalo de nuevo.',
+<<<<<<< HEAD
     'auth/network-request-failed':'Sin conexión a internet.',
     'auth/unauthorized-domain':'Este dominio no está autorizado en Firebase (Authentication > Settings > Authorized domains).',
     'auth/operation-not-allowed':'El acceso con Google no está activado en Firebase (Authentication > Sign-in method).',
     'auth/account-exists-with-different-credential':'Ya existe una cuenta con ese correo usando otro método de acceso.',
     'auth/popup-blocked':'El navegador bloqueó la ventana de Google. Permite las ventanas emergentes e inténtalo de nuevo.'
+=======
+    'auth/network-request-failed':'Sin conexión a internet.'
+>>>>>>> 79ed657a4d51aaba48470997cebeb09c81d7ea53
   };
   return M[c]||'Ocurrió un error. Inténtalo de nuevo.';
 }
@@ -552,6 +565,7 @@ $('authForm').addEventListener('submit',async e=>{
 });
 $('logoutBtn').onclick=()=>{if(confirm('¿Cerrar sesión?'))auth.signOut()};
 
+<<<<<<< HEAD
 /* Acceso con Google (ventana emergente; si el navegador la bloquea, se usa redirección) */
 $('googleBtn').addEventListener('click',async()=>{
   const provider=new firebase.auth.GoogleAuthProvider();
@@ -571,21 +585,30 @@ $('googleBtn').addEventListener('click',async()=>{
   }
 });
 
+=======
+>>>>>>> 79ed657a4d51aaba48470997cebeb09c81d7ea53
 auth.onAuthStateChanged(async user=>{
   if(user){
     $('authLoading').hidden=false;
     await hydrateFromCloud(user.uid);
+<<<<<<< HEAD
     if(!state.profile.name&&user.displayName){state.profile.name=user.displayName;persist()}
+=======
+>>>>>>> 79ed657a4d51aaba48470997cebeb09c81d7ea53
     $('authLoading').hidden=true;
     $('authScreen').hidden=true;
     $('appRoot').hidden=false;
     applyTheme();updateThemeBtn();
     route={view:'materias',materiaId:null};
     render();
+<<<<<<< HEAD
     startShared();
     procesarUnirsePendiente();
   }else{
     stopShared();
+=======
+  }else{
+>>>>>>> 79ed657a4d51aaba48470997cebeb09c81d7ea53
     currentUid=null;
     state=defaultState();
     $('appRoot').hidden=true;
@@ -616,8 +639,12 @@ function goToView(v){
   render();
 }
 
+<<<<<<< HEAD
 function render(keep){
   const _y=window.scrollY;
+=======
+function render(){
+>>>>>>> 79ed657a4d51aaba48470997cebeb09c81d7ea53
   if(route.view!=='tool')clearRepasoTimer();
   const view=$('view');
   if(route.view==='materias')view.innerHTML=viewMateriasHTML();
@@ -625,7 +652,11 @@ function render(keep){
   else if(route.view==='tool')view.innerHTML=viewToolHTML();
   else if(route.view==='calendario')view.innerHTML=viewCalendarioHTML();
   else if(route.view==='perfil')view.innerHTML=viewPerfilHTML();
+<<<<<<< HEAD
   window.scrollTo(0,keep?_y:0);
+=======
+  window.scrollTo(0,0);
+>>>>>>> 79ed657a4d51aaba48470997cebeb09c81d7ea53
   requestAnimationFrame(()=>{fitCards();layoutRadials()});
 }
 
@@ -655,7 +686,11 @@ function weightedAvg(cortes){
 /* ================= VISTA: MIS MATERIAS ================= */
 function viewMateriasHTML(){
   const sems=state.semesters;
+<<<<<<< HEAD
   let html=`<div class="viewhead"><h1>📚 Mis materias</h1><span class="row" style="margin:0"><button class="sec" data-action="joinSharedPrompt">🔗 Unirme con código</button><button class="pr" data-action="addSemester">+ Semestre</button></span></div>`;
+=======
+  let html=`<div class="viewhead"><h1>📚 Mis materias</h1><button class="pr" data-action="addSemester">+ Semestre</button></div>`;
+>>>>>>> 79ed657a4d51aaba48470997cebeb09c81d7ea53
   if(!sems.length){
     html+=`<div class="empty">Aún no tienes semestres. Agrega uno para empezar a organizar tus materias.</div>`;
   }
@@ -670,7 +705,11 @@ function viewMateriasHTML(){
       </summary>
       <div class="b">
         <div class="grid">${mats.map(materiaCard).join('')||'<p class="meta">Sin materias en este semestre.</p>'}</div>
+<<<<<<< HEAD
         <div class="row" style="flex-wrap:wrap"><button class="sec" data-action="addMateria" data-sem="${sem.id}">+ Agregar materia</button><button class="sec" data-action="createShared" data-sem="${sem.id}">🤝 Materia compartida</button></div>
+=======
+        <button class="sec" style="margin-top:10px" data-action="addMateria" data-sem="${sem.id}">+ Agregar materia</button>
+>>>>>>> 79ed657a4d51aaba48470997cebeb09c81d7ea53
       </div>
     </details>`;
   }).join('');
@@ -682,7 +721,10 @@ function materiaCard(m){
   const avg=weightedAvg(cortes);
   return `<div class="card matCard">
     <h3>${esc(m.icon||'📘')} ${esc(m.name)}</h3>
+<<<<<<< HEAD
     ${m.sharedId?`<p class="meta" style="margin:0">🤝 Compartida · ${nMiembros(m)} persona${nMiembros(m)==1?'':'s'}</p>`:''}
+=======
+>>>>>>> 79ed657a4d51aaba48470997cebeb09c81d7ea53
     <p class="meta">${temasCount} tema${temasCount==1?'':'s'} · ${avg==null?'sin notas registradas':'promedio '+fmtN(avg)+' / '+fmtN(scaleMax())}</p>
     <div class="row">
       <button class="sec" data-action="openMateria" data-id="${m.id}">Abrir →</button>
@@ -701,7 +743,10 @@ function viewMateriaDetailHTML(materiaId){
   return `
     <button class="sec" data-action="backMaterias">← Mis materias</button>
     <div class="viewhead" style="margin-top:14px"><h1>${esc(m.icon||'📘')} ${esc(m.name)}</h1></div>
+<<<<<<< HEAD
     ${compartidoBoxHTML(m)}
+=======
+>>>>>>> 79ed657a4d51aaba48470997cebeb09c81d7ea53
 
     <section>
       <div class="viewhead"><h2>📁 Cortes</h2><button class="pr" data-action="addCorte" data-mat="${materiaId}">+ Agregar corte</button></div>
@@ -953,12 +998,19 @@ function temaBlock(t){
   if(tab==='esquema'&&!hasSec)tab='contenido';
   const tabs=[['contenido','Contenido'],...(hasSec?[['esquema','Esquema']]:[]),['tarjetas',`Tarjetas <span class="chip">${cards.length}</span>`]];
   return `<details class="s" data-tema="${t.id}" ${ui.open[t.id]?'open':''}>
+<<<<<<< HEAD
     <summary><span class="temaHead"><span class="tt">📝 ${esc(t.title)||'(tema sin título)'}</span><span class="chips">${t.by&&sharedMateria(t.materiaId)?`<span class="chip" title="${esc(t.fuente||'')}">👤 ${esc(t.by)}</span>`:''}${hasSec?`<span class="chip">${t.secciones.length} sección${t.secciones.length==1?'':'es'}</span>`:''}<span class="chip">${cards.length} tarjeta${cards.length==1?'':'s'}</span></span></span>
+=======
+    <summary><span class="temaHead"><span class="tt">📝 ${esc(t.title)||'(tema sin título)'}</span><span class="chips">${hasSec?`<span class="chip">${t.secciones.length} sección${t.secciones.length==1?'':'es'}</span>`:''}<span class="chip">${cards.length} tarjeta${cards.length==1?'':'s'}</span></span></span>
+>>>>>>> 79ed657a4d51aaba48470997cebeb09c81d7ea53
       <button class="icon-btn" data-action="delTema" data-id="${t.id}" title="Eliminar tema">🗑️</button>
     </summary>
     <div class="b">
       <input class="fld tituloTema" data-action="editTemaTitle" data-id="${t.id}" value="${esc(t.title)}" placeholder="Título del tema">
+<<<<<<< HEAD
       ${t.fuente?`<p class="meta" style="margin:4px 0 0">📎 ${esc(t.fuente)}${t.by?' · subido por '+esc(t.by):''}</p>`:''}
+=======
+>>>>>>> 79ed657a4d51aaba48470997cebeb09c81d7ea53
       <div class="tabsT">${tabs.map(([k,l])=>`<button type="button" data-action="temaTab" data-id="${t.id}" data-tab="${k}" class="${tab===k?'on':''}">${l}</button>`).join('')}</div>
       <div class="tp" data-panel="contenido" ${tab==='contenido'?'':'hidden'}>
         ${hasSec&&t.body?`<div class="resumenCard"><small>Resumen</small><p>${esc(t.body)}</p></div>`:''}
@@ -1316,7 +1368,10 @@ document.addEventListener('click',e=>{
   }
   else if(a==='delSemester'){
     if(confirm('¿Eliminar este semestre y todas sus materias, temas y cortes? Esta acción no se puede deshacer.')){
+<<<<<<< HEAD
       state.materias.filter(m=>m.semesterId===b.dataset.id&&m.sharedId).forEach(m=>abandonarCompartida(m,{silent:true}));
+=======
+>>>>>>> 79ed657a4d51aaba48470997cebeb09c81d7ea53
       mutate(s=>{
         const matIds=s.materias.filter(m=>m.semesterId===b.dataset.id).map(m=>m.id);
         s.materias=s.materias.filter(m=>m.semesterId!==b.dataset.id);
@@ -1336,9 +1391,13 @@ document.addEventListener('click',e=>{
     }
   }
   else if(a==='delMateria'){
+<<<<<<< HEAD
     const msh=state.materias.find(x=>x.id===b.dataset.id);
     if(confirm(msh&&msh.sharedId?'Esta materia es compartida: se eliminará de TU cuaderno y saldrás del grupo. Las demás personas conservan todo. ¿Continuar?':'¿Eliminar esta materia y todo su contenido (temas, tarjetas y cortes)? Esta acción no se puede deshacer.')){
       if(msh&&msh.sharedId)abandonarCompartida(msh,{silent:true});
+=======
+    if(confirm('¿Eliminar esta materia y todo su contenido (temas, tarjetas y cortes)? Esta acción no se puede deshacer.')){
+>>>>>>> 79ed657a4d51aaba48470997cebeb09c81d7ea53
       mutate(s=>{
         s.cards=s.cards.filter(c=>c.materiaId!==b.dataset.id);
         s.attempts=s.attempts.filter(x=>x.materiaId!==b.dataset.id);
@@ -1352,7 +1411,11 @@ document.addEventListener('click',e=>{
   else if(a==='backMaterias')goToView('materias');
   else if(a==='backMateria'){route={view:'materiaDetail',materiaId:b.dataset.id};render();}
   else if(a==='addTema'){
+<<<<<<< HEAD
     mutate(s=>{ui.open[b.dataset.corte]=true;s.temas.unshift({id:uid(),materiaId:b.dataset.mat,corteId:b.dataset.corte,title:'',body:'',by:miNombre(),updatedAt:Date.now()})});
+=======
+    mutate(s=>{ui.open[b.dataset.corte]=true;s.temas.unshift({id:uid(),materiaId:b.dataset.mat,corteId:b.dataset.corte,title:'',body:'',updatedAt:Date.now()})});
+>>>>>>> 79ed657a4d51aaba48470997cebeb09c81d7ea53
   }
   else if(a==='temaTab'){
     ui.tab[b.dataset.id]=b.dataset.tab;
@@ -1390,7 +1453,11 @@ document.addEventListener('click',e=>{
     if(confirm('¿Eliminar esta sección?'))mutate(s=>{const t=s.temas.find(x=>x.id===b.dataset.id);if(t&&t.secciones)t.secciones=t.secciones.filter(x=>x.id!==b.dataset.sid)});
   }
   else if(a==='delTema'){
+<<<<<<< HEAD
     if(confirm(msgDelTema(b.dataset.id)))mutate(s=>{s.cards=s.cards.filter(c=>c.temaId!==b.dataset.id);s.temas=s.temas.filter(t=>t.id!==b.dataset.id)});
+=======
+    if(confirm('¿Eliminar este tema y sus tarjetas?'))mutate(s=>{s.cards=s.cards.filter(c=>c.temaId!==b.dataset.id);s.temas=s.temas.filter(t=>t.id!==b.dataset.id)});
+>>>>>>> 79ed657a4d51aaba48470997cebeb09c81d7ea53
   }
   else if(a==='addCard'){
     mutate(s=>s.cards.push({id:uid(),temaId:b.dataset.tema,materiaId:b.dataset.mat,front:'',back:'',known:null}));
@@ -1417,6 +1484,7 @@ document.addEventListener('click',e=>{
     if(state.cortes.filter(x=>x.materiaId===c.materiaId).length<=1){alert('Cada materia necesita al menos un corte. Puedes editar este en lugar de eliminarlo.');return;}
     const n=state.temas.filter(t=>t.corteId===id).length;
     const msg=n?`¿Eliminar "${c.name}" junto con sus ${n} tema${n==1?'':'s'} y sus tarjetas? Esta acción no se puede deshacer.`:`¿Eliminar "${c.name}"?`;
+<<<<<<< HEAD
     const matC=state.materias.find(x=>x.id===c.materiaId);
     if(matC&&matC.sharedId){
       /* Los cortes son personales: borrar uno no debe borrar temas que también son de otras personas. */
@@ -1427,6 +1495,8 @@ document.addEventListener('click',e=>{
       });
       return;
     }
+=======
+>>>>>>> 79ed657a4d51aaba48470997cebeb09c81d7ea53
     if(confirm(msg))mutate(s=>{
       const ids=s.temas.filter(t=>t.corteId===id).map(t=>t.id);
       s.cards=s.cards.filter(k=>!ids.includes(k.temaId));
@@ -1673,7 +1743,10 @@ document.addEventListener('change',async e=>{
     }
 
     const materia=state.materias.find(m=>m.id===materiaId);
+<<<<<<< HEAD
     if(state.temas.some(t=>t.materiaId===materiaId&&t.fuente===file.name)&&!confirm('Ya hay un tema creado a partir de un archivo llamado "'+file.name+'". ¿Subirlo de todos modos?')){statusEl.textContent='';return}
+=======
+>>>>>>> 79ed657a4d51aaba48470997cebeb09c81d7ea53
     let data=await iaCacheGet(texto);
     const desdeCache=!!data;
     if(desdeCache){
@@ -1702,7 +1775,11 @@ document.addEventListener('change',async e=>{
       const secs=Array.isArray(data.secciones)?data.secciones.filter(x=>x&&x.titulo&&x.contenido).map(x=>({id:uid(),title:String(x.titulo),body:String(x.contenido),...(()=>{const pr=(Array.isArray(x.puntos)?x.puntos:[]).map((p,i)=>({p:String(p).trim(),t:Array.isArray(x.tipos)?x.tipos[i]:null})).filter(o=>o.p).slice(0,6);return{puntos:pr.map(o=>o.p),tipos:pr.map(o=>ESQ_TIPOS.includes(o.t)?o.t:null)}})()})):[];
       const sel=$('iaCorte');const corteId=(sel&&sel.value)||(s.cortes.find(c=>c.materiaId===materiaId)||{}).id;
       ui.open[corteId]=true;ui.open[temaId]=true;
+<<<<<<< HEAD
       const tema={id:temaId,materiaId,corteId,title:data.titulo,body:data.resumen||'',by:miNombre(),fuente:file.name,updatedAt:Date.now()};
+=======
+      const tema={id:temaId,materiaId,corteId,title:data.titulo,body:data.resumen||'',updatedAt:Date.now()};
+>>>>>>> 79ed657a4d51aaba48470997cebeb09c81d7ea53
       if(secs.length)tema.secciones=secs;
       s.temas.unshift(tema);
       (data.tarjetas||[]).forEach(t=>{
@@ -1721,6 +1798,7 @@ document.addEventListener('change',async e=>{
   }
 });
 /* Hecho por Sebastián Poveda y Santiago Romero. 2026 */
+<<<<<<< HEAD
 /* ======================================================================
    MATERIAS COMPARTIDAS
    Una materia compartida vive en Firestore como  temarios/{sharedId}
@@ -2047,6 +2125,8 @@ document.addEventListener('click',async e=>{
   }
 });
 
+=======
+>>>>>>> 79ed657a4d51aaba48470997cebeb09c81d7ea53
 })();
 </script>
 </body>
