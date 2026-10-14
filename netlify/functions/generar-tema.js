@@ -174,7 +174,7 @@ exports.handler = async (event) => {
 
   // Tope de seguridad: no mandamos textos gigantes a la IA (cuesta más y no hace falta).
   const textoRecortado = texto.slice(0, 20000);
-
+// Hecho por Sebastián Poveda y Santiago Romero. 2026 · modelos de IA
   // Hecho por Sebastián Poveda y Santiago Romero. 2026 · instrucciones para la IA
   const prompt = `Eres un asistente que ayuda a estudiantes universitarios a convertir apuntes de clase (sacados de un PDF o una presentación) en material de estudio.
 
