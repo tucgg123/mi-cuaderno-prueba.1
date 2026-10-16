@@ -1686,9 +1686,10 @@ document.addEventListener('change',async e=>{
       statusEl.textContent='♻️ Ya había analizado este archivo: reutilicé el resultado sin gastar IA.';
     }else{
       statusEl.textContent='🤖 La IA está armando el tema y las tarjetas… puede tardar hasta un minuto.';
+      const token=await auth.currentUser.getIdToken();   // prueba de que hay sesión iniciada
       const resp=await fetch('/.netlify/functions/generar-tema',{
         method:'POST',
-        headers:{'content-type':'application/json'},
+        headers:{'content-type':'application/json','authorization':'Bearer '+token},
         body:JSON.stringify({texto:texto.slice(0,60000), materia:materia?materia.name:''})
       });
       try{ data=await resp.json(); }catch(e){ data=null; }
