@@ -329,6 +329,7 @@ select.fld{font:inherit;color:inherit;background:var(--bg);border:1px solid var(
 .shareBox .members{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
 .shareBox code{background:var(--bg);border:1px solid var(--b);border-radius:8px;padding:3px 8px;font-size:.85em;word-break:break-all}
 .shareBox .row{flex-wrap:wrap}
+.docRO [data-action="addTema"],.docRO [data-action="delTema"],.docRO [data-action="addSec"],.docRO .secFoot,.docRO [data-action="addCard"],.docRO [data-action="delCard"],.docRO .iaCard{display:none!important}
 </style>
 </head>
 <body>
@@ -370,6 +371,7 @@ select.fld{font:inherit;color:inherit;background:var(--bg);border:1px solid var(
   </header>
   <nav id="mainNav">
     <button data-nav="materias" class="on">📚 Materias</button>
+    <button data-nav="docente">👩‍🏫 Docente</button>
     <button data-nav="calendario">🗓️ Calendario</button>
     <button data-nav="perfil">👤 Perfil</button>
   </nav>
@@ -583,6 +585,7 @@ auth.onAuthStateChanged(async user=>{
     route={view:'materias',materiaId:null};
     render();
     startShared();
+    escucharMisInvitaciones();
     procesarUnirsePendiente();
   }else{
     stopShared();
@@ -625,6 +628,8 @@ function render(keep){
   else if(route.view==='tool')view.innerHTML=viewToolHTML();
   else if(route.view==='calendario')view.innerHTML=viewCalendarioHTML();
   else if(route.view==='perfil')view.innerHTML=viewPerfilHTML();
+  else if(route.view==='docente')view.innerHTML=viewDocenteHTML();
+  aplicarSoloLectura();
   window.scrollTo(0,keep?_y:0);
   requestAnimationFrame(()=>{fitCards();layoutRadials()});
 }
@@ -654,13 +659,14 @@ function weightedAvg(cortes){
 
 /* ================= VISTA: MIS MATERIAS ================= */
 function viewMateriasHTML(){
-  const sems=state.semesters;
+  const sems=state.semesters.filter(x=>!x.oculto);
   let html=`<div class="viewhead"><h1>📚 Mis materias</h1><span class="row" style="margin:0"><button class="sec" data-action="joinSharedPrompt">🔗 Unirme con código</button><button class="pr" data-action="addSemester">+ Semestre</button></span></div>`;
+  html+=invitacionesHTML();
   if(!sems.length){
     html+=`<div class="empty">Aún no tienes semestres. Agrega uno para empezar a organizar tus materias.</div>`;
   }
   html+=sems.map(sem=>{
-    const mats=state.materias.filter(m=>m.semesterId===sem.id);
+    const mats=state.materias.filter(m=>m.semesterId===sem.id&&m.rol!=='docente');
     return `<details class="s" open>
       <summary>🎓 ${esc(sem.name)}
         <span class="row" style="margin:0">
@@ -682,7 +688,7 @@ function materiaCard(m){
   const avg=weightedAvg(cortes);
   return `<div class="card matCard">
     <h3>${esc(m.icon||'📘')} ${esc(m.name)}</h3>
-    ${m.sharedId?`<p class="meta" style="margin:0">🤝 Compartida · ${nMiembros(m)} persona${nMiembros(m)==1?'':'s'}</p>`:''}
+    ${m.rol==='estudiante'?`<p class="meta" style="margin:0">👩‍🏫 Docente: ${esc(nombreDocente(m))} · solo lectura</p>`:m.sharedId?`<p class="meta" style="margin:0">🤝 Compartida · ${nMiembros(m)} persona${nMiembros(m)==1?'':'s'}</p>`:''}
     <p class="meta">${temasCount} tema${temasCount==1?'':'s'} · ${avg==null?'sin notas registradas':'promedio '+fmtN(avg)+' / '+fmtN(scaleMax())}</p>
     <div class="row">
       <button class="sec" data-action="openMateria" data-id="${m.id}">Abrir →</button>
@@ -699,17 +705,17 @@ function viewMateriaDetailHTML(materiaId){
   const cortes=state.cortes.filter(c=>c.materiaId===materiaId);
   const iaSel=cortes.some(c=>c.id===ui.iaCorte)?ui.iaCorte:(cortes[0]&&cortes[0].id);
   return `
-    <button class="sec" data-action="backMaterias">← Mis materias</button>
+    <button class="sec" data-action="${m.rol==='docente'?'backDocente':'backMaterias'}">${m.rol==='docente'?'← Espacio docente':'← Mis materias'}</button>
     <div class="viewhead" style="margin-top:14px"><h1>${esc(m.icon||'📘')} ${esc(m.name)}</h1></div>
-    ${compartidoBoxHTML(m)}
+    ${m.rol==='docente'?docentePanelHTML(m):m.rol==='estudiante'?estudianteDocenteBoxHTML(m):compartidoBoxHTML(m)}
 
-    <section>
+    <section class="${m.rol==='estudiante'?'docRO':''}">
       <div class="viewhead"><h2>📁 Cortes</h2><button class="pr" data-action="addCorte" data-mat="${materiaId}">+ Agregar corte</button></div>
-      <div class="card notasBox" style="margin-bottom:14px">
+      <div class="card notasBox" style="margin-bottom:14px;${m.rol==='docente'?'display:none':''}">
         <b style="font-size:.9em">🧮 Mi promedio en esta materia</b>
         <div id="corteAvgBox" style="margin-top:8px">${corteAvgHTML(cortes)}</div>
       </div>
-      <div class="card" style="margin-bottom:14px">
+      <div class="card iaCard" style="margin-bottom:14px">
         <b style="font-size:.9em">🤖 Generar tema con IA</b>
         <p class="meta" style="margin-top:4px">Sube un PDF o una presentación (.pptx), elige en qué corte guardarlo y la IA organiza el contenido en secciones y crea las tarjetas.</p>
         <label class="lbl" for="iaCorte">Guardar en</label>
@@ -953,8 +959,8 @@ function temaBlock(t){
   if(tab==='esquema'&&!hasSec)tab='contenido';
   const tabs=[['contenido','Contenido'],...(hasSec?[['esquema','Esquema']]:[]),['tarjetas',`Tarjetas <span class="chip">${cards.length}</span>`]];
   return `<details class="s" data-tema="${t.id}" ${ui.open[t.id]?'open':''}>
-    <summary><span class="temaHead"><span class="tt">📝 ${esc(t.title)||'(tema sin título)'}</span><span class="chips">${t.by&&sharedMateria(t.materiaId)?`<span class="chip" title="${esc(t.fuente||'')}">👤 ${esc(t.by)}</span>`:''}${hasSec?`<span class="chip">${t.secciones.length} sección${t.secciones.length==1?'':'es'}</span>`:''}<span class="chip">${cards.length} tarjeta${cards.length==1?'':'s'}</span></span></span>
-      <button class="icon-btn" data-action="delTema" data-id="${t.id}" title="Eliminar tema">🗑️</button>
+    <summary><span class="temaHead"><span class="tt">📝 ${esc(t.title)||'(tema sin título)'}</span><span class="chips">${esDocenteMat(t.materiaId)?`<span class="chip ${t.publicado?'chipOk':''}">${t.publicado?'✅ Publicado':'📝 Borrador'}</span>`:''}${t.by&&sharedMateria(t.materiaId)?`<span class="chip" title="${esc(t.fuente||'')}">👤 ${esc(t.by)}</span>`:''}${hasSec?`<span class="chip">${t.secciones.length} sección${t.secciones.length==1?'':'es'}</span>`:''}<span class="chip">${cards.length} tarjeta${cards.length==1?'':'s'}</span></span></span>
+      ${esDocenteMat(t.materiaId)?`<button class="icon-btn" data-action="togglePublicar" data-id="${t.id}" title="${t.publicado?'Pasar a borrador':'Publicar a los estudiantes'}">${t.publicado?'📝':'✅'}</button>`:''}<button class="icon-btn" data-action="delTema" data-id="${t.id}" title="Eliminar tema">🗑️</button>
     </summary>
     <div class="b">
       <input class="fld tituloTema" data-action="editTemaTitle" data-id="${t.id}" value="${esc(t.title)}" placeholder="Título del tema">
@@ -1233,15 +1239,15 @@ function viewCalendarioHTML(){
 /* ================= VISTA: PERFIL ================= */
 function viewPerfilHTML(){
   const p=state.profile;
-  const avgsAll=state.materias.map(m=>weightedAvg(state.cortes.filter(c=>c.materiaId===m.id))).filter(x=>x!=null);
+  const avgsAll=state.materias.filter(m=>m.rol!=='docente').map(m=>weightedAvg(state.cortes.filter(c=>c.materiaId===m.id))).filter(x=>x!=null);
   const globalAvg=avgsAll.length?(avgsAll.reduce((a,b)=>a+b,0)/avgsAll.length):null;
   return `
     <div class="viewhead"><h1>👤 Mi perfil</h1></div>
     <div class="card">
       <div class="pfhero"><div class="pfav">${esc(p.avatar)}</div><div><h2 style="margin:0">${esc(p.name)||'Estudiante'}</h2><p class="meta" style="margin:2px 0 0">${esc(p.career)||'Agrega tu carrera y universidad'}</p></div></div>
       <div class="pgs">
-        <div><b>${state.materias.length}</b>materias</div>
-        <div><b>${state.temas.length}</b>temas</div>
+        <div><b>${state.materias.filter(m=>m.rol!=='docente').length}</b>materias</div>
+        <div><b>${state.temas.filter(t=>!esDocenteMat(t.materiaId)).length}</b>temas</div>
         <div><b>${globalAvg==null?'—':fmtN(globalAvg)}</b>promedio global</div>
       </div>
     </div>
@@ -1337,8 +1343,8 @@ document.addEventListener('click',e=>{
   }
   else if(a==='delMateria'){
     const msh=state.materias.find(x=>x.id===b.dataset.id);
-    if(confirm(msh&&msh.sharedId?'Esta materia es compartida: se eliminará de TU cuaderno y saldrás del grupo. Las demás personas conservan todo. ¿Continuar?':'¿Eliminar esta materia y todo su contenido (temas, tarjetas y cortes)? Esta acción no se puede deshacer.')){
-      if(msh&&msh.sharedId)abandonarCompartida(msh,{silent:true});
+    if(confirm(msh&&msh.rol==='docente'?'Vas a eliminar esta materia PARA TODOS: tus estudiantes dejarán de recibirla y se borrará el contenido de la nube (ellos conservan una copia local de lo que ya tenían). ¿Continuar?':msh&&msh.sharedId?'Esta materia es compartida: se eliminará de TU cuaderno y saldrás del grupo. Las demás personas conservan todo. ¿Continuar?':'¿Eliminar esta materia y todo su contenido (temas, tarjetas y cortes)? Esta acción no se puede deshacer.')){
+      if(msh&&msh.sharedId)abandonarCompartida(msh,{silent:true,todos:msh.rol==='docente'});
       mutate(s=>{
         s.cards=s.cards.filter(c=>c.materiaId!==b.dataset.id);
         s.attempts=s.attempts.filter(x=>x.materiaId!==b.dataset.id);
@@ -1352,7 +1358,7 @@ document.addEventListener('click',e=>{
   else if(a==='backMaterias')goToView('materias');
   else if(a==='backMateria'){route={view:'materiaDetail',materiaId:b.dataset.id};render();}
   else if(a==='addTema'){
-    mutate(s=>{ui.open[b.dataset.corte]=true;s.temas.unshift({id:uid(),materiaId:b.dataset.mat,corteId:b.dataset.corte,title:'',body:'',by:miNombre(),updatedAt:Date.now()})});
+    mutate(s=>{ui.open[b.dataset.corte]=true;s.temas.unshift({id:uid(),materiaId:b.dataset.mat,corteId:b.dataset.corte,title:'',body:'',by:miNombre(),publicado:((s.materias.find(x=>x.id===b.dataset.mat)||{}).rol==='docente')?false:undefined,updatedAt:Date.now()})});
   }
   else if(a==='temaTab'){
     ui.tab[b.dataset.id]=b.dataset.tab;
@@ -1702,7 +1708,7 @@ document.addEventListener('change',async e=>{
       const secs=Array.isArray(data.secciones)?data.secciones.filter(x=>x&&x.titulo&&x.contenido).map(x=>({id:uid(),title:String(x.titulo),body:String(x.contenido),...(()=>{const pr=(Array.isArray(x.puntos)?x.puntos:[]).map((p,i)=>({p:String(p).trim(),t:Array.isArray(x.tipos)?x.tipos[i]:null})).filter(o=>o.p).slice(0,6);return{puntos:pr.map(o=>o.p),tipos:pr.map(o=>ESQ_TIPOS.includes(o.t)?o.t:null)}})()})):[];
       const sel=$('iaCorte');const corteId=(sel&&sel.value)||(s.cortes.find(c=>c.materiaId===materiaId)||{}).id;
       ui.open[corteId]=true;ui.open[temaId]=true;
-      const tema={id:temaId,materiaId,corteId,title:data.titulo,body:data.resumen||'',by:miNombre(),fuente:file.name,updatedAt:Date.now()};
+      const tema={id:temaId,materiaId,corteId,title:data.titulo,body:data.resumen||'',by:miNombre(),fuente:file.name,publicado:(materia&&materia.rol==='docente')?false:undefined,updatedAt:Date.now()};
       if(secs.length)tema.secciones=secs;
       s.temas.unshift(tema);
       (data.tarjetas||[]).forEach(t=>{
@@ -1754,6 +1760,7 @@ function msgDelTema(id){
 /* Contenido compartible de un tema (sin nada personal como corteId o "known") */
 function contenidoTema(t){
   return{
+    publicado:esDocenteMat(t.materiaId)?!!t.publicado:true,
     title:t.title||'',body:t.body||'',
     secciones:Array.isArray(t.secciones)?t.secciones:null,
     by:t.by||'',fuente:t.fuente||'',
@@ -1780,7 +1787,10 @@ async function pushShared(){
 /* force=true solo al compartir una materia que ya existía: sube todo lo que hay antes de escuchar */
 async function pushSharedMateria(m,force){
   const sid=m.sharedId;
+  if(m.rol==='estudiante')return;              // el estudiante nunca escribe contenido
   if(!force&&!sharedFirst[sid])return;       // hasta no ver lo que ya hay en la nube, no se escribe nada
+  if(m.rol==='docente'&&sharedMeta[sid]&&(sharedMeta[sid].name!==m.name||(sharedMeta[sid].icon||'')!==(m.icon||'')))
+    await refTemario(sid).update({name:m.name,icon:m.icon||'📘'});
   const base=refTemario(sid).collection('temas');
   const temas=state.temas.filter(t=>t.materiaId===m.id);
   const ids=new Set(temas.map(t=>t.id));
@@ -1810,6 +1820,7 @@ function aplicarTemaRemoto(m,id,d){
   if(!t){t={id,materiaId:m.id,corteId:null};state.temas.unshift(t)}
   t.materiaId=m.id;
   t.title=d.title||'';t.body=d.body||'';t.by=d.by||'';t.fuente=d.fuente||'';
+  if(typeof d.publicado==='boolean')t.publicado=d.publicado;else delete t.publicado;
   if(Array.isArray(d.secciones))t.secciones=d.secciones;else delete t.secciones;
   t.updatedAt=d.updatedAt||Date.now();
   const viejas=new Map(state.cards.filter(c=>c.temaId===id).map(c=>[c.id,c]));
@@ -1827,7 +1838,7 @@ function quitarTemaLocal(id){
 }
 /* Repinta sin interrumpir: si estoy escribiendo, espera a que suelte el campo */
 function renderSeguro(){
-  if(!['materias','materiaDetail','perfil'].includes(route.view))return;
+  if(!['materias','materiaDetail','perfil','docente'].includes(route.view))return;
   const a=document.activeElement;
   if(a&&a.matches&&a.matches('textarea,input,select')&&$('view').contains(a)){pendingRender=true;return}
   render(true);
@@ -1855,9 +1866,12 @@ function escucharCompartida(m){
       return;
     }
     sharedMeta[sid]=snap.data();
+    const loc=state.materias.find(x=>x.sharedId===sid);
+    if(loc&&loc.rol==='estudiante'&&(loc.name!==sharedMeta[sid].name||loc.icon!==sharedMeta[sid].icon)){loc.name=sharedMeta[sid].name;loc.icon=sharedMeta[sid].icon||'📘';saveLocal()}
     renderSeguro();
   },fallo);
-  const u2=refTemario(sid).collection('temas').onSnapshot(snap=>{
+  const colTemas=refTemario(sid).collection('temas');
+  const u2=(m.rol==='estudiante'?colTemas.where('publicado','==',true):colTemas).onSnapshot(snap=>{
     const mat=state.materias.find(x=>x.sharedId===sid);
     if(!mat)return;
     let cambio=false;
@@ -1884,19 +1898,24 @@ function escucharCompartida(m){
     if(cambio){ensureCortes();saveLocal();renderSeguro()}
   },fallo);
   sharedUnsub[sid]=[u1,u2];
+  if(m.rol==='docente')sharedUnsub[sid].push(escucharInvitaciones(sid));
 }
 function detener(sid){
   (sharedUnsub[sid]||[]).forEach(f=>{try{f()}catch(e){}});
-  delete sharedUnsub[sid];delete sharedFirst[sid];delete sharedMeta[sid];
+  delete sharedUnsub[sid];delete sharedFirst[sid];delete sharedMeta[sid];delete invitMap[sid];
 }
 function olvidarTemas(sid){Object.keys(sharedLast).forEach(id=>{if(sharedLast[id].sid===sid)delete sharedLast[id]})}
 function startShared(){stopShared();state.materias.filter(m=>m.sharedId).forEach(escucharCompartida)}
-function stopShared(){Object.keys(sharedUnsub).forEach(detener);Object.keys(sharedLast).forEach(k=>delete sharedLast[k])}
+function stopShared(){
+  Object.keys(sharedUnsub).forEach(detener);Object.keys(sharedLast).forEach(k=>delete sharedLast[k]);
+  if(invitesUnsub){invitesUnsub();invitesUnsub=null}
+  invitesPend=[];
+}
 
 /* La materia deja de estar enlazada al grupo pero la copia local se conserva */
 function desvincularCompartida(sid,aviso){
   detener(sid);olvidarTemas(sid);
-  state.materias.forEach(m=>{if(m.sharedId===sid)delete m.sharedId});
+  state.materias.forEach(m=>{if(m.sharedId===sid)hacerLocal(m)});
   saveLocal();scheduleCloud();renderSeguro();
   if(aviso)setTimeout(()=>alert(aviso),50);
 }
@@ -1941,8 +1960,7 @@ async function unirseCompartida(codigo){
     await ref.update({members:F.arrayUnion(currentUid),['memberNames.'+currentUid]:miNombre()});
     const d=(await ref.get()).data();
     mutate(s=>{
-      if(!s.semesters.length)s.semesters.push({id:uid(),name:'Semestre 1'});
-      s.materias.push({id:uid(),name:d.name,icon:d.icon||'📘',semesterId:s.semesters[s.semesters.length-1].id,refs:'',sharedId:codigo});
+      s.materias.push({id:uid(),name:d.name,icon:d.icon||'📘',semesterId:semVisible(s).id,refs:'',sharedId:codigo});
     });
     const m=state.materias.find(x=>x.sharedId===codigo);
     escucharCompartida(m);
@@ -1955,11 +1973,12 @@ async function unirseCompartida(codigo){
 async function abandonarCompartida(m,opts){
   opts=opts||{};
   const sid=m.sharedId;if(!sid)return;
+  const eraDocente=m.rol==='docente';
   const meta=sharedMeta[sid]||{};
   const soyDueno=meta.ownerUid===currentUid;
   const soyUltimo=Array.isArray(meta.members)&&meta.members.length<=1;
   detener(sid);olvidarTemas(sid);
-  delete m.sharedId;                            // desde aquí ya no se sincroniza nada de esta materia
+  hacerLocal(m);                                // desde aquí ya no se sincroniza nada de esta materia
   try{
     if((opts.todos&&soyDueno)||soyUltimo){
       const ref=refTemario(sid);
@@ -1971,6 +1990,7 @@ async function abandonarCompartida(m,opts){
       for(let i=0;i<qs.docs.length;i+=400){
         const b=db.batch();qs.docs.slice(i,i+400).forEach(d=>b.delete(d.ref));await b.commit();
       }
+      if(eraDocente)await borrarInvitaciones(sid);
       await ref.delete();
     }else{
       const F=firebase.firestore.FieldValue;
@@ -2044,6 +2064,235 @@ document.addEventListener('click',async e=>{
     if(confirm('¿Eliminar la materia compartida para TODAS las personas? Cada quien conservará una copia en su cuaderno, pero el grupo dejará de existir.')){
       await abandonarCompartida(m,{todos:true});persist();render();
     }
+  }
+});
+
+
+/* ======================================================================
+   ESPACIO DOCENTE
+   - Una materia de docente es un temario con tipo:'docente' (Firestore: temarios/{id}).
+   - El docente es el único que escribe. Cada tema tiene publicado:true/false.
+   - Los estudiantes entran por INVITACIÓN a su correo (colección invitaciones/{sid}_{correo}),
+     ven solo los temas publicados y el contenido es de solo lectura para ellos.
+   - En el cuaderno de cada persona: m.rol = 'docente' | 'estudiante'.
+     Las materias de docente viven en un semestre oculto ('sem-docente') para no mezclarse
+     con las materias del estudiante.
+   ====================================================================== */
+const invitMap={};        // sid -> invitaciones que envié como docente
+let invitesPend=[];       // invitaciones pendientes dirigidas a mi correo
+let invitesUnsub=null;
+
+function esDocenteMat(materiaId){const m=state.materias.find(x=>x.id===materiaId);return !!(m&&m.rol==='docente')}
+function nombreDocente(m){const x=sharedMeta[m.sharedId];return x?((x.memberNames||{})[x.ownerUid]||'tu docente'):'tu docente'}
+function semDocente(s){
+  let x=s.semesters.find(y=>y.id==='sem-docente');
+  if(!x){x={id:'sem-docente',name:'Docente',oculto:true};s.semesters.push(x)}
+  return x;
+}
+function semVisible(s){
+  const v=s.semesters.filter(x=>!x.oculto);
+  if(v.length)return v[v.length-1];
+  const n={id:uid(),name:'Semestre 1'};s.semesters.push(n);return n;
+}
+/* Deja de estar enlazada al grupo pero se conserva como materia normal y editable */
+function hacerLocal(m){
+  delete m.sharedId;delete m.rol;
+  if(state.semesters.some(x=>x.id===m.semesterId&&x.oculto))m.semesterId=semVisible(state).id;
+}
+
+/* ---------- Crear materia como docente ---------- */
+async function crearDocente(){
+  const name=prompt('Nombre de la materia (ej. Ética profesional – Grupo A):');
+  if(!name||!name.trim())return;
+  const icon=prompt('Emoji (opcional):','📘')||'📘';
+  const ref=db.collection('temarios').doc();
+  try{
+    await ref.set({tipo:'docente',name:name.trim(),icon,ownerUid:currentUid,members:[currentUid],
+      memberNames:{[currentUid]:miNombre()},createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+  }catch(e){console.error(e);alert('No se pudo crear la materia. Revisa las reglas de Firestore y tu conexión.');return}
+  mutate(s=>s.materias.push({id:uid(),name:name.trim(),icon,semesterId:semDocente(s).id,refs:'',sharedId:ref.id,rol:'docente'}));
+  const m=state.materias.find(x=>x.sharedId===ref.id);
+  escucharCompartida(m);
+  route={view:'materiaDetail',materiaId:m.id};render();
+}
+
+/* ---------- Invitaciones (docente) ---------- */
+function escucharInvitaciones(sid){
+  return db.collection('invitaciones').where('sid','==',sid).where('ownerUid','==',currentUid).onSnapshot(snap=>{
+    invitMap[sid]=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderSeguro();
+  },err=>console.error('Invitaciones:',err));
+}
+async function invitarEstudiantes(m){
+  const box=$('invEmails');if(!box)return;
+  const crudos=[...new Set(box.value.split(/[\s,;]+/).map(x=>x.trim().toLowerCase()).filter(Boolean))];
+  const valido=e=>/^[^\s@\/\\]+@[^\s@\/\\]+\.[^\s@\/\\]+$/.test(e);
+  const buenos=crudos.filter(valido),malos=crudos.filter(e=>!valido(e));
+  const yo=(auth.currentUser.email||'').toLowerCase();
+  const existentes=new Set((invitMap[m.sharedId]||[]).map(i=>i.email));
+  const nuevos=buenos.filter(e=>e!==yo&&!existentes.has(e));
+  if(!nuevos.length){alert(malos.length?'Estos correos no son válidos: '+malos.join(', '):'No hay correos nuevos para invitar.');return}
+  try{
+    for(let i=0;i<nuevos.length;i+=400){
+      const b=db.batch();
+      nuevos.slice(i,i+400).forEach(email=>b.set(db.collection('invitaciones').doc(m.sharedId+'_'+email),{
+        sid:m.sharedId,email,materia:m.name,icon:m.icon||'📘',docente:miNombre(),ownerUid:currentUid,
+        estado:'pendiente',createdAt:firebase.firestore.FieldValue.serverTimestamp()}));
+      await b.commit();
+    }
+    box.value='';
+    alert('Invitaciones enviadas a '+nuevos.length+' persona'+(nuevos.length==1?'':'s')+'.'+(malos.length?'\nNo válidos (se omitieron): '+malos.join(', '):''));
+  }catch(e){console.error(e);alert('No se pudieron enviar las invitaciones. Revisa las reglas de Firestore.')}
+}
+async function quitarInvitacion(m,invId){
+  const inv=(invitMap[m.sharedId]||[]).find(x=>x.id===invId);if(!inv)return;
+  if(!confirm(inv.uid?'¿Quitar a '+(inv.nombre||inv.email)+' de la materia? Conservará una copia de lo que ya tenía, pero ya no recibirá más cambios.':'¿Cancelar la invitación a '+inv.email+'?'))return;
+  try{
+    if(inv.uid){const F=firebase.firestore.FieldValue;
+      await refTemario(m.sharedId).update({members:F.arrayRemove(inv.uid),['memberNames.'+inv.uid]:F.delete()})}
+    await db.collection('invitaciones').doc(invId).delete();
+  }catch(e){console.error(e);alert('No se pudo completar la acción.')}
+}
+async function borrarInvitaciones(sid){
+  const qs=await db.collection('invitaciones').where('sid','==',sid).where('ownerUid','==',currentUid).get();
+  for(let i=0;i<qs.docs.length;i+=400){
+    const b=db.batch();qs.docs.slice(i,i+400).forEach(d=>b.delete(d.ref));await b.commit();
+  }
+}
+
+/* ---------- Publicar / borrador ---------- */
+function publicarTema(id){
+  mutate(s=>{const t=s.temas.find(x=>x.id===id);if(t)t.publicado=!t.publicado});
+}
+function publicarTodos(m){
+  const borradores=state.temas.filter(t=>t.materiaId===m.id&&!t.publicado);
+  if(!borradores.length)return;
+  if(!confirm('¿Publicar '+borradores.length+' tema'+(borradores.length==1?'':'s')+' a todos tus estudiantes?'))return;
+  mutate(s=>s.temas.forEach(t=>{if(t.materiaId===m.id)t.publicado=true}));
+}
+
+/* ---------- Invitaciones recibidas (estudiante) ---------- */
+function escucharMisInvitaciones(){
+  if(invitesUnsub){invitesUnsub();invitesUnsub=null}
+  const u=auth.currentUser;
+  if(!u||!u.email||!u.emailVerified){invitesPend=[];return}
+  invitesUnsub=db.collection('invitaciones').where('email','==',u.email.toLowerCase()).where('estado','==','pendiente')
+    .onSnapshot(snap=>{
+      invitesPend=snap.docs.map(d=>({id:d.id,...d.data()}));
+      renderSeguro();
+    },err=>console.error('Mis invitaciones:',err));
+}
+async function aceptarInvitacion(invId){
+  const inv=invitesPend.find(x=>x.id===invId);if(!inv)return;
+  try{
+    const ref=refTemario(inv.sid),F=firebase.firestore.FieldValue;
+    await ref.update({members:F.arrayUnion(currentUid),['memberNames.'+currentUid]:miNombre()});
+    await db.collection('invitaciones').doc(invId).update({estado:'aceptada',uid:currentUid,nombre:miNombre()});
+    const d=(await ref.get()).data();
+    if(!state.materias.some(x=>x.sharedId===inv.sid)){
+      mutate(s=>s.materias.push({id:uid(),name:d.name,icon:d.icon||'📘',semesterId:semVisible(s).id,refs:'',sharedId:inv.sid,rol:'estudiante'}));
+    }
+    const m=state.materias.find(x=>x.sharedId===inv.sid);
+    escucharCompartida(m);
+    route={view:'materiaDetail',materiaId:m.id};render();
+  }catch(e){console.error(e);alert('No se pudo aceptar la invitación. Inténtalo de nuevo.')}
+}
+async function rechazarInvitacion(invId){
+  if(!confirm('¿Rechazar esta invitación?'))return;
+  try{await db.collection('invitaciones').doc(invId).update({estado:'rechazada',nombre:miNombre()})}
+  catch(e){console.error(e);alert('No se pudo rechazar la invitación.')}
+}
+
+/* ---------- Interfaz ---------- */
+function invitacionesHTML(){
+  const u=auth.currentUser;if(!u)return'';
+  if(!u.emailVerified){
+    return `<div class="card shareBox" style="margin-bottom:14px"><p class="meta" style="margin:0">📨 ¿Te invitó un docente a una materia? Verifica tu correo para ver sus invitaciones.</p>
+      <div class="row"><button class="sec" data-action="verifyEmail">Enviar correo de verificación</button><button class="sec" data-action="recheckVerified">Ya verifiqué</button></div></div>`;
+  }
+  if(!invitesPend.length)return'';
+  return `<div class="card shareBox" style="margin-bottom:14px"><b style="font-size:.9em">📨 Invitaciones de docentes</b>
+    ${invitesPend.map(i=>`<div style="margin-top:10px"><div>${esc(i.icon||'📘')} <b>${esc(i.materia)}</b> <span class="meta">· ${esc(i.docente||'Docente')}</span></div>
+      <div class="row"><button class="pr" data-action="acceptInvite" data-inv="${esc(i.id)}">✓ Aceptar</button><button class="sec" data-action="declineInvite" data-inv="${esc(i.id)}">Rechazar</button></div></div>`).join('')}
+  </div>`;
+}
+function estudianteDocenteBoxHTML(m){
+  return `<div class="card shareBox" style="margin-top:14px">
+    <b style="font-size:.9em">👩‍🏫 Materia de ${esc(nombreDocente(m))}</b>
+    <p class="meta" style="margin:4px 0 0">El contenido lo publica tu docente y se actualiza solo. Es de solo lectura. Tus cortes, notas y tu progreso en las tarjetas son solo tuyos.</p>
+    <div class="row"><button class="sec" data-action="leaveShared" data-id="${m.id}">🚪 Salir de la materia</button></div>
+  </div>`;
+}
+function docentePanelHTML(m){
+  const temas=state.temas.filter(t=>t.materiaId===m.id);
+  const pub=temas.filter(t=>t.publicado).length,bor=temas.length-pub;
+  const invs=invitMap[m.sharedId]||[];
+  const estado=i=>i.estado==='aceptada'?`<span class="chip chipOk">✅ Se unió</span>`:i.estado==='rechazada'?`<span class="chip">✖ Rechazó</span>`:`<span class="chip">⏳ Pendiente</span>`;
+  return `<div class="card shareBox" style="margin-top:14px">
+    <b style="font-size:.9em">👩‍🏫 Materia docente</b>
+    <p class="meta" style="margin:4px 0 0">Los temas que crees o generes con IA quedan como <b>borrador</b>. Revísalos y edítalos; tus estudiantes solo ven los que publiques (botón ✅/📝 en cada tema).</p>
+    <div class="members"><span class="chip">${pub} publicado${pub==1?'':'s'}</span><span class="chip">${bor} borrador${bor==1?'':'es'}</span></div>
+    ${bor?`<button class="sec" data-action="publishAll" data-id="${m.id}">✅ Publicar todos los borradores</button>`:''}
+    <label class="lbl" for="invEmails" style="margin-top:14px">Invitar estudiantes por correo</label>
+    <textarea class="fld" id="invEmails" placeholder="correo1@ejemplo.com, correo2@ejemplo.com"></textarea>
+    <p class="meta" style="margin:4px 0 0">Verán la invitación al iniciar sesión con ese mismo correo (con Google o con correo verificado).</p>
+    <button class="pr" style="margin-top:8px" data-action="inviteStudents" data-id="${m.id}">📨 Invitar</button>
+    <div style="margin-top:14px"><b style="font-size:.85em">Estudiantes (${invs.length})</b></div>
+    ${invs.length?invs.map(i=>`<div class="row" style="justify-content:space-between;margin-top:6px"><span>${esc(i.nombre||i.email)} <span class="meta">${i.nombre?esc(i.email):''}</span> ${estado(i)}</span><button class="icon-btn" data-action="removeInvite" data-id="${m.id}" data-inv="${esc(i.id)}" title="Quitar">🗑️</button></div>`).join(''):'<p class="meta" style="margin:6px 0 0">Aún no has invitado a nadie.</p>'}
+    <div class="row" style="margin-top:14px"><button class="sec" data-action="delMateria" data-id="${m.id}">🗑️ Eliminar materia para todos</button></div>
+  </div>`;
+}
+function docenteCard(m){
+  const temas=state.temas.filter(t=>t.materiaId===m.id);
+  const pub=temas.filter(t=>t.publicado).length;
+  const invs=invitMap[m.sharedId]||[];
+  const unidos=invs.filter(i=>i.estado==='aceptada').length;
+  return `<div class="card matCard">
+    <h3>${esc(m.icon||'📘')} ${esc(m.name)}</h3>
+    <p class="meta">${temas.length} tema${temas.length==1?'':'s'} · ${pub} publicado${pub==1?'':'s'} · ${unidos} estudiante${unidos==1?'':'s'}</p>
+    <div class="row">
+      <button class="sec" data-action="openMateria" data-id="${m.id}">Abrir →</button>
+      <button class="icon-btn" data-action="renameMateria" data-id="${m.id}" title="Editar materia">✏️</button>
+      <button class="icon-btn" data-action="delMateria" data-id="${m.id}" title="Eliminar materia para todos">🗑️</button>
+    </div>
+  </div>`;
+}
+function viewDocenteHTML(){
+  const mats=state.materias.filter(m=>m.rol==='docente');
+  return `<div class="viewhead"><h1>👩‍🏫 Espacio docente</h1><button class="pr" data-action="createDocente">+ Crear materia</button></div>
+    ${mats.length?`<div class="grid">${mats.map(docenteCard).join('')}</div>`
+    :`<div class="empty">Aquí creas tus materias como docente: subes un PDF, la IA genera el tema y las tarjetas, tú los revisas y los publicas, e invitas a tus estudiantes por correo. Ellos las ven en su cuaderno, en solo lectura.</div>`}`;
+}
+/* En materias de docente, el estudiante no puede editar el contenido compartido */
+function aplicarSoloLectura(){
+  const m=route.view==='materiaDetail'?state.materias.find(x=>x.id===route.materiaId):null;
+  if(!m||m.rol!=='estudiante')return;
+  $('view').querySelectorAll('input[data-action^="editTema"],textarea[data-action^="editTema"],input[data-action^="editSec"],textarea[data-action^="editSec"],input[data-action^="editCard"],textarea[data-action^="editCard"]')
+    .forEach(el=>{el.readOnly=true});
+}
+
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-action]');if(!b)return;
+  const a=b.dataset.action;
+  const m=b.dataset.id?state.materias.find(x=>x.id===b.dataset.id):null;
+  if(a==='createDocente')crearDocente();
+  else if(a==='backDocente')goToView('docente');
+  else if(a==='inviteStudents'&&m)invitarEstudiantes(m);
+  else if(a==='removeInvite'&&m)quitarInvitacion(m,b.dataset.inv);
+  else if(a==='togglePublicar')publicarTema(b.dataset.id);
+  else if(a==='publishAll'&&m)publicarTodos(m);
+  else if(a==='acceptInvite')aceptarInvitacion(b.dataset.inv);
+  else if(a==='declineInvite')rechazarInvitacion(b.dataset.inv);
+  else if(a==='verifyEmail'){
+    try{await auth.currentUser.sendEmailVerification();alert('Te enviamos un correo de verificación. Ábrelo y luego pulsa "Ya verifiqué".')}
+    catch(err){console.error(err);alert('No se pudo enviar el correo. Inténtalo de nuevo en unos minutos.')}
+  }
+  else if(a==='recheckVerified'){
+    try{
+      await auth.currentUser.reload();await auth.currentUser.getIdToken(true);
+      if(auth.currentUser.emailVerified){escucharMisInvitaciones();render()}
+      else alert('Todavía no aparece verificado. Abre el enlace del correo y vuelve a intentarlo.');
+    }catch(err){console.error(err)}
   }
 });
 
