@@ -148,10 +148,59 @@ function leerJSON(raw) {
   return null;
 }
 
+// ---------------------------------------------------------------------------------------------
+// Protección: solo pueden usar la IA personas con sesión iniciada en TU proyecto de Firebase.
+// El navegador manda el token de sesión en la cabecera Authorization y aquí se verifica con el
+// servicio público de Firebase (no hace falta ninguna clave secreta ni librerías extra).
+// La "apiKey" web de Firebase NO es secreta (ya viaja en index.html); solo identifica el proyecto.
+// ---------------------------------------------------------------------------------------------
+const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY || 'AIzaSyAAPnrXUzON42Hmtb4hOxQqTTQ1HBv0nR0';
+
+async function verificarUsuario(event) {
+  const h = event.headers || {};
+  const cab = h.authorization || h.Authorization || '';
+  const m = cab.match(/^Bearer\s+(.+)$/i);
+  if (!m) return null;
+  try {
+    const r = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=' + FIREBASE_API_KEY, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ idToken: m[1] })
+    });
+    if (!r.ok) return null;
+    const d = await r.json();
+    const u = d.users && d.users[0];
+    return u && !u.disabled ? u : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Límite por persona. Es "de mejor esfuerzo": vive en la memoria de la instancia de Netlify y se
+// reinicia cuando esta se apaga, pero frena a quien intente gastar la cuota en bucle.
+const LIMITE_POR_HORA = 30;
+const usoPorUsuario = new Map();
+function superaLimite(uid) {
+  const ahora = Date.now();
+  const recientes = (usoPorUsuario.get(uid) || []).filter(t => ahora - t < 3600 * 1000);
+  if (recientes.length >= LIMITE_POR_HORA) { usoPorUsuario.set(uid, recientes); return true; }
+  recientes.push(ahora);
+  usoPorUsuario.set(uid, recientes);
+  return false;
+}
+
 // Hecho por Sebastián Poveda y Santiago Romero. 2026 · punto de entrada de la función
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return json(405, { error: 'Método no permitido.' });
+  }
+
+  const usuario = await verificarUsuario(event);
+  if (!usuario) {
+    return json(401, { error: 'Debes iniciar sesión para usar la IA. Si ya lo hiciste, cierra sesión y vuelve a entrar.' });
+  }
+  if (superaLimite(usuario.localId)) {
+    return json(429, { error: 'Llegaste al límite de ' + LIMITE_POR_HORA + ' archivos por hora. Inténtalo más tarde.' });
   }
 
   const apiKey = process.env.APIKEYGEMINIS;
