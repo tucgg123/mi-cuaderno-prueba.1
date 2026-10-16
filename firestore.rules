@@ -7,10 +7,21 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Materias compartidas
+    // Materias compartidas entre compañeros (tipo 'compartida') y materias de docente (tipo 'docente')
     match /temarios/{id} {
+
+      function esMiembro() {
+        return request.auth.uid in resource.data.members;
+      }
+      function soloCambia(campos) {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(campos);
+      }
+      function seAgregaA() {
+        return request.resource.data.members == resource.data.members.concat([request.auth.uid]);
+      }
+
       // Solo los miembros leen
-      allow read: if request.auth != null && request.auth.uid in resource.data.members;
+      allow read: if request.auth != null && esMiembro();
 
       // Crear: quien crea queda como dueño y único miembro
       allow create: if request.auth != null
@@ -18,24 +29,84 @@ service cloud.firestore {
         && request.resource.data.members == [request.auth.uid];
 
       allow update: if request.auth != null && (
-        // Unirse con el código: solo puede agregarse a sí misma a la lista de miembros
-        ( !(request.auth.uid in resource.data.members)
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'memberNames'])
-          && request.resource.data.members == resource.data.members.concat([request.auth.uid]) )
+        // Unirse con código: solo materias entre compañeros, y solo agregándose a sí misma
+        ( !esMiembro()
+          && resource.data.get('tipo', 'compartida') == 'compartida'
+          && soloCambia(['members', 'memberNames'])
+          && seAgregaA() )
         ||
-        // Un miembro puede salirse o editar datos del grupo, pero nunca cambiar al dueño
-        ( request.auth.uid in resource.data.members
-          && request.resource.data.ownerUid == resource.data.ownerUid )
+        // Unirse por invitación del docente: el correo verificado debe tener una invitación
+        ( !esMiembro()
+          && request.auth.token.email_verified == true
+          && exists(/databases/$(database)/documents/invitaciones/$(id + '_' + request.auth.token.email))
+          && soloCambia(['members', 'memberNames'])
+          && seAgregaA() )
+        ||
+        // Salirse: un miembro (que no sea el dueño) solo puede quitarse a sí mismo
+        ( esMiembro()
+          && request.auth.uid != resource.data.ownerUid
+          && soloCambia(['members', 'memberNames'])
+          && request.resource.data.members == resource.data.members.removeAll([request.auth.uid]) )
+        ||
+        // El dueño (docente o creador del grupo) puede editar, menos cambiar de dueño
+        ( resource.data.ownerUid == request.auth.uid
+          && request.resource.data.ownerUid == request.auth.uid )
       );
 
-      // Solo el dueño elimina el grupo
+      // Solo el dueño elimina la materia
       allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
 
-      // Temas y tarjetas: solo miembros del grupo
+      // Temas y tarjetas
       match /temas/{temaId} {
-        allow read, write: if request.auth != null
-          && request.auth.uid in get(/databases/$(database)/documents/temarios/$(id)).data.members;
+        function padre() {
+          return get(/databases/$(database)/documents/temarios/$(id)).data;
+        }
+        function esDocente() {
+          return padre().get('tipo', 'compartida') == 'docente';
+        }
+
+        // Materia de docente: el estudiante solo lee lo publicado. Compañeros: todos leen.
+        allow read: if request.auth != null
+          && request.auth.uid in padre().members
+          && ( !esDocente()
+               || padre().ownerUid == request.auth.uid
+               || resource.data.publicado == true );
+
+        // Materia de docente: solo el docente escribe. Compañeros: todos escriben.
+        allow write: if request.auth != null
+          && request.auth.uid in padre().members
+          && ( !esDocente() || padre().ownerUid == request.auth.uid );
       }
+    }
+
+    // Invitaciones de docente a un correo. El id es  <idMateria>_<correo en minúsculas>
+    match /invitaciones/{inv} {
+
+      // El docente ve las que envió; el estudiante ve las dirigidas a su correo (verificado)
+      allow read: if request.auth != null && (
+        resource.data.ownerUid == request.auth.uid
+        || ( request.auth.token.email_verified == true
+             && resource.data.email == request.auth.token.email ) );
+
+      // Solo el dueño de la materia puede invitar a esa materia
+      allow create: if request.auth != null
+        && request.resource.data.ownerUid == request.auth.uid
+        && get(/databases/$(database)/documents/temarios/$(request.resource.data.sid)).data.ownerUid == request.auth.uid
+        && inv == request.resource.data.sid + '_' + request.resource.data.email;
+
+      allow update: if request.auth != null && (
+        // El docente puede reenviar o corregir su invitación
+        ( resource.data.ownerUid == request.auth.uid
+          && request.resource.data.ownerUid == request.auth.uid )
+        ||
+        // La persona invitada solo puede aceptar o rechazar
+        ( request.auth.token.email_verified == true
+          && resource.data.email == request.auth.token.email
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'uid', 'nombre'])
+          && request.resource.data.estado in ['aceptada', 'rechazada'] )
+      );
+
+      allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
     }
   }
 }
