@@ -329,6 +329,37 @@ select.fld{font:inherit;color:inherit;background:var(--bg);border:1px solid var(
 .shareBox .members{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
 .shareBox code{background:var(--bg);border:1px solid var(--b);border-radius:8px;padding:3px 8px;font-size:.85em;word-break:break-all}
 .shareBox .row{flex-wrap:wrap}
+/* ===== Rachas, estampillas y Camino al éxito ===== */
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,24px);opacity:0;background:var(--c);color:var(--t);border:1px solid var(--a);border-radius:14px;padding:12px 18px;box-shadow:0 8px 28px rgba(0,0,0,.25);z-index:9999;transition:all .35s;text-align:center;max-width:90vw}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.rTop{display:flex;align-items:center;gap:14px}
+.rNum{font:700 2.4em/1 inherit;color:var(--a)}
+.strip{display:flex;gap:5px;margin:14px 0 12px;flex-wrap:wrap}
+.dot{width:26px;height:26px;border-radius:50%;border:1px solid var(--b);display:grid;place-items:center;font-size:.68em;color:var(--m);background:var(--bg)}
+.dot.on{background:var(--a);color:var(--c);border-color:var(--a)}
+.dot.hoy{outline:2px solid var(--a);outline-offset:2px}
+.badgeGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.badgeC{background:var(--c);border:1px solid var(--b);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.badgeC small{color:var(--m);line-height:1.35}
+.badgeC .bIcon{font-size:2em}
+.badgeC.lock{opacity:.55;filter:grayscale(1)}
+.premio{margin:14px auto;max-width:420px;text-align:left}
+.path{position:relative;margin-top:16px;padding-left:6px}
+.path:before{content:"";position:absolute;left:23px;top:10px;bottom:30px;width:3px;background:var(--b);border-radius:3px}
+.stage{display:flex;gap:14px;margin-bottom:16px;position:relative}
+.node{flex:0 0 36px;height:36px;border-radius:50%;background:var(--bg);border:3px solid var(--b);display:grid;place-items:center;font-weight:700;color:var(--m);z-index:1}
+.stage.hecha .node{background:var(--ok);border-color:var(--ok);color:#fff}
+.stage.actual .node{background:var(--a);border-color:var(--a);color:var(--c)}
+.stage.pend .stCard{opacity:.78}
+.stCard{flex:1;min-width:0}
+.stHead{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.obj{display:flex;gap:10px;margin-top:10px;align-items:flex-start}
+.obj .oi{font-size:1.2em}
+.obj.ok b{color:var(--ok)}
+.tipoT{color:var(--m);font-weight:600;text-transform:uppercase;font-size:.62em;letter-spacing:.04em;margin-left:4px}
+.bar.mini{height:5px;margin:5px 0 0;max-width:220px}
+.reward{margin-top:12px;font-size:.88em;font-weight:600;color:var(--ok)}
+.reward.lock{color:var(--m);font-weight:400}
 .docRO [data-action="addTema"],.docRO [data-action="delTema"],.docRO [data-action="addSec"],.docRO .secFoot,.docRO [data-action="addCard"],.docRO [data-action="delCard"],.docRO .iaCard{display:none!important}
 </style>
 </head>
@@ -373,6 +404,7 @@ select.fld{font:inherit;color:inherit;background:var(--bg);border:1px solid var(
     <button data-nav="materias" class="on">📚 Materias</button>
     <button data-nav="docente">👩‍🏫 Docente</button>
     <button data-nav="calendario">🗓️ Calendario</button>
+    <button data-nav="logros">🏆 Logros</button>
     <button data-nav="perfil">👤 Perfil</button>
   </nav>
   <main id="view"></main>
@@ -432,7 +464,8 @@ function defaultState(){return{
   cortes:[],
   cards:[],
   attempts:[],
-  events:[]
+  events:[],
+  progress:{days:[],badges:{},sellos:{},exams:0,sembrado:true}
 }}
 /* Hecho por Sebastián Poveda y Santiago Romero. 2026 · estado y cortes */
 const CORTES_DEFECTO=[['Corte 1',30],['Corte 2',30],['Corte 3',40]];
@@ -461,6 +494,7 @@ function normalizeState(){
   state.events=state.events||[];
   (state.materias||[]).forEach(m=>{if(m.refs==null)m.refs=''});
   state.cards.forEach(c=>{if(c.known===undefined)c.known=null});
+  sembrarProgreso();
 }
 let state=defaultState();
 let currentUid=null;
@@ -586,6 +620,7 @@ auth.onAuthStateChanged(async user=>{
     render();
     startShared();
     escucharMisInvitaciones();
+    avisarLogros(evaluarLogros());
     procesarUnirsePendiente();
   }else{
     stopShared();
@@ -629,6 +664,7 @@ function render(keep){
   else if(route.view==='calendario')view.innerHTML=viewCalendarioHTML();
   else if(route.view==='perfil')view.innerHTML=viewPerfilHTML();
   else if(route.view==='docente')view.innerHTML=viewDocenteHTML();
+  else if(route.view==='logros')view.innerHTML=viewLogrosHTML();
   aplicarSoloLectura();
   window.scrollTo(0,keep?_y:0);
   requestAnimationFrame(()=>{fitCards();layoutRadials()});
@@ -1139,6 +1175,7 @@ function toolQuizHTML(isExam){
   if(!questions.length)return'<div class="empty">Necesitás al menos 2 tarjetas con frente y reverso en esta materia para generar preguntas.</div>';
   if(idx>=questions.length){
     return `<div class="empty"><h2>${isExam?'📝':'❓'} ¡Listo!</h2><p>Resultado: <b>${score} / ${questions.length}</b></p>
+    ${premiosHTML()}
     ${isExam?questions.map((q,i)=>`<p class="meta" style="text-align:left">${i+1}. ${esc(q.card.front)} — ${q.selected===q.card.back?'✅':'❌ correcta: '+esc(q.card.back)}</p>`).join(''):''}
     <button class="pr" data-action="redoTool">Repetir</button></div>`;
   }
@@ -1447,7 +1484,7 @@ document.addEventListener('click',e=>{
     const know=b.dataset.know==='1';
     const c=toolState.cards[toolState.idx];
     const real=state.cards.find(x=>x.id===c.id);
-    if(real){real.known=know;persist();}
+    if(real){real.known=know;persist();avisarLogros(evaluarLogros());}
     toolState.seen++;if(know)toolState.known++;
     toolState.idx++;toolState.flipped=false;
     render();
@@ -1462,7 +1499,12 @@ document.addEventListener('click',e=>{
   else if(a==='nextQuestion'){
     toolState.idx++;
     if(toolState.idx>=toolState.questions.length){
-      mutate(s=>s.attempts.push({id:uid(),materiaId:route.materiaId,type:route.tool,score:toolState.score,total:toolState.questions.length,date:Date.now()}));
+      mutate(s=>{
+        const att={id:uid(),materiaId:route.materiaId,type:route.tool,score:toolState.score,total:toolState.questions.length,date:Date.now(),porCorte:porCorteDe(toolState.questions)};
+        s.attempts.push(att);
+        toolState.premios=registrarSesion(att);      // racha, insignias y etapas
+      });
+      if(toolState.premios&&toolState.premios.nuevos.length)avisarLogros(toolState.premios.nuevos);
     }else{
       render();
     }
@@ -1839,7 +1881,7 @@ function quitarTemaLocal(id){
 }
 /* Repinta sin interrumpir: si estoy escribiendo, espera a que suelte el campo */
 function renderSeguro(){
-  if(!['materias','materiaDetail','perfil','docente'].includes(route.view))return;
+  if(!['materias','materiaDetail','perfil','docente','logros'].includes(route.view))return;
   const a=document.activeElement;
   if(a&&a.matches&&a.matches('textarea,input,select')&&$('view').contains(a)){pendingRender=true;return}
   render(true);
@@ -2296,6 +2338,262 @@ document.addEventListener('click',async e=>{
     }catch(err){console.error(err)}
   }
 });
+
+
+/* ======================================================================
+   RACHAS, ESTAMPILLAS Y CAMINO AL ÉXITO  (Etapa 4)
+   Todo vive en state.progress, que ya se guarda y sincroniza con la cuenta:
+     days:    días (AAAA-MM-DD, hora local) con una sesión válida de Modo examen
+     badges:  insignias y estampillas desbloqueadas  { id: fecha }
+     sellos:  etapas del Camino al éxito completadas { corteId: {t,materia,corte} }
+     exams:   total de sesiones válidas (se conserva aunque borres una materia)
+   Sesión válida = terminar el Modo examen con al menos MIN_PREGUNTAS preguntas.
+   ====================================================================== */
+const MIN_PREGUNTAS=5;
+const HITOS_RACHA=[3,10,15,30];
+const NIVELES=['Novato','Aprendiz','Estudioso','Constante','Experto','Maestro','Leyenda'];
+let logrosTab='racha';
+let logrosMat=null;
+
+function fechaLocal(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function numDia(s){const[y,m,d]=s.split('-').map(Number);return Math.round(Date.UTC(y,m-1,d)/86400000)}   // sin problemas de cambio de hora
+function esValida(a){return !!(a&&a.type==='examen'&&a.total>=MIN_PREGUNTAS)}
+
+/* Racha actual: días seguidos que terminan hoy, o ayer si hoy todavía no estudiaste (sigue viva hasta que acabe el día) */
+function rachaActual(days){
+  const set=new Set((days||[]).map(numDia));
+  let d=numDia(fechaLocal(new Date()));
+  if(!set.has(d))d--;
+  let n=0;
+  while(set.has(d)){n++;d--}
+  return n;
+}
+function mejorRacha(days){
+  const ds=[...new Set((days||[]).map(numDia))].sort((a,b)=>a-b);
+  let mejor=0,run=0,prev=null;
+  ds.forEach(d=>{run=(prev!==null&&d===prev+1)?run+1:1;prev=d;if(run>mejor)mejor=run});
+  return mejor;
+}
+
+/* ---------- Insignias y estampillas ---------- */
+const BADGES=[
+  {id:'primer_examen',icon:'📝',nombre:'Primer examen',tipo:'meta',desc:'Termina tu primer Modo examen (mínimo '+MIN_PREGUNTAS+' preguntas).',test:c=>c.p.exams>=1},
+  {id:'racha_3',icon:'🌱',nombre:'Insignia de inicio',tipo:'constancia',desc:'3 días seguidos con una sesión de Modo examen.',test:c=>c.mejor>=3},
+  {id:'racha_10',icon:'🔥',nombre:'Estampilla de constancia',tipo:'constancia',desc:'10 días seguidos de estudio.',test:c=>c.mejor>=10},
+  {id:'racha_15',icon:'⭐',nombre:'Estampilla especial',tipo:'constancia',desc:'15 días seguidos de estudio.',test:c=>c.mejor>=15},
+  {id:'racha_30',icon:'🏆',nombre:'Insignia de disciplina',tipo:'constancia',desc:'30 días seguidos de estudio.',test:c=>c.mejor>=30},
+  {id:'perfecto',icon:'💯',nombre:'Examen perfecto',tipo:'rendimiento',desc:'Responde todas las preguntas bien en un Modo examen.',
+    test:c=>!!c.att&&esValida(c.att)&&c.att.score===c.att.total},
+  {id:'mejora',icon:'📈',nombre:'Estampilla de mejora',tipo:'rendimiento',desc:'Supera en 10 puntos o más tu mejor resultado anterior en la misma materia.',
+    test:c=>{
+      if(!c.att||!esValida(c.att))return false;
+      const prev=state.attempts.filter(a=>a.materiaId===c.att.materiaId&&a.id!==c.att.id&&esValida(a));
+      if(!prev.length)return false;
+      const mejorPrev=Math.max(...prev.map(a=>a.score/a.total));
+      return c.att.score/c.att.total>=mejorPrev+0.1;
+    }},
+  {id:'dominio',icon:'🧠',nombre:'Dominio',tipo:'rendimiento',desc:'Domina el 80% de las tarjetas de una materia (con al menos 10 tarjetas).',
+    test:()=>state.materias.some(m=>{
+      if(m.rol==='docente')return false;
+      const cs=getCards(m.id);
+      return cs.length>=10&&cs.filter(k=>k.known===true).length/cs.length>=0.8;
+    })},
+  {id:'meta_nota',icon:'🎯',nombre:'Meta alcanzada',tipo:'rendimiento',desc:'Asegura tu nota meta en una materia con las notas de tus cortes.',
+    test:()=>state.materias.some(m=>{
+      if(m.rol==='docente')return false;
+      const k=corteStats(state.cortes.filter(c=>c.materiaId===m.id));
+      return k.W>0&&k.Ws>0&&k.goal>0&&k.acum>=k.goal;
+    })}
+];
+
+function sembrarProgreso(){
+  const p=state.progress=state.progress||{};
+  p.days=p.days||[];p.badges=p.badges||{};p.sellos=p.sellos||{};p.exams=p.exams||0;
+  if(p.sembrado)return;
+  /* Primera vez con esta función: se cuenta lo que ya habías hecho para no empezar de cero */
+  const validos=(state.attempts||[]).filter(esValida);
+  validos.forEach(a=>{const d=fechaLocal(new Date(a.date));if(!p.days.includes(d))p.days.push(d)});
+  p.days.sort();
+  p.exams=Math.max(p.exams,validos.length);
+  p.sembrado=true;
+  evaluarLogros(null,true);
+}
+
+/* Revisa qué logros se cumplen ahora y los desbloquea. Devuelve los nuevos (para avisar). */
+function evaluarLogros(att,enMutate){
+  const p=state.progress,nuevos=[];
+  const c={p,att,mejor:mejorRacha(p.days)};
+  BADGES.forEach(b=>{
+    if(!p.badges[b.id]&&b.test(c)){p.badges[b.id]=Date.now();nuevos.push({id:b.id,icon:b.icon,nombre:b.nombre})}
+  });
+  state.materias.filter(m=>m.rol!=='docente').forEach(m=>{
+    state.cortes.filter(k=>k.materiaId===m.id).forEach(k=>{
+      if(p.sellos[k.id])return;
+      if(etapaCorte(m,k).completa){
+        p.sellos[k.id]={t:Date.now(),materia:m.name,corte:k.name};
+        nuevos.push({id:'corte_'+k.id,icon:'🏅',nombre:'Etapa completada: '+(k.name||'corte')+' · '+m.name});
+      }
+    });
+  });
+  if(nuevos.length&&!enMutate)persist();
+  return nuevos;
+}
+
+/* Se llama al terminar un quiz o examen (dentro de mutate, que ya guarda y repinta) */
+function registrarSesion(att){
+  const p=state.progress,res={valida:esValida(att),diaNuevo:false,nuevos:[],racha:0};
+  if(res.valida){
+    const hoy=fechaLocal(new Date(att.date));
+    if(!p.days.includes(hoy)){p.days.push(hoy);p.days.sort();res.diaNuevo=true}
+    p.exams++;
+  }
+  res.racha=rachaActual(p.days);
+  res.nuevos=evaluarLogros(att,true);
+  return res;
+}
+/* Aciertos por corte de un examen: así el Camino al éxito sabe cómo vas en cada etapa */
+function porCorteDe(questions){
+  const out={};
+  questions.forEach(q=>{
+    const card=state.cards.find(c=>c.id===q.card.id)||q.card;
+    const t=state.temas.find(x=>x.id===card.temaId);
+    if(!t||!t.corteId)return;
+    const o=out[t.corteId]=out[t.corteId]||{ok:0,total:0};
+    o.total++;if(q.selected===q.card.back)o.ok++;
+  });
+  return out;
+}
+
+function nivelDe(){
+  const p=state.progress;
+  const xp=p.days.length*20+(Object.keys(p.badges).length+Object.keys(p.sellos).length)*50;
+  const nivel=Math.floor(Math.sqrt(xp/50))+1;
+  const base=50*(nivel-1)*(nivel-1),sig=50*nivel*nivel;
+  return{xp,nivel,nombre:NIVELES[Math.min(nivel-1,NIVELES.length-1)],pct:Math.round((xp-base)/(sig-base)*100),faltan:sig-xp};
+}
+
+/* ---------- Camino al éxito: una etapa por corte ---------- */
+function etapaCorte(m,c){
+  const tids=new Set(state.temas.filter(t=>t.materiaId===m.id&&t.corteId===c.id).map(t=>t.id));
+  const cards=state.cards.filter(k=>tids.has(k.temaId)&&String(k.front||'').trim()&&String(k.back||'').trim());
+  const dominadas=cards.filter(k=>k.known===true).length;
+  const ints=state.attempts.filter(a=>a.materiaId===m.id&&esValida(a)&&a.porCorte&&a.porCorte[c.id]&&a.porCorte[c.id].total>=3);
+  const dias=new Set(ints.map(a=>fechaLocal(new Date(a.date)))).size;
+  const mejorPct=ints.reduce((mx,a)=>Math.max(mx,a.porCorte[c.id].ok/a.porCorte[c.id].total),0);
+  const pctDom=cards.length?dominadas/cards.length:0;
+  const objs=[
+    {tipo:'material',icon:'📚',titulo:'Reúne tu material',detalle:Math.min(cards.length,5)+' / 5 tarjetas en este corte',hecho:cards.length>=5,prog:Math.min(1,cards.length/5)},
+    {tipo:'constancia',icon:'🔥',titulo:'Practica en 2 días distintos',detalle:Math.min(dias,2)+' / 2 días con examen',hecho:dias>=2,prog:Math.min(1,dias/2)},
+    {tipo:'rendimiento',icon:'🎯',titulo:'Saca 70% o más en un examen',detalle:ints.length?'Tu mejor resultado: '+Math.round(mejorPct*100)+'%':'Aún sin exámenes de este corte',hecho:mejorPct>=0.7,prog:Math.min(1,mejorPct/0.7)},
+    {tipo:'dominio',icon:'🧠',titulo:'Domina el 70% de las tarjetas',detalle:dominadas+' de '+cards.length+' dominadas',hecho:cards.length>=5&&pctDom>=0.7,prog:Math.min(1,pctDom/0.7)}
+  ];
+  return{objs,hechos:objs.filter(o=>o.hecho).length,completa:objs.every(o=>o.hecho)};
+}
+
+/* ---------- Interfaz ---------- */
+function toast(html){
+  const t=document.createElement('div');t.className='toast';t.innerHTML=html;document.body.appendChild(t);
+  setTimeout(()=>t.classList.add('on'),20);
+  setTimeout(()=>{t.classList.remove('on');setTimeout(()=>t.remove(),400)},4200);
+}
+function avisarLogros(nuevos){
+  (nuevos||[]).forEach((b,i)=>setTimeout(()=>toast('🎉 <b>¡Nuevo logro!</b><br>'+b.icon+' '+esc(b.nombre)),i*700));
+}
+function premiosHTML(){
+  const pr=toolState&&toolState.premios;if(!pr)return'';
+  if(!pr.valida){
+    return route.tool==='examen'?`<p class="meta">Para sumar a tu racha, el Modo examen necesita al menos ${MIN_PREGUNTAS} preguntas (agrega más tarjetas).</p>`:'';
+  }
+  return `<div class="card premio"><b>🔥 Racha: ${pr.racha} día${pr.racha==1?'':'s'}</b>
+    ${pr.diaNuevo?'<span class="chip chipOk">+1 hoy</span>':'<span class="chip">Hoy ya estaba sumado</span>'}
+    ${pr.nuevos.map(b=>`<div style="margin-top:8px">🎉 Nuevo logro: ${b.icon} <b>${esc(b.nombre)}</b></div>`).join('')}
+  </div>`;
+}
+function fmtFecha(ts){return new Date(ts).toLocaleDateString('es',{day:'numeric',month:'short'})}
+
+function rachaTabHTML(){
+  const p=state.progress,racha=rachaActual(p.days),mejor=mejorRacha(p.days),nv=nivelDe();
+  const hoy=fechaLocal(new Date()),hoyHecho=p.days.includes(hoy);
+  const sig=HITOS_RACHA.find(h=>h>racha);
+  const sigB=sig?BADGES.find(b=>b.id==='racha_'+sig):null;
+  const tira=[];
+  for(let i=13;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const s=fechaLocal(d);tira.push({s,on:p.days.includes(s),hoy:i===0,dia:d.toLocaleDateString('es',{weekday:'narrow'})})}
+  const grupo=(tipo,titulo)=>`<h3 style="margin:22px 0 10px">${titulo}</h3><div class="badgeGrid">${BADGES.filter(b=>b.tipo===tipo).map(b=>{
+    const t=p.badges[b.id];
+    return `<div class="badgeC ${t?'':'lock'}"><div class="bIcon">${t?b.icon:'🔒'}</div><b>${esc(b.nombre)}</b><small>${esc(b.desc)}</small>${t?`<span class="chip chipOk">${fmtFecha(t)}</span>`:''}</div>`}).join('')}</div>`;
+  const sellos=Object.values(p.sellos);
+  return `
+  <div class="card racha">
+    <div class="rTop"><div class="rNum">🔥 ${racha}</div><div><b>${racha==1?'día':'días'} de racha</b><div class="meta">Mejor racha: ${mejor} día${mejor==1?'':'s'}</div></div></div>
+    <p class="meta" style="margin:10px 0 0">${hoyHecho?'✅ Hoy ya sumaste tu sesión de estudio.':racha>0?'⚠️ Haz un Modo examen hoy para mantener tu racha.':'Termina un Modo examen para empezar tu racha.'}</p>
+    <div class="strip">${tira.map(d=>`<span class="dot ${d.on?'on':''} ${d.hoy?'hoy':''}" title="${d.s}">${d.dia}</span>`).join('')}</div>
+    ${sigB?`<div class="bar"><i style="width:${Math.round(racha/sig*100)}%"></i></div><p class="meta" style="margin:0">Te faltan ${sig-racha} día${sig-racha==1?'':'s'} para ${sigB.icon} <b>${esc(sigB.nombre)}</b>.</p>`:'<p class="meta" style="margin:10px 0 0">🎉 ¡Completaste todos los hitos de racha!</p>'}
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="rTop"><div class="rNum" style="font-size:1.6em">⭐ ${nv.nivel}</div><div><b>Nivel ${nv.nivel} · ${esc(nv.nombre)}</b><div class="meta">${nv.xp} puntos · faltan ${nv.faltan} para el siguiente nivel</div></div></div>
+    <div class="bar"><i style="width:${nv.pct}%"></i></div>
+    <p class="meta" style="margin:0">Sumas 20 puntos por cada día que estudias y 50 por cada insignia o etapa completada. No dependen de tus notas.</p>
+  </div>
+  <p class="meta" style="margin-top:14px">Una sesión cuenta cuando terminas el <b>Modo examen</b> con al menos ${MIN_PREGUNTAS} preguntas. Cuenta una por día.</p>
+  ${grupo('constancia','🔥 Constancia')}
+  ${grupo('rendimiento','🎯 Rendimiento y metas')}
+  ${grupo('meta','🚀 Primeros pasos')}
+  ${sellos.length?`<h3 style="margin:22px 0 10px">🏅 Etapas completadas</h3><div class="badgeGrid">${sellos.map(s=>`<div class="badgeC"><div class="bIcon">🏅</div><b>${esc(s.corte||'Corte')}</b><small>${esc(s.materia||'')}</small><span class="chip chipOk">${fmtFecha(s.t)}</span></div>`).join('')}</div>`:''}`;
+}
+
+function caminoTabHTML(){
+  const mats=state.materias.filter(m=>m.rol!=='docente');
+  if(!mats.length)return '<div class="empty">Crea una materia y agrega temas con tarjetas para ver tu camino.</div>';
+  const m=mats.find(x=>x.id===logrosMat)||mats[0];
+  logrosMat=m.id;
+  const cortes=state.cortes.filter(c=>c.materiaId===m.id);
+  const etapas=cortes.map(c=>({c,e:etapaCorte(m,c)}));
+  const actual=etapas.findIndex(x=>!x.e.completa);
+  const todo=etapas.length&&actual===-1;
+  const nombreTipo={material:'Material',constancia:'Constancia',rendimiento:'Rendimiento',dominio:'Dominio'};
+  return `
+  <label class="lbl" for="logrosMat">Materia</label>
+  <select class="fld" id="logrosMat" data-action="logrosMat" style="max-width:320px">${mats.map(x=>`<option value="${x.id}" ${x.id===m.id?'selected':''}>${esc(x.icon||'📘')} ${esc(x.name)}</option>`).join('')}</select>
+  <p class="meta" style="margin-top:8px">Cada corte es una etapa. Combina constancia (practicar varios días) con rendimiento (aciertos y dominio), así avanzas aunque todavía no tengas notas.</p>
+  <div class="path">
+    ${etapas.map(({c,e},i)=>{
+      const estado=e.completa?'hecha':(i===actual?'actual':'pend');
+      const sello=state.progress.sellos[c.id];
+      return `<div class="stage ${estado}">
+        <div class="node">${e.completa?'✓':(i===actual?'▶':i+1)}</div>
+        <div class="card stCard">
+          <div class="stHead"><b>${esc(c.name)||'(corte sin nombre)'}</b><span class="chip">${fmtN(+c.weight||0)}%</span>${e.completa?'<span class="chip chipOk">Completada</span>':i===actual?'<span class="chip" style="color:var(--a);border-color:var(--a)">Etapa actual</span>':''}</div>
+          <div class="bar"><i style="width:${Math.round(e.hechos/e.objs.length*100)}%"></i></div>
+          ${e.objs.map(o=>`<div class="obj ${o.hecho?'ok':''}"><span class="oi">${o.hecho?'✅':o.icon}</span><div><b>${o.titulo}</b> <small class="tipoT">${nombreTipo[o.tipo]}</small><div class="meta" style="margin:0">${o.detalle}</div>${o.hecho?'':`<div class="bar mini"><i style="width:${Math.round(o.prog*100)}%"></i></div>`}</div></div>`).join('')}
+          <div class="reward ${sello?'':'lock'}">${sello?'🏅 Estampilla desbloqueada · '+fmtFecha(sello.t):'🔒 Completa los 4 objetivos para ganar la estampilla de esta etapa'}</div>
+        </div>
+      </div>`;
+    }).join('')}
+    <div class="stage ${todo?'hecha':'pend'}"><div class="node">🏆</div><div class="card stCard"><b>Meta final</b><div class="meta" style="margin:4px 0 0">${todo?'🎉 ¡Completaste todas las etapas de '+esc(m.name)+'!':'Completa todas las etapas de esta materia.'}</div></div></div>
+  </div>`;
+}
+
+function viewLogrosHTML(){
+  return `<div class="viewhead"><h1>🏆 Mis logros</h1></div>
+  <div class="tabsT" style="margin-bottom:14px">
+    <button type="button" data-action="logrosTab" data-tab="racha" class="${logrosTab==='racha'?'on':''}">🔥 Racha y estampillas</button>
+    <button type="button" data-action="logrosTab" data-tab="camino" class="${logrosTab==='camino'?'on':''}">🗺️ Camino al éxito</button>
+  </div>
+  ${logrosTab==='camino'?caminoTabHTML():rachaTabHTML()}`;
+}
+
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-action]');if(!b)return;
+  if(b.dataset.action==='logrosTab'){logrosTab=b.dataset.tab;render(true)}
+});
+document.addEventListener('change',e=>{
+  if(e.target.matches&&e.target.matches('[data-action="logrosMat"]')){logrosMat=e.target.value;render(true)}
+});
+/* Al entrar a Logros se revisa si hay algo nuevo (por ejemplo, una nota meta registrada) */
+document.querySelectorAll('#mainNav [data-nav="logros"]').forEach(b=>b.addEventListener('click',()=>{
+  const nuevos=evaluarLogros();
+  if(nuevos.length){avisarLogros(nuevos);render(true)}
+}));
 
 })();
 </script>
