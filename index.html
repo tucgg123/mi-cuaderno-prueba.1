@@ -360,6 +360,22 @@ select.fld{font:inherit;color:inherit;background:var(--bg);border:1px solid var(
 .bar.mini{height:5px;margin:5px 0 0;max-width:220px}
 .reward{margin-top:12px;font-size:.88em;font-weight:600;color:var(--ok)}
 .reward.lock{color:var(--m);font-weight:400}
+/* ===== Elección de rol ===== */
+.rolOverlay{position:fixed;inset:0;z-index:10000;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);display:grid;place-items:center;padding:20px;overflow:auto}
+.rolBox{background:var(--c);border:1px solid var(--b);border-radius:20px;padding:28px 24px;max-width:560px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.rolLogo{font-size:2.6em;margin-bottom:4px}
+.rolGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}
+@media(max-width:520px){.rolGrid{grid-template-columns:1fr}}
+.rolOpt{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--bg);border:2px solid var(--b);border-radius:16px;padding:20px 14px;cursor:pointer;color:var(--t);text-align:center;transition:transform .2s,border-color .2s,box-shadow .2s}
+.rolOpt span{font-size:2.4em}
+.rolOpt small{color:var(--m);line-height:1.35;font-size:.8em}
+.rolOpt:hover{border-color:var(--a);transform:translateY(-3px);box-shadow:0 10px 24px rgba(0,0,0,.15)}
+@media (prefers-reduced-motion:no-preference){
+  @keyframes anRolIn{from{opacity:0;transform:translateY(20px) scale(.97)}to{opacity:1;transform:none}}
+  .rolBox{animation:anRolIn .45s cubic-bezier(.2,.8,.2,1) both}
+  .rolOpt{animation:anRolIn .5s cubic-bezier(.2,.8,.2,1) both}
+  .rolOpt:nth-child(2){animation-delay:.1s}
+}
 /* ===== Animaciones y feedback ===== */
 .optBtn{transition:transform .15s,border-color .2s,background .2s,box-shadow .2s}
 .qCard.answered .optBtn:not(.ok):not(.no):not(.chosen){opacity:.5}
@@ -537,7 +553,7 @@ const AV=['🎓','📚','🦉','🐱','🦊','🐼','🌸','⭐','🔥','🌙'];
 
 /* ================= ESTADO ================= */
 function defaultState(){return{
-  profile:{name:'',career:'',avatar:'🎓',examDate:'',scale:5,goal:4,notes:''},
+  profile:{name:'',career:'',avatar:'🎓',examDate:'',scale:5,goal:4,notes:'',rol:''},
   theme:null,
   semesters:[{id:uid(),name:'Semestre 1'}],
   materias:[],
@@ -693,6 +709,7 @@ auth.onAuthStateChanged(async user=>{
     $('authLoading').hidden=false;
     await hydrateFromCloud(user.uid);
     if(!state.profile.name&&user.displayName){state.profile.name=user.displayName;persist()}
+    if(!state.profile.rol&&state.materias.some(m=>m.rol==='docente')){state.profile.rol='docente';persist()}   // cuentas que ya usaban el espacio docente
     $('authLoading').hidden=true;
     $('authScreen').hidden=true;
     $('appRoot').hidden=false;
@@ -701,9 +718,10 @@ auth.onAuthStateChanged(async user=>{
     render();
     startShared();
     escucharMisInvitaciones();
-    avisarLogros(evaluarLogros());
-    procesarUnirsePendiente();
+    try{avisarLogros(evaluarLogros())}catch(e){console.error('Logros:',e)}
+    (state.profile.rol?Promise.resolve():pedirRol()).then(procesarUnirsePendiente);
   }else{
+    const ovRol=document.getElementById('rolOverlay');if(ovRol)ovRol.remove();
     stopShared();
     currentUid=null;
     state=defaultState();
@@ -737,6 +755,7 @@ function goToView(v){
 
 function render(keep){
   const _y=window.scrollY;
+  if(route.view==='docente'&&!esProfesor())route={view:'materias',materiaId:null};
   if(route.view!=='tool')clearRepasoTimer();
   const view=$('view');
   if(route.view==='materias')view.innerHTML=viewMateriasHTML();
@@ -747,6 +766,7 @@ function render(keep){
   else if(route.view==='docente')view.innerHTML=viewDocenteHTML();
   else if(route.view==='logros')view.innerHTML=viewLogrosHTML();
   aplicarSoloLectura();
+  aplicarRolMenu();
   animarVista();
   window.scrollTo(0,keep?_y:0);
   requestAnimationFrame(()=>{fitCards();layoutRadials()});
@@ -1379,7 +1399,7 @@ function viewPerfilHTML(){
   return `
     <div class="viewhead"><h1>👤 Mi perfil</h1></div>
     <div class="card">
-      <div class="pfhero"><div class="pfav">${esc(p.avatar)}</div><div><h2 style="margin:0">${esc(p.name)||'Estudiante'}</h2><p class="meta" style="margin:2px 0 0">${esc(p.career)||'Agrega tu carrera y universidad'}</p></div></div>
+      <div class="pfhero"><div class="pfav">${esc(p.avatar)}</div><div><h2 style="margin:0">${esc(p.name)||(p.rol==='docente'?'Profesor':'Estudiante')}</h2><p class="meta" style="margin:2px 0 0">${esc(p.career)||'Agrega tu carrera y universidad'}</p></div></div>
       <div class="pgs">
         <div><b>${state.materias.filter(m=>m.rol!=='docente').length}</b>materias</div>
         <div><b>${state.temas.filter(t=>!esDocenteMat(t.materiaId)).length}</b>temas</div>
@@ -1400,6 +1420,11 @@ function viewPerfilHTML(){
         <div></div>
       </div>
       <label class="lbl">Notas personales</label><textarea class="fld" data-action="profileField" data-f="notes" placeholder="Ideas, dudas, recordatorios…">${esc(p.notes)}</textarea>
+    </div>
+    <div class="card">
+      <h3>Tipo de cuenta</h3>
+      <p class="meta">Define si ves la sección Docente. Es una preferencia de tu cuenta: no se verifica ni cambia tus datos.</p>
+      <div class="row"><button class="${p.rol==='estudiante'?'pr':'sec'}" data-action="setRol" data-rol="estudiante">🎓 Estudiante</button><button class="${p.rol==='docente'?'pr':'sec'}" data-action="setRol" data-rol="docente">👩‍🏫 Profesor</button></div>
     </div>
     <div class="card">
       <h3>Cuenta</h3>
@@ -2260,7 +2285,7 @@ async function crearDocente(){
   try{
     await ref.set({tipo:'docente',name:name.trim(),icon,ownerUid:currentUid,members:[currentUid],
       memberNames:{[currentUid]:miNombre()},createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-  }catch(e){console.error(e);alert('No se pudo crear la materia. Revisa las reglas de Firestore y tu conexión.');return}
+  }catch(e){console.error(e);alert('No se pudo crear la materia'+detalleError(e)+'. Revisa las reglas de Firestore y tu conexión.');return}
   mutate(s=>s.materias.push({id:uid(),name:name.trim(),icon,semesterId:semDocente(s).id,refs:'',sharedId:ref.id,rol:'docente'}));
   const m=state.materias.find(x=>x.sharedId===ref.id);
   escucharCompartida(m);
@@ -2293,7 +2318,7 @@ async function invitarEstudiantes(m){
     }
     box.value='';
     alert('Invitaciones enviadas a '+nuevos.length+' persona'+(nuevos.length==1?'':'s')+'.'+(malos.length?'\nNo válidos (se omitieron): '+malos.join(', '):''));
-  }catch(e){console.error(e);alert('No se pudieron enviar las invitaciones. Revisa las reglas de Firestore.')}
+  }catch(e){console.error(e);alert('No se pudieron enviar las invitaciones'+detalleError(e)+'. Si dice permission-denied, falta publicar las reglas nuevas de Firestore.')}
 }
 async function quitarInvitacion(m,invId){
   const inv=(invitMap[m.sharedId]||[]).find(x=>x.id===invId);if(!inv)return;
@@ -2346,7 +2371,7 @@ async function aceptarInvitacion(invId){
     const m=state.materias.find(x=>x.sharedId===inv.sid);
     escucharCompartida(m);
     route={view:'materiaDetail',materiaId:m.id};render();
-  }catch(e){console.error(e);alert('No se pudo aceptar la invitación. Inténtalo de nuevo.')}
+  }catch(e){console.error(e);alert('No se pudo aceptar la invitación'+detalleError(e)+'. Inténtalo de nuevo.')}
 }
 async function rechazarInvitacion(invId){
   if(!confirm('¿Rechazar esta invitación?'))return;
@@ -2524,7 +2549,7 @@ function sembrarProgreso(){
   p.days.sort();
   p.exams=Math.max(p.exams,validos.length);
   p.sembrado=true;
-  evaluarLogros(null,true);
+  try{evaluarLogros(null,true)}catch(e){console.error('Logros:',e)}   // los logros nunca deben impedir iniciar sesión
 }
 
 /* Revisa qué logros se cumplen ahora y los desbloquea. Devuelve los nuevos (para avisar). */
@@ -2802,6 +2827,55 @@ function lluvia(){
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-action]');if(!b)return;
   if(b.dataset.action==='toggleInstante'){examInstantaneo=!examInstantaneo;render(true)}
+});
+
+
+/* ======================================================================
+   ROL DE LA CUENTA: estudiante o profesor
+   state.profile.rol decide si se ve el menú Docente. No es un permiso de seguridad
+   (cualquiera podría elegir "profesor"): lo que protege los datos son las reglas de Firestore.
+   ====================================================================== */
+function detalleError(e){return e&&e.code?' ('+e.code+')':''}
+function esProfesor(){return !!(state.profile&&state.profile.rol==='docente')}
+function aplicarRolMenu(){
+  const b=document.querySelector('#mainNav [data-nav="docente"]');
+  if(b)b.style.display=esProfesor()?'':'none';
+}
+function elegirRol(rol){
+  state.profile.rol=rol;
+  persist();
+  aplicarRolMenu();
+  render(true);
+}
+/* Pantalla de bienvenida: se muestra una vez, hasta que la persona elige */
+function pedirRol(){
+  return new Promise(resolver=>{
+    if(document.getElementById('rolOverlay')){resolver();return}
+    const ov=document.createElement('div');
+    ov.id='rolOverlay';ov.className='rolOverlay';
+    ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-labelledby','rolTitulo');
+    ov.innerHTML=`<div class="rolBox">
+      <div class="rolLogo">📒</div>
+      <h2 id="rolTitulo" style="margin:0 0 6px">¡Bienvenido a Mi cuaderno!</h2>
+      <p class="meta" style="margin:0">¿Cómo vas a usar la app? Define qué secciones verás. Puedes cambiarlo después en tu perfil.</p>
+      <div class="rolGrid">
+        <button type="button" class="rolOpt" data-rol="estudiante"><span>🎓</span><b>Soy estudiante</b><small>Organiza tus materias, estudia con IA y recibe las materias de tus profesores.</small></button>
+        <button type="button" class="rolOpt" data-rol="docente"><span>👩‍🏫</span><b>Soy profesor</b><small>Crea materias, publica contenido e invita a tus estudiantes por correo.</small></button>
+      </div></div>`;
+    ov.querySelectorAll('.rolOpt').forEach(btn=>btn.addEventListener('click',()=>{
+      elegirRol(btn.dataset.rol);
+      ov.remove();
+      resolver();
+    }));
+    document.body.appendChild(ov);
+  });
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-action="setRol"]');if(!b)return;
+  const rol=b.dataset.rol;
+  if(rol===state.profile.rol)return;
+  if(rol==='estudiante'&&state.materias.some(m=>m.rol==='docente')&&!confirm('Tienes materias como profesor. Si cambias a estudiante, la sección Docente se oculta (no se borra nada) hasta que vuelvas a elegir Profesor. ¿Continuar?'))return;
+  elegirRol(rol);
 });
 
 })();
