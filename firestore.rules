@@ -108,5 +108,15 @@ service cloud.firestore {
 
       allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
     }
+
+    // Trabajos de IA en segundo plano. La función de Netlify escribe aquí el resultado usando el
+    // token de la propia persona, así que solo puede tocar sus propios trabajos.
+    match /iaJobs/{job} {
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow read, delete: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow update: if request.auth != null
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == resource.data.uid;
+    }
   }
 }
