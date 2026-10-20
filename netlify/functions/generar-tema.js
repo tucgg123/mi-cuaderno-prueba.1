@@ -68,14 +68,14 @@ const json = (statusCode, obj) => ({
 const LIMITE_MS = 50000;
 
 // Hecho por Sebastián Poveda y Santiago Romero. 2026 · llamada a Gemini con tiempo límite y reintentos
-async function llamarGemini(apiKey, prompt) {
+async function llamarGemini(apiKey, prompt, limiteMs = LIMITE_MS) {
   const inicio = Date.now();
   let ultima;
   for (const modelo of MODELOS) {
     let usaPensamientoCorto = true; // thinkingLevel "low": razona menos y responde antes
     let usaEsquema = true;          // responseSchema: fuerza la forma exacta del JSON
     for (let intento = 0; intento < 4; intento++) {
-      const restante = LIMITE_MS - (Date.now() - inicio);
+      const restante = limiteMs - (Date.now() - inicio);
       if (restante < 3000) throw new Error('TIMEOUT');
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), restante);
@@ -254,8 +254,10 @@ TEXTO A ANALIZAR:
 ${textoRecortado}
 """`;
 
+  // La versión en segundo plano (generar-tema-background.js) pasa un tiempo máximo mayor.
+  const limiteMs = event._limiteMs || LIMITE_MS;
   try {
-    const resp = await llamarGemini(apiKey, prompt);
+    const resp = await llamarGemini(apiKey, prompt, limiteMs);
 
     if (!resp.ok) {
       const errText = await resp.text();
@@ -325,7 +327,7 @@ ${textoRecortado}
     return json(200, parsed);
   } catch (err) {
     if (err.message === 'TIMEOUT') {
-      console.error('La IA tardó más de', LIMITE_MS, 'ms');
+      console.error('La IA tardó más de', limiteMs, 'ms');
       return json(504, { error: 'La IA tardó demasiado en responder. Prueba con un archivo más corto o inténtalo de nuevo en un momento.' });
     }
     console.error('Error inesperado:', err);
