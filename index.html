@@ -1861,17 +1861,9 @@ document.addEventListener('change',async e=>{
       statusEl.textContent='♻️ Ya había analizado este archivo: reutilicé el resultado sin gastar IA.';
     }else{
       statusEl.textContent='🤖 La IA está armando el tema y las tarjetas… puede tardar hasta un minuto.';
-      const token=await auth.currentUser.getIdToken();   // prueba de que hay sesión iniciada
-      const resp=await fetch('/.netlify/functions/generar-tema',{
-        method:'POST',
-        headers:{'content-type':'application/json','authorization':'Bearer '+token},
-        body:JSON.stringify({texto:texto.slice(0,60000), materia:materia?materia.name:''})
-      });
-      try{ data=await resp.json(); }catch(e){ data=null; }
-      if(!resp.ok||!data){
-        statusEl.textContent='❌ '+((data&&data.error)||('El servidor no pudo completar la petición (código '+resp.status+'). Suele pasar cuando la IA tarda demasiado; prueba con un archivo más corto o inténtalo de nuevo.'));
-        btn.disabled=false; return;
-      }
+      const r=await pedirIA(texto,materia?materia.name:'',statusEl);
+      if(!r.ok){statusEl.textContent='❌ '+r.error;btn.disabled=false;return}
+      data=r.data;
     }
     if(!data.titulo||!Array.isArray(data.tarjetas)){
       statusEl.textContent='❌ La IA no devolvió un resultado válido. Probá de nuevo.';
@@ -2877,6 +2869,79 @@ document.addEventListener('click',e=>{
   if(rol==='estudiante'&&state.materias.some(m=>m.rol==='docente')&&!confirm('Tienes materias como profesor. Si cambias a estudiante, la sección Docente se oculta (no se borra nada) hasta que vuelvas a elegir Profesor. ¿Continuar?'))return;
   elegirRol(rol);
 });
+
+
+/* ======================================================================
+   IA EN SEGUNDO PLANO
+   Las funciones normales de Netlify tienen un tiempo máximo y un archivo grande puede superarlo
+   (error 504). Por eso la subida:
+     1. crea un "trabajo" en Firestore (iaJobs/{id}),
+     2. lanza generar-tema-background (Netlify responde 202 y la IA sigue sin límite de 504),
+     3. espera aquí el resultado, que la función escribe en ese trabajo.
+   Si algo de eso no está disponible (la función no existe, las reglas no se publicaron…),
+   se usa la función normal como antes.
+   ====================================================================== */
+const ESPERA_MAX_IA_MS=270000;
+
+function esperarTrabajoIA(ref,statusEl){
+  return new Promise(resolver=>{
+    const t0=Date.now();
+    let terminado=false,reloj=null,tope=null,cancelar=()=>{};
+    const terminar=r=>{
+      if(terminado)return;terminado=true;
+      clearInterval(reloj);clearTimeout(tope);
+      try{cancelar()}catch(e){}
+      try{ref.delete()}catch(e){}
+      resolver(r);
+    };
+    reloj=setInterval(()=>{
+      statusEl.textContent='🤖 La IA está armando el tema y las tarjetas… '+Math.round((Date.now()-t0)/1000)+' s (si el archivo es grande puede tardar un par de minutos)';
+    },1000);
+    tope=setTimeout(()=>terminar({ok:false,error:'La IA tardó demasiado en responder. Inténtalo de nuevo o prueba con un archivo más corto.'}),ESPERA_MAX_IA_MS);
+    cancelar=ref.onSnapshot(snap=>{
+      const d=snap.exists?snap.data():null;
+      if(!d)return;
+      if(d.estado==='listo'){
+        let datos=null;try{datos=JSON.parse(d.resultado)}catch(e){}
+        terminar(datos?{ok:true,data:datos}:{ok:false,error:'La IA devolvió un resultado ilegible. Inténtalo de nuevo.'});
+      }else if(d.estado==='error'){
+        terminar({ok:false,error:d.mensaje||'La IA no pudo completar la petición.'});
+      }
+    },err=>terminar({ok:false,error:'No se pudo recibir el resultado de la IA'+detalleError(err)+'.'}));
+  });
+}
+
+async function pedirIA(texto,materiaNombre,statusEl){
+  const token=await auth.currentUser.getIdToken();   // prueba de que hay sesión iniciada
+  const cabeceras={'content-type':'application/json','authorization':'Bearer '+token};
+  const base={texto:texto.slice(0,20000),materia:materiaNombre};   // la función solo usa los primeros 20 000 caracteres
+
+  /* 1) En segundo plano: sin el límite de tiempo de las funciones normales */
+  const jobId=uid();
+  const ref=db.collection('iaJobs').doc(jobId);
+  let lanzado=false;
+  try{
+    await ref.set({uid:currentUid,estado:'pendiente',creado:Date.now()});
+    const r=await fetch('/.netlify/functions/generar-tema-background',{
+      method:'POST',headers:cabeceras,body:JSON.stringify({...base,jobId})
+    });
+    lanzado=r.status===202;
+    if(!lanzado)console.warn('El modo en segundo plano respondió',r.status,'; uso la función normal.');
+  }catch(e){
+    console.warn('Modo en segundo plano no disponible; uso la función normal:',e);
+  }
+  if(lanzado)return esperarTrabajoIA(ref,statusEl);
+  try{ref.delete()}catch(e){}
+
+  /* 2) Respaldo: función normal (con su límite de tiempo) */
+  const resp=await fetch('/.netlify/functions/generar-tema',{method:'POST',headers:cabeceras,body:JSON.stringify(base)});
+  let data=null;
+  try{data=await resp.json()}catch(e){}
+  if(!resp.ok||!data){
+    return{ok:false,error:(data&&data.error)||('El servidor no pudo completar la petición (código '+resp.status+'). Suele pasar cuando la IA tarda demasiado; prueba con un archivo más corto o inténtalo de nuevo.')};
+  }
+  return{ok:true,data};
+}
 
 })();
 </script>
