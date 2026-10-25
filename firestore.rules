@@ -77,6 +77,49 @@ service cloud.firestore {
           && request.auth.uid in padre().members
           && ( !esDocente() || padre().ownerUid == request.auth.uid );
       }
+
+      // ---- Exámenes de una materia de docente ----
+      function esDuenoMateria() {
+        return get(/databases/$(database)/documents/temarios/$(id)).data.ownerUid == request.auth.uid;
+      }
+      function esMiembroMateria() {
+        return request.auth.uid in get(/databases/$(database)/documents/temarios/$(id)).data.members;
+      }
+
+      // Las preguntas NO traen la respuesta correcta. Los estudiantes solo ven los publicados o cerrados.
+      match /examenes/{exId} {
+        allow read: if request.auth != null
+          && ( esDuenoMateria()
+               || ( esMiembroMateria() && resource.data.estado in ['publicado', 'cerrado'] ) );
+        allow write: if request.auth != null && esDuenoMateria();
+      }
+
+      // La clave (respuestas correctas): el docente siempre; el estudiante SOLO después de entregar.
+      match /claves/{exId} {
+        allow read: if request.auth != null
+          && ( esDuenoMateria()
+               || ( esMiembroMateria()
+                    && exists(/databases/$(database)/documents/temarios/$(id)/intentos/$(exId + '_' + request.auth.uid)) ) );
+        allow write: if request.auth != null && esDuenoMateria();
+      }
+
+      // Entregas: una por estudiante y examen (el id lo fuerza). Se crean una vez y no se modifican,
+      // así la nota la calcula el docente sobre respuestas que el estudiante no puede alterar.
+      match /intentos/{inId} {
+        allow read: if request.auth != null
+          && ( esDuenoMateria() || resource.data.uid == request.auth.uid );
+        allow create: if request.auth != null
+          && esMiembroMateria() && !esDuenoMateria()
+          && request.resource.data.keys().hasOnly(['examId', 'uid', 'nombre', 'email', 'respuestas', 'enviado'])
+          && request.resource.data.uid == request.auth.uid
+          && inId == request.resource.data.examId + '_' + request.auth.uid
+          && request.resource.data.enviado == request.time
+          && get(/databases/$(database)/documents/temarios/$(id)/examenes/$(request.resource.data.examId)).data.estado == 'publicado'
+          && ( get(/databases/$(database)/documents/temarios/$(id)/examenes/$(request.resource.data.examId)).data.get('cierre', 0) == 0
+               || request.time.toMillis() <= get(/databases/$(database)/documents/temarios/$(id)/examenes/$(request.resource.data.examId)).data.cierre );
+        allow update: if false;
+        allow delete: if request.auth != null && esDuenoMateria();
+      }
     }
 
     // Invitaciones de docente a un correo. El id es  <idMateria>_<correo en minúsculas>
