@@ -360,6 +360,26 @@ select.fld{font:inherit;color:inherit;background:var(--bg);border:1px solid var(
 .bar.mini{height:5px;margin:5px 0 0;max-width:220px}
 .reward{margin-top:12px;font-size:.88em;font-weight:600;color:var(--ok)}
 .reward.lock{color:var(--m);font-weight:400}
+/* ===== Portal docente ===== */
+body.modoProfe{--a:#2f5d8a;--al:#e3ecf5}
+[data-theme=dark] body.modoProfe{--a:#8fb8e0;--al:#2a3846}
+.exOpt{display:flex;gap:8px;align-items:center;margin-top:8px}
+.exOpt .fld{margin:0;flex:1}
+.exRadio{flex:0 0 30px;height:30px;border-radius:50%;border:2px solid var(--b);background:var(--bg);color:#fff;font-weight:800;cursor:pointer;padding:0}
+.exRadio.on{background:var(--ok);border-color:var(--ok)}
+.exTemaLbl{display:block;padding:6px 0;cursor:pointer}
+.statGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.statC{text-align:center;padding:14px 8px}
+.statC b{display:block;font-size:1.5em;color:var(--a)}
+.statC span{font-size:.78em;color:var(--m)}
+.histo{display:flex;gap:10px;align-items:flex-end;margin-top:12px;height:120px}
+.hCol{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px}
+.hBar{width:100%;max-width:60px;background:var(--a);border-radius:6px 6px 0 0}
+.hN{font-weight:700;font-size:.85em}
+.hL{font-size:.68em;color:var(--m)}
+.resCab{cursor:pointer}
+.resDet{margin-top:10px;border-top:1px solid var(--b);padding-top:6px}
+.pctBar{max-width:none;height:7px;margin:8px 0 6px}
 /* ===== Elección de rol ===== */
 .rolOverlay{position:fixed;inset:0;z-index:10000;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);display:grid;place-items:center;padding:20px;overflow:auto}
 .rolBox{background:var(--c);border:1px solid var(--b);border-radius:20px;padding:28px 24px;max-width:560px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)}
@@ -714,7 +734,8 @@ auth.onAuthStateChanged(async user=>{
     $('authScreen').hidden=true;
     $('appRoot').hidden=false;
     applyTheme();updateThemeBtn();
-    route={view:'materias',materiaId:null};
+    route={view:esProfesor()?'docente':'materias',materiaId:null};
+    document.querySelectorAll('#mainNav button').forEach(x=>x.classList.toggle('on',x.dataset.nav===route.view));
     render();
     startShared();
     escucharMisInvitaciones();
@@ -755,14 +776,17 @@ function goToView(v){
 
 function render(keep){
   const _y=window.scrollY;
-  if(route.view==='docente'&&!esProfesor())route={view:'materias',materiaId:null};
+  guardarRuta();
   if(route.view!=='tool')clearRepasoTimer();
   const view=$('view');
   if(route.view==='materias')view.innerHTML=viewMateriasHTML();
   else if(route.view==='materiaDetail')view.innerHTML=viewMateriaDetailHTML(route.materiaId);
   else if(route.view==='tool')view.innerHTML=viewToolHTML();
   else if(route.view==='calendario')view.innerHTML=viewCalendarioHTML();
-  else if(route.view==='perfil')view.innerHTML=viewPerfilHTML();
+  else if(route.view==='perfil')view.innerHTML=esProfesor()?viewPerfilDocenteHTML():viewPerfilHTML();
+  else if(route.view==='docExamen')view.innerHTML=viewDocExamenHTML();
+  else if(route.view==='docResultados')view.innerHTML=viewDocResultadosHTML();
+  else if(route.view==='examenDoc')view.innerHTML=viewExamenDocHTML();
   else if(route.view==='docente')view.innerHTML=viewDocenteHTML();
   else if(route.view==='logros')view.innerHTML=viewLogrosHTML();
   aplicarSoloLectura();
@@ -840,12 +864,16 @@ function materiaCard(m){
 function viewMateriaDetailHTML(materiaId){
   const m=state.materias.find(x=>x.id===materiaId);
   if(!m){goToView('materias');return'';}
+  if(m.rol==='docente'){
+    if(docTabMat!==materiaId){docTabMat=materiaId;docTab='contenido'}
+    if(docTab!=='contenido')return viewDocenteTabHTML(m);
+  }
   const cortes=state.cortes.filter(c=>c.materiaId===materiaId);
   const iaSel=cortes.some(c=>c.id===ui.iaCorte)?ui.iaCorte:(cortes[0]&&cortes[0].id);
   return `
     <button class="sec" data-action="${m.rol==='docente'?'backDocente':'backMaterias'}">${m.rol==='docente'?'← Espacio docente':'← Mis materias'}</button>
     <div class="viewhead" style="margin-top:14px"><h1>${esc(m.icon||'📘')} ${esc(m.name)}</h1></div>
-    ${m.rol==='docente'?docentePanelHTML(m):m.rol==='estudiante'?estudianteDocenteBoxHTML(m):compartidoBoxHTML(m)}
+    ${m.rol==='docente'?docentePanelHTML(m):m.rol==='estudiante'?estudianteDocenteBoxHTML(m)+examenesEstudianteHTML(m):compartidoBoxHTML(m)}
 
     <section class="${m.rol==='estudiante'?'docRO':''}">
       <div class="viewhead"><h2>📁 Cortes</h2><button class="pr" data-action="addCorte" data-mat="${materiaId}">+ Agregar corte</button></div>
@@ -2006,7 +2034,7 @@ function quitarTemaLocal(id){
 }
 /* Repinta sin interrumpir: si estoy escribiendo, espera a que suelte el campo */
 function renderSeguro(){
-  if(!['materias','materiaDetail','perfil','docente','logros'].includes(route.view))return;
+  if(!['materias','materiaDetail','perfil','docente','logros','docResultados','examenDoc'].includes(route.view))return;
   const a=document.activeElement;
   if(a&&a.matches&&a.matches('textarea,input,select')&&$('view').contains(a)){pendingRender=true;return}
   render(true);
@@ -2067,10 +2095,11 @@ function escucharCompartida(m){
   },fallo);
   sharedUnsub[sid]=[u1,u2];
   if(m.rol==='docente')sharedUnsub[sid].push(escucharInvitaciones(sid));
+  if(m.rol==='docente'||m.rol==='estudiante')escucharExamenes(m).forEach(f=>sharedUnsub[sid].push(f));
 }
 function detener(sid){
   (sharedUnsub[sid]||[]).forEach(f=>{try{f()}catch(e){}});
-  delete sharedUnsub[sid];delete sharedFirst[sid];delete sharedMeta[sid];delete invitMap[sid];
+  delete sharedUnsub[sid];delete sharedFirst[sid];delete sharedMeta[sid];delete invitMap[sid];limpiarExamenes(sid);
 }
 function olvidarTemas(sid){Object.keys(sharedLast).forEach(id=>{if(sharedLast[id].sid===sid)delete sharedLast[id]})}
 function startShared(){stopShared();state.materias.filter(m=>m.sharedId).forEach(escucharCompartida)}
@@ -2391,33 +2420,15 @@ function estudianteDocenteBoxHTML(m){
     <div class="row"><button class="sec" data-action="leaveShared" data-id="${m.id}">🚪 Salir de la materia</button></div>
   </div>`;
 }
-function docentePanelHTML(m){
-  const temas=state.temas.filter(t=>t.materiaId===m.id);
-  const pub=temas.filter(t=>t.publicado).length,bor=temas.length-pub;
-  const invs=invitMap[m.sharedId]||[];
-  const estado=i=>i.estado==='aceptada'?`<span class="chip chipOk">✅ Se unió</span>`:i.estado==='rechazada'?`<span class="chip">✖ Rechazó</span>`:`<span class="chip">⏳ Pendiente</span>`;
-  return `<div class="card shareBox" style="margin-top:14px">
-    <b style="font-size:.9em">👩‍🏫 Materia docente</b>
-    <p class="meta" style="margin:4px 0 0">Los temas que crees o generes con IA quedan como <b>borrador</b>. Revísalos y edítalos; tus estudiantes solo ven los que publiques (botón ✅/📝 en cada tema).</p>
-    <div class="members"><span class="chip">${pub} publicado${pub==1?'':'s'}</span><span class="chip">${bor} borrador${bor==1?'':'es'}</span></div>
-    ${bor?`<button class="sec" data-action="publishAll" data-id="${m.id}">✅ Publicar todos los borradores</button>`:''}
-    <label class="lbl" for="invEmails" style="margin-top:14px">Invitar estudiantes por correo</label>
-    <textarea class="fld" id="invEmails" placeholder="correo1@ejemplo.com, correo2@ejemplo.com"></textarea>
-    <p class="meta" style="margin:4px 0 0">Verán la invitación al iniciar sesión con ese mismo correo (con Google o con correo verificado).</p>
-    <button class="pr" style="margin-top:8px" data-action="inviteStudents" data-id="${m.id}">📨 Invitar</button>
-    <div style="margin-top:14px"><b style="font-size:.85em">Estudiantes (${invs.length})</b></div>
-    ${invs.length?invs.map(i=>`<div class="row" style="justify-content:space-between;margin-top:6px"><span>${esc(i.nombre||i.email)} <span class="meta">${i.nombre?esc(i.email):''}</span> ${estado(i)}</span><button class="icon-btn" data-action="removeInvite" data-id="${m.id}" data-inv="${esc(i.id)}" title="Quitar">🗑️</button></div>`).join(''):'<p class="meta" style="margin:6px 0 0">Aún no has invitado a nadie.</p>'}
-    <div class="row" style="margin-top:14px"><button class="sec" data-action="delMateria" data-id="${m.id}">🗑️ Eliminar materia para todos</button></div>
-  </div>`;
-}
 function docenteCard(m){
   const temas=state.temas.filter(t=>t.materiaId===m.id);
   const pub=temas.filter(t=>t.publicado).length;
   const invs=invitMap[m.sharedId]||[];
   const unidos=invs.filter(i=>i.estado==='aceptada').length;
+  const nEx=Object.keys(exMap[m.sharedId]||{}).length;
   return `<div class="card matCard">
     <h3>${esc(m.icon||'📘')} ${esc(m.name)}</h3>
-    <p class="meta">${temas.length} tema${temas.length==1?'':'s'} · ${pub} publicado${pub==1?'':'s'} · ${unidos} estudiante${unidos==1?'':'s'}</p>
+    <p class="meta">${temas.length} tema${temas.length==1?'':'s'} · ${pub} publicado${pub==1?'':'s'} · ${unidos} estudiante${unidos==1?'':'s'} · ${nEx} examen${nEx==1?'':'es'}</p>
     <div class="row">
       <button class="sec" data-action="openMateria" data-id="${m.id}">Abrir →</button>
       <button class="icon-btn" data-action="renameMateria" data-id="${m.id}" title="Editar materia">✏️</button>
@@ -2746,7 +2757,8 @@ function feedbackHTML(acierto,q,idx){
 
 /* Cada pantalla distinta (o cada pregunta nueva) entra con una animación suave */
 function claveVista(){
-  let k=route.view+':'+(route.materiaId||'')+':'+(route.tool||'');
+  let k=route.view+':'+(route.materiaId||'')+':'+(route.tool||'')+':'+(route.examId||'');
+  if(route.view==='materiaDetail')k+=':'+docTab;
   if(route.view==='tool'&&toolState&&typeof toolState.idx==='number')k+=':'+toolState.idx;
   if(route.view==='logros')k+=':'+logrosTab+':'+(logrosMat||'');
   return k;
@@ -2829,15 +2841,13 @@ document.addEventListener('click',e=>{
    ====================================================================== */
 function detalleError(e){return e&&e.code?' ('+e.code+')':''}
 function esProfesor(){return !!(state.profile&&state.profile.rol==='docente')}
-function aplicarRolMenu(){
-  const b=document.querySelector('#mainNav [data-nav="docente"]');
-  if(b)b.style.display=esProfesor()?'':'none';
-}
 function elegirRol(rol){
   state.profile.rol=rol;
   persist();
   aplicarRolMenu();
-  render(true);
+  route={view:rol==='docente'?'docente':'materias',materiaId:null};   // cada rol tiene su propio portal
+  document.querySelectorAll('#mainNav button').forEach(x=>x.classList.toggle('on',x.dataset.nav===route.view));
+  render();
 }
 /* Pantalla de bienvenida: se muestra una vez, hasta que la persona elige */
 function pedirRol(){
@@ -2919,29 +2929,604 @@ async function pedirIA(texto,materiaNombre,statusEl){
   /* 1) En segundo plano: sin el límite de tiempo de las funciones normales */
   const jobId=uid();
   const ref=db.collection('iaJobs').doc(jobId);
-  let lanzado=false;
+  let lanzado=false,motivo='';
   try{
     await ref.set({uid:currentUid,estado:'pendiente',creado:Date.now()});
     const r=await fetch('/.netlify/functions/generar-tema-background',{
       method:'POST',headers:cabeceras,body:JSON.stringify({...base,jobId})
     });
     lanzado=r.status===202;
-    if(!lanzado)console.warn('El modo en segundo plano respondió',r.status,'; uso la función normal.');
+    if(!lanzado){
+      motivo=r.status===404?'Netlify no encuentra la función generar-tema-background (revisa que el archivo se llame exactamente así y esté en netlify/functions)'
+        :'la función en segundo plano respondió '+r.status+' (mira Logs → Functions en Netlify)';
+      console.warn('El modo en segundo plano respondió',r.status,'; uso la función normal.');
+    }
   }catch(e){
+    motivo=(e&&e.code==='permission-denied')
+      ?'faltan publicar las reglas de Firestore (colección iaJobs): Firebase → Firestore Database → Rules → Publish'
+      :'no se pudo iniciar ('+((e&&(e.code||e.message))||'error')+')';
     console.warn('Modo en segundo plano no disponible; uso la función normal:',e);
   }
   if(lanzado)return esperarTrabajoIA(ref,statusEl);
   try{ref.delete()}catch(e){}
+  statusEl.textContent='🤖 Usando el modo normal (el de segundo plano no está disponible: '+motivo+'). Puede tardar hasta un minuto…';
 
   /* 2) Respaldo: función normal (con su límite de tiempo) */
   const resp=await fetch('/.netlify/functions/generar-tema',{method:'POST',headers:cabeceras,body:JSON.stringify(base)});
   let data=null;
   try{data=await resp.json()}catch(e){}
   if(!resp.ok||!data){
-    return{ok:false,error:(data&&data.error)||('El servidor no pudo completar la petición (código '+resp.status+'). Suele pasar cuando la IA tarda demasiado; prueba con un archivo más corto o inténtalo de nuevo.')};
+    return{ok:false,error:((data&&data.error)||('El servidor no pudo completar la petición (código '+resp.status+'). Suele pasar cuando la IA tarda demasiado; prueba con un archivo más corto o inténtalo de nuevo.'))
+      +' [Modo en segundo plano no disponible: '+motivo+']'};
   }
   return{ok:true,data};
 }
+
+
+/* ======================================================================
+   PORTAL DOCENTE: exámenes, resultados y menús separados por rol
+   Datos (todo dentro de temarios/{sid}, solo en materias de docente):
+     examenes/{exId}            título, estado (borrador|publicado|cerrado), cierre, escala y las
+                                preguntas SIN la respuesta correcta
+     claves/{exId}              {correctas:{preguntaId: índice}}  → el estudiante solo puede leerla
+                                DESPUÉS de entregar su examen (lo exigen las reglas de Firestore)
+     intentos/{exId}_{uid}      las respuestas del estudiante. Se crea una vez y no se modifica
+   La nota "oficial" la calcula el panel del docente a partir de esas respuestas inmutables, así
+   que un estudiante no puede inventarse su calificación.
+   ====================================================================== */
+const exMap={},clMap={},inMap={};      // sid -> datos en vivo
+const pendClave=new Set();
+let docTab='contenido',docTabMat=null;
+let exBuf=null,exGuardarT=null;        // examen que el docente está editando
+let exTom=null;                        // examen que el estudiante está presentando
+let docResSel=null;                    // estudiante desplegado en los resultados
+
+const ms=x=>x&&typeof x.toMillis==='function'?x.toMillis():(Number(x)||0);
+const fmtFechaHora=t=>t?new Date(t).toLocaleString('es',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+const baseDe=m=>refTemario(m.sharedId);
+const materiaRuta=()=>state.materias.find(x=>x.id===route.materiaId);
+function mezclar(a){const r=a.slice();for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]]}return r}
+function examenesDe(m){return Object.values(exMap[m.sharedId]||{}).sort((a,b)=>ms(b.creado)-ms(a.creado))}
+function examAbierto(ex){return ex.estado==='publicado'&&(!ex.cierre||Date.now()<=ex.cierre)}
+function nEstudiantes(m){const x=sharedMeta[m.sharedId];return x&&x.members?Math.max(0,x.members.length-1):0}
+const chipEstado=ex=>ex.estado==='borrador'?'<span class="chip">📝 Borrador</span>':ex.estado==='cerrado'?'<span class="chip">🔒 Cerrado</span>':(examAbierto(ex)?'<span class="chip chipOk">🟢 Publicado</span>':'<span class="chip">⏰ Venció</span>');
+
+/* ---------- Calificación (la usan el docente y el estudiante) ---------- */
+function calificar(ex,clave,resp){
+  const det=(ex.preguntas||[]).map(q=>{
+    const c=clave&&clave.correctas?clave.correctas[q.id]:undefined;
+    const e=resp?resp[q.id]:undefined;
+    return{q,elegido:e,correcta:c,acierto:e!==undefined&&c!==undefined&&Number(e)===Number(c)};
+  });
+  const ok=det.filter(d=>d.acierto).length,total=det.length||1;
+  const escala=ex.escala||5;
+  return{ok,total,pct:Math.round(ok/total*100),nota:Math.round(ok/total*escala*10)/10,escala,det};
+}
+
+/* ---------- Escuchar exámenes en vivo ---------- */
+function escucharExamenes(m){
+  const sid=m.sharedId,base=refTemario(sid),prof=m.rol==='docente',aviso=n=>err=>console.warn('Exámenes ('+n+'):',err);
+  const u=[];
+  const colEx=base.collection('examenes');
+  u.push((prof?colEx:colEx.where('estado','in',['publicado','cerrado'])).onSnapshot(snap=>{
+    exMap[sid]={};snap.docs.forEach(d=>{exMap[sid][d.id]={id:d.id,...d.data()}});renderSeguro();
+  },aviso('examenes')));
+  const colIn=base.collection('intentos');
+  u.push((prof?colIn:colIn.where('uid','==',currentUid)).onSnapshot(snap=>{
+    inMap[sid]={};snap.docs.forEach(d=>{inMap[sid][d.id]={id:d.id,...d.data()}});renderSeguro();
+  },aviso('intentos')));
+  if(prof)u.push(base.collection('claves').onSnapshot(snap=>{
+    clMap[sid]={};snap.docs.forEach(d=>{clMap[sid][d.id]={id:d.id,...d.data()}});renderSeguro();
+  },aviso('claves')));
+  return u;
+}
+function limpiarExamenes(sid){delete exMap[sid];delete clMap[sid];delete inMap[sid]}
+/* El estudiante trae la clave solo cuando ya entregó (las reglas no se la dan antes) */
+async function asegurarClave(m,exId){
+  const sid=m.sharedId,k=sid+'/'+exId;
+  if((clMap[sid]||{})[exId]||pendClave.has(k))return;
+  pendClave.add(k);
+  try{
+    const d=await baseDe(m).collection('claves').doc(exId).get();
+    if(d.exists){(clMap[sid]=clMap[sid]||{})[exId]={id:exId,...d.data()};renderSeguro()}
+  }catch(e){console.warn('No se pudo leer la clave:',e)}
+  pendClave.delete(k);
+}
+
+/* ======================= DOCENTE: pestañas de la materia ======================= */
+function docenteTabsHTML(m){
+  const tabs=[['contenido','📚 Contenido'],['examenes','📝 Exámenes'],['estudiantes','👥 Estudiantes']];
+  return `<div class="tabsT docTabs" style="margin:14px 0">${tabs.map(([k,t])=>`<button type="button" data-action="docTab" data-tab="${k}" class="${docTab===k?'on':''}">${t}</button>`).join('')}</div>`;
+}
+function docentePanelHTML(m){
+  const temas=state.temas.filter(t=>t.materiaId===m.id);
+  const pub=temas.filter(t=>t.publicado).length,bor=temas.length-pub;
+  return docenteTabsHTML(m)+`<div class="card shareBox">
+    <b style="font-size:.9em">📚 Contenido de la materia</b>
+    <p class="meta" style="margin:4px 0 0">Los temas que crees o generes con IA quedan como <b>borrador</b>. Revísalos y edítalos; tus estudiantes solo ven los que publiques (botón ✅/📝 en cada tema). Con los temas publicados puedes armar exámenes en la pestaña <b>Exámenes</b>.</p>
+    <div class="members"><span class="chip">${pub} publicado${pub==1?'':'s'}</span><span class="chip">${bor} borrador${bor==1?'':'es'}</span></div>
+    ${bor?`<button class="sec" data-action="publishAll" data-id="${m.id}">✅ Publicar todos los borradores</button>`:''}
+  </div>`;
+}
+function docenteEstudiantesHTML(m){
+  const invs=invitMap[m.sharedId]||[];
+  const estado=i=>i.estado==='aceptada'?`<span class="chip chipOk">✅ Se unió</span>`:i.estado==='rechazada'?`<span class="chip">✖ Rechazó</span>`:`<span class="chip">⏳ Pendiente</span>`;
+  return `<div class="card shareBox">
+    <label class="lbl" for="invEmails" style="margin-top:0">Invitar estudiantes por correo</label>
+    <textarea class="fld" id="invEmails" placeholder="correo1@ejemplo.com, correo2@ejemplo.com"></textarea>
+    <p class="meta" style="margin:4px 0 0">Verán la invitación al iniciar sesión con ese mismo correo (con Google o con correo verificado).</p>
+    <button class="pr" style="margin-top:8px" data-action="inviteStudents" data-id="${m.id}">📨 Invitar</button>
+    <div style="margin-top:14px"><b style="font-size:.85em">Estudiantes (${invs.length})</b></div>
+    ${invs.length?invs.map(i=>`<div class="row" style="justify-content:space-between;margin-top:6px"><span>${esc(i.nombre||i.email)} <span class="meta">${i.nombre?esc(i.email):''}</span> ${estado(i)}</span><button class="icon-btn" data-action="removeInvite" data-id="${m.id}" data-inv="${esc(i.id)}" title="Quitar">🗑️</button></div>`).join(''):'<p class="meta" style="margin:6px 0 0">Aún no has invitado a nadie.</p>'}
+    <div class="row" style="margin-top:14px"><button class="sec" data-action="delMateria" data-id="${m.id}">🗑️ Eliminar materia para todos</button></div>
+  </div>`;
+}
+function viewDocenteTabHTML(m){
+  return `<button class="sec" data-action="backDocente">← Mis materias</button>
+    <div class="viewhead" style="margin-top:14px"><h1>${esc(m.icon||'📘')} ${esc(m.name)}</h1></div>
+    ${docenteTabsHTML(m)}
+    ${docTab==='examenes'?docenteExamenesHTML(m):docenteEstudiantesHTML(m)}`;
+}
+
+/* ---------- Lista de exámenes ---------- */
+function docenteExamenesHTML(m){
+  const exs=examenesDe(m),nEst=nEstudiantes(m);
+  const intentos=Object.values(inMap[m.sharedId]||{});
+  const cards=exs.map(ex=>{
+    const ints=intentos.filter(i=>i.examId===ex.id);
+    const cl=(clMap[m.sharedId]||{})[ex.id];
+    let prom='';
+    if(ints.length&&cl){const ps=ints.map(i=>calificar(ex,cl,i.respuestas||{}).pct);prom=` · promedio ${Math.round(ps.reduce((a,b)=>a+b,0)/ps.length)}%`}
+    const acciones=ex.estado==='borrador'
+      ?`<button class="sec" data-action="exEditar" data-id="${m.id}" data-ex="${ex.id}">✏️ Editar</button>`
+      :`<button class="pr" data-action="exResultados" data-id="${m.id}" data-ex="${ex.id}">📊 Resultados</button>
+        ${ex.estado==='cerrado'?`<button class="sec" data-action="exEstado" data-id="${m.id}" data-ex="${ex.id}" data-to="publicado">🔓 Reabrir</button>`:`<button class="sec" data-action="exEstado" data-id="${m.id}" data-ex="${ex.id}" data-to="cerrado">🔒 Cerrar</button>`}`;
+    return `<div class="card exCard">
+      <div class="stHead"><b>${esc(ex.titulo||'Sin título')}</b>${chipEstado(ex)}</div>
+      <p class="meta" style="margin:6px 0 0">${(ex.preguntas||[]).length} pregunta${(ex.preguntas||[]).length==1?'':'s'}${ex.cierre?' · cierra '+fmtFechaHora(ex.cierre):''}${ex.estado==='borrador'?'':' · entregas '+ints.length+'/'+nEst+prom}</p>
+      <div class="row" style="flex-wrap:wrap">${acciones}<button class="icon-btn" data-action="exEliminarLista" data-id="${m.id}" data-ex="${ex.id}" title="Eliminar examen">🗑️</button></div>
+    </div>`;
+  }).join('');
+  return `<div class="viewhead"><h2>📝 Exámenes</h2><button class="pr" data-action="newExam" data-id="${m.id}">+ Nuevo examen</button></div>
+    ${exs.length?cards:'<div class="empty">Aún no hay exámenes. Crea uno a partir de los temas de tu materia: generas las preguntas, las revisas y las publicas. Después verás las notas de cada estudiante y en qué preguntas fallaron.</div>'}`;
+}
+
+/* ======================= DOCENTE: editor de examen ======================= */
+function cierreLocal(t){if(!t)return'';const d=new Date(t-new Date(t).getTimezoneOffset()*60000);return d.toISOString().slice(0,16)}
+function exDividir(buf){
+  return{
+    examen:{titulo:buf.titulo||'',estado:buf.estado,cierre:buf.cierre||0,escala:buf.escala,creado:buf.creado,publicadoEn:buf.publicadoEn||0,
+      preguntas:buf.preguntas.map(q=>({id:q.id,enunciado:q.enunciado||'',opciones:[0,1,2,3].map(i=>q.opciones[i]||''),temaId:q.temaId||'',temaTitulo:q.temaTitulo||''}))},
+    clave:{correctas:Object.fromEntries(buf.preguntas.map(q=>[q.id,Number(q.correcta)||0]))}
+  };
+}
+function setGuardado(t){const el=$('exGuardado');if(el)el.textContent=t}
+async function exGuardarYa(){
+  if(!exBuf)return;
+  clearTimeout(exGuardarT);
+  const m=materiaRuta();if(!m)return;
+  const base=baseDe(m),{examen,clave}=exDividir(exBuf);
+  const b=db.batch();
+  b.set(base.collection('examenes').doc(exBuf.id),examen);
+  b.set(base.collection('claves').doc(exBuf.id),clave);
+  setGuardado('Guardando…');
+  try{await b.commit();setGuardado('✓ Guardado')}
+  catch(e){console.error(e);setGuardado('⚠️ No se pudo guardar'+detalleError(e)+'. ¿Publicaste las reglas nuevas de Firestore?')}
+}
+function exGuardarLuego(){clearTimeout(exGuardarT);setGuardado('Cambios sin guardar…');exGuardarT=setTimeout(exGuardarYa,900)}
+
+async function crearExamen(m){
+  const n=examenesDe(m).length+1;
+  exBuf={id:uid(),titulo:'Examen '+n,estado:'borrador',cierre:0,escala:scaleMax(),creado:Date.now(),publicadoEn:0,preguntas:[]};
+  route={view:'docExamen',materiaId:m.id,examId:exBuf.id};
+  render();
+  await exGuardarYa();
+}
+function abrirEditor(m,exId){
+  const ex=(exMap[m.sharedId]||{})[exId];if(!ex)return;
+  const cl=((clMap[m.sharedId]||{})[exId]||{}).correctas||{};
+  exBuf={id:exId,titulo:ex.titulo||'',estado:ex.estado||'borrador',cierre:ex.cierre||0,escala:ex.escala||scaleMax(),creado:ms(ex.creado)||Date.now(),publicadoEn:ex.publicadoEn||0,
+    preguntas:(ex.preguntas||[]).map(q=>({id:q.id,enunciado:q.enunciado||'',opciones:[0,1,2,3].map(i=>(q.opciones||[])[i]||''),
+      correcta:cl[q.id]!==undefined?Number(cl[q.id]):0,temaId:q.temaId||'',temaTitulo:q.temaTitulo||''}))};
+  route={view:'docExamen',materiaId:m.id,examId:exId};
+  render();
+}
+function generarPreguntas(m,temaIds,n){
+  const limpia=k=>String(k.front||'').trim()&&String(k.back||'').trim();
+  const usadas=new Set(exBuf.preguntas.map(q=>q.fuenteId).filter(Boolean));
+  const fuente=state.cards.filter(k=>temaIds.includes(k.temaId)&&limpia(k)&&!usadas.has(k.id));
+  const pool=[...new Set(state.cards.filter(k=>k.materiaId===m.id&&limpia(k)).map(k=>String(k.back).trim()))];
+  const out=[];
+  mezclar(fuente).slice(0,n).forEach(k=>{
+    const correcta=String(k.back).trim();
+    const otras=mezclar(pool.filter(b=>b!==correcta)).slice(0,3);
+    if(!otras.length)return;                       // sin otras respuestas no se puede armar opción múltiple
+    const ops=mezclar([correcta,...otras]);
+    const t=state.temas.find(x=>x.id===k.temaId)||{};
+    out.push({id:uid(),enunciado:String(k.front).trim(),opciones:[0,1,2,3].map(i=>ops[i]||''),correcta:ops.indexOf(correcta),
+      temaId:k.temaId,temaTitulo:t.title||'',fuenteId:k.id});
+  });
+  return out;
+}
+function validarExamen(b){
+  if(!String(b.titulo||'').trim())return 'Ponle un título al examen.';
+  if(!b.preguntas.length)return 'Agrega al menos una pregunta.';
+  for(let i=0;i<b.preguntas.length;i++){
+    const q=b.preguntas[i],ops=q.opciones.map(o=>String(o||'').trim());
+    const llenas=ops.filter(Boolean);
+    if(!String(q.enunciado||'').trim())return 'La pregunta '+(i+1)+' no tiene enunciado.';
+    if(llenas.length<2)return 'La pregunta '+(i+1)+' necesita al menos 2 opciones.';
+    if(new Set(llenas).size!==llenas.length)return 'La pregunta '+(i+1)+' tiene opciones repetidas.';
+    if(!ops[q.correcta])return 'En la pregunta '+(i+1)+' marca cuál opción es la correcta.';
+  }
+  return '';
+}
+function viewDocExamenHTML(){
+  const m=materiaRuta();
+  if(!m||!exBuf||exBuf.id!==route.examId)return '<div class="empty">No se pudo abrir el examen. <button class="sec" data-action="backDocente">Volver</button></div>';
+  const lock=exBuf.estado!=='borrador';
+  const temas=state.temas.filter(t=>t.materiaId===m.id);
+  const nCards=t=>state.cards.filter(k=>k.temaId===t.id&&String(k.front||'').trim()&&String(k.back||'').trim()).length;
+  const dis=lock?'disabled':'';
+  return `<button class="sec" data-action="exVolver">← Exámenes</button>
+  <div class="viewhead" style="margin-top:14px"><h1>📝 ${lock?'Examen':'Editar examen'}</h1><span id="exGuardado" class="meta"></span></div>
+  ${lock?'<div class="card shareBox" style="margin-bottom:12px">🔒 Este examen ya está publicado, por eso no se edita (así todos los estudiantes responden lo mismo y los resultados son comparables). Si nadie lo ha presentado, puedes volver a pasarlo a borrador.</div>':''}
+  <div class="card">
+    <label class="lbl" style="margin-top:0">Título</label>
+    <input class="fld" data-ex="titulo" value="${esc(exBuf.titulo)}" maxlength="80" ${dis}>
+    <div class="two">
+      <div><label class="lbl">Fecha límite (opcional)</label><input class="fld" type="datetime-local" data-ex="cierre" value="${cierreLocal(exBuf.cierre)}" ${dis}></div>
+      <div><label class="lbl">Escala de notas</label><p class="meta" style="margin:8px 0 0">0 a ${exBuf.escala} (la de tu perfil)</p></div>
+    </div>
+  </div>
+  ${lock?'':`<div class="card shareBox" style="margin-top:12px">
+    <b style="font-size:.9em">✨ Generar preguntas desde tus temas</b>
+    <p class="meta" style="margin:4px 0 8px">Se crean preguntas de opción múltiple con las tarjetas de los temas que elijas. Después puedes editarlas o agregar las tuyas.</p>
+    ${temas.length?temas.map(t=>`<label class="exTemaLbl"><input type="checkbox" class="exTema" value="${t.id}" ${nCards(t)?'':'disabled'}> ${esc(t.title||'Sin título')} <span class="meta">(${nCards(t)} tarjeta${nCards(t)==1?'':'s'})</span></label>`).join(''):'<p class="meta">Todavía no hay temas. Crea uno en la pestaña Contenido.</p>'}
+    <div class="row"><label class="meta" for="exN">Cantidad</label><input class="fld" id="exN" type="number" min="1" max="40" value="10" style="width:90px"><button class="pr" data-action="exGenerar">✨ Generar</button></div>
+  </div>`}
+  <div class="viewhead" style="margin-top:18px"><h2>Preguntas (${exBuf.preguntas.length})</h2></div>
+  ${exBuf.preguntas.length?exBuf.preguntas.map((q,i)=>`<div class="card exQ" style="margin-bottom:12px">
+    <div class="row" style="justify-content:space-between;margin-top:0"><b>Pregunta ${i+1}</b>${q.temaTitulo?`<span class="chip">${esc(q.temaTitulo)}</span>`:''}${lock?'':`<button class="icon-btn" data-action="exDelQ" data-q="${q.id}" title="Eliminar pregunta">🗑️</button>`}</div>
+    <textarea class="fld" data-ex="enun" data-q="${q.id}" placeholder="Escribe la pregunta" ${dis}>${esc(q.enunciado)}</textarea>
+    ${[0,1,2,3].map(j=>`<div class="exOpt"><button type="button" class="exRadio ${q.correcta===j?'on':''}" data-action="exCorrecta" data-q="${q.id}" data-i="${j}" title="Marcar como correcta" ${dis}>${q.correcta===j?'✓':''}</button><input class="fld" data-ex="opt" data-q="${q.id}" data-i="${j}" value="${esc(q.opciones[j]||'')}" placeholder="Opción ${j+1}${j>1?' (opcional)':''}" ${dis}></div>`).join('')}
+  </div>`).join(''):'<div class="empty">Aún no hay preguntas. Genera algunas desde tus temas o agrega una manualmente.</div>'}
+  ${lock?'':'<button class="sec" data-action="exAddQ">+ Agregar pregunta</button>'}
+  <div class="row" style="flex-wrap:wrap;margin-top:18px">
+    ${lock?'':'<button class="pr" data-action="exPublicar">🚀 Publicar examen</button>'}
+    ${lock&&exBuf.estado==='publicado'?'<button class="sec" data-action="exABorrador">📝 Volver a borrador</button>':''}
+    <button class="sec" data-action="exEliminar">🗑️ Eliminar examen</button>
+  </div>`;
+}
+async function exEliminarExamen(m,exId){
+  const base=baseDe(m),b=db.batch();
+  b.delete(base.collection('examenes').doc(exId));
+  b.delete(base.collection('claves').doc(exId));
+  Object.values(inMap[m.sharedId]||{}).filter(i=>i.examId===exId).forEach(i=>b.delete(base.collection('intentos').doc(i.id)));
+  try{await b.commit()}catch(e){console.error(e);alert('No se pudo eliminar el examen'+detalleError(e)+'.')}
+}
+
+/* ======================= DOCENTE: resultados ======================= */
+function resultadosDe(m,ex){
+  const sid=m.sharedId,meta=sharedMeta[sid]||{},clave=(clMap[sid]||{})[ex.id],inv=invitMap[sid]||[];
+  const intentos=Object.values(inMap[sid]||{}).filter(i=>i.examId===ex.id);
+  const uids=(meta.members||[]).filter(u=>u!==meta.ownerUid);
+  intentos.forEach(i=>{if(!uids.includes(i.uid))uids.push(i.uid)});
+  const filas=uids.map(u=>{
+    const it=intentos.find(i=>i.uid===u),inf=inv.find(i=>i.uid===u)||{};
+    return{uid:u,nombre:(meta.memberNames||{})[u]||(it&&it.nombre)||inf.nombre||'Estudiante',email:inf.email||(it&&it.email)||'',
+      intento:it||null,res:(it&&clave)?calificar(ex,clave,it.respuestas||{}):null};
+  });
+  const hechas=filas.filter(f=>f.res),pcts=hechas.map(f=>f.res.pct);
+  const stats={entregaron:hechas.length,total:filas.length,
+    prom:pcts.length?Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length):null,
+    max:pcts.length?Math.max(...pcts):null,min:pcts.length?Math.min(...pcts):null,aprobaron:pcts.filter(p=>p>=60).length};
+  const buckets=[0,0,0,0,0];pcts.forEach(p=>buckets[Math.min(4,Math.floor(p/20))]++);
+  const preguntas=(ex.preguntas||[]).map(q=>{
+    const dets=hechas.map(f=>f.res.det.find(d=>d.q.id===q.id)).filter(Boolean);
+    const aciertos=dets.filter(d=>d.acierto).length,cuentas={};
+    dets.filter(d=>!d.acierto&&d.elegido!==undefined).forEach(d=>{cuentas[d.elegido]=(cuentas[d.elegido]||0)+1});
+    const top=Object.entries(cuentas).sort((a,b)=>b[1]-a[1])[0];
+    return{q,n:dets.length,aciertos,pct:dets.length?Math.round(aciertos/dets.length*100):null,
+      peor:top?{texto:(q.opciones||[])[+top[0]]||'',veces:top[1]}:null};
+  });
+  const temas={};
+  preguntas.forEach(p=>{if(!p.n)return;const k=p.q.temaTitulo||'Sin tema';const t=temas[k]=temas[k]||{titulo:k,ok:0,n:0};t.ok+=p.aciertos;t.n+=p.n});
+  const porTema=Object.values(temas).map(t=>({...t,pct:Math.round(t.ok/t.n*100)})).sort((a,b)=>a.pct-b.pct);
+  return{filas,stats,buckets,preguntas,porTema,clave};
+}
+const colorPct=p=>p>=70?'var(--ok)':p>=50?'var(--a)':'var(--no)';
+function barraPct(p){return `<div class="bar mini pctBar"><i style="width:${p==null?0:p}%;background:${colorPct(p)}"></i></div>`}
+
+function viewDocResultadosHTML(){
+  const m=materiaRuta(),ex=m&&(exMap[m.sharedId]||{})[route.examId];
+  if(!m||!ex)return '<div class="empty">No se encontró el examen. <button class="sec" data-action="exVolver">Volver</button></div>';
+  const r=resultadosDe(m,ex),st=r.stats,esc_=ex.escala||5;
+  const notaProm=st.prom==null?'—':fmtN(Math.round(st.prom/100*esc_*10)/10);
+  const maxB=Math.max(1,...r.buckets);
+  const rangos=['0–19%','20–39%','40–59%','60–79%','80–100%'];
+  return `<button class="sec" data-action="exVolver">← Exámenes</button>
+  <div class="viewhead" style="margin-top:14px"><h1>📊 ${esc(ex.titulo||'Examen')}</h1></div>
+  <div class="row" style="margin:0 0 12px;flex-wrap:wrap">${chipEstado(ex)}<span class="chip">${(ex.preguntas||[]).length} preguntas</span>${ex.cierre?`<span class="chip">cierra ${fmtFechaHora(ex.cierre)}</span>`:''}
+    <button class="sec" data-action="exCsv">⬇️ Descargar notas (CSV)</button>
+    ${ex.estado==='cerrado'?`<button class="sec" data-action="exEstado" data-id="${m.id}" data-ex="${ex.id}" data-to="publicado">🔓 Reabrir</button>`:`<button class="sec" data-action="exEstado" data-id="${m.id}" data-ex="${ex.id}" data-to="cerrado">🔒 Cerrar examen</button>`}</div>
+  ${r.clave?'':'<p class="meta">Cargando las respuestas correctas…</p>'}
+  <div class="statGrid">
+    <div class="card statC"><b>${st.entregaron}/${st.total}</b><span>entregaron</span></div>
+    <div class="card statC"><b>${st.prom==null?'—':st.prom+'%'}</b><span>promedio · nota ${notaProm}</span></div>
+    <div class="card statC"><b>${st.max==null?'—':st.max+'%'}</b><span>más alta</span></div>
+    <div class="card statC"><b>${st.min==null?'—':st.min+'%'}</b><span>más baja</span></div>
+    <div class="card statC"><b>${st.aprobaron}</b><span>con 60% o más</span></div>
+  </div>
+  ${st.entregaron?`<div class="card" style="margin-top:12px"><b style="font-size:.9em">Distribución de resultados</b>
+    <div class="histo">${r.buckets.map((n,i)=>`<div class="hCol"><span class="hN">${n}</span><div class="hBar" style="height:${Math.round(n/maxB*70)+4}px"></div><span class="hL">${rangos[i]}</span></div>`).join('')}</div></div>`:''}
+
+  <h2 style="margin:22px 0 10px">👥 Estudiantes</h2>
+  ${r.filas.length?r.filas.map(f=>{
+    const abierto=docResSel===f.uid;
+    return `<div class="card resFila" style="margin-bottom:8px">
+      <div class="row resCab" style="justify-content:space-between;margin-top:0" data-action="resFila" data-u="${f.uid}">
+        <div><b>${esc(f.nombre)}</b><div class="meta" style="margin:0">${esc(f.email)}</div></div>
+        <div style="text-align:right">${f.res?`<b style="color:${colorPct(f.res.pct)}">${f.res.ok}/${f.res.total} · ${f.res.pct}%</b><div class="meta" style="margin:0">nota ${fmtN(f.res.nota)} / ${f.res.escala}</div>`
+          :f.intento?'<span class="chip">Entregó (calculando…)</span>':'<span class="chip">⏳ Sin entregar</span>'}</div>
+      </div>
+      ${abierto&&f.res?`<div class="resDet">${f.res.det.map((d,i)=>`<div class="resRow ${d.acierto?'bien':'mal'}" style="margin-top:8px"><b>${i+1}. ${esc(d.q.enunciado)}</b>
+          <div class="meta" style="margin:2px 0 0">${d.acierto?'✅':'❌'} Respondió: <b>${esc((d.q.opciones||[])[d.elegido]||'(sin responder)')}</b>${d.acierto?'':' · Correcta: <b>'+esc((d.q.opciones||[])[d.correcta]||'')+'</b>'}</div></div>`).join('')}
+        <div class="row"><button class="sec" data-action="exRepetir" data-u="${f.uid}">↩️ Permitir que lo repita</button></div></div>`:''}
+    </div>`}).join(''):'<div class="empty">Todavía no hay estudiantes en esta materia.</div>'}
+
+  ${st.entregaron?`<h2 style="margin:22px 0 10px">❓ Resultados por pregunta</h2>
+  ${r.preguntas.map((p,i)=>`<div class="card" style="margin-bottom:8px"><div class="row" style="justify-content:space-between;margin-top:0;align-items:flex-start">
+      <div><b>${i+1}. ${esc(p.q.enunciado)}</b>${p.q.temaTitulo?`<div class="meta" style="margin:2px 0 0">${esc(p.q.temaTitulo)}</div>`:''}</div>
+      <div style="text-align:right;white-space:nowrap"><b style="color:${colorPct(p.pct)}">${p.pct==null?'—':p.pct+'%'}</b><div class="meta" style="margin:0">${p.aciertos}/${p.n} acertaron</div></div></div>
+      ${barraPct(p.pct)}
+      ${p.pct!=null&&p.pct<50?'<span class="chip" style="color:var(--no);border-color:var(--no)">⚠️ Pregunta difícil</span> ':''}
+      ${p.peor?`<span class="meta">Error más común: <b>${esc(p.peor.texto)}</b> (${p.peor.veces} estudiante${p.peor.veces==1?'':'s'})</span>`:''}
+    </div>`).join('')}
+  <h2 style="margin:22px 0 10px">📚 Temas que más cuestan</h2>
+  ${r.porTema.map(t=>`<div class="card" style="margin-bottom:8px"><div class="row" style="justify-content:space-between;margin-top:0"><b>${esc(t.titulo)}</b><b style="color:${colorPct(t.pct)}">${t.pct}% de acierto</b></div>${barraPct(t.pct)}<span class="meta">${t.ok} de ${t.n} respuestas correctas</span></div>`).join('')}`:''}`;
+}
+function descargarCsv(m,ex){
+  const r=resultadosDe(m,ex);
+  const celda=v=>{v=String(v==null?'':v);return /[",\n;]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+  const filas=[['Estudiante','Correo','Aciertos','Total','Porcentaje','Nota','Escala','Entregado']];
+  r.filas.forEach(f=>filas.push([f.nombre,f.email,f.res?f.res.ok:'',f.res?f.res.total:'',f.res?f.res.pct+'%':'',f.res?f.res.nota:'',f.res?f.res.escala:'',f.intento?fmtFechaHora(ms(f.intento.enviado)):'Sin entregar']));
+  const csv='\ufeff'+filas.map(f=>f.map(celda).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=(ex.titulo||'examen').replace(/[^\wáéíóúñÁÉÍÓÚÑ -]+/g,'').trim().replace(/\s+/g,'_')+'_notas.csv';
+  document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);
+}
+
+/* ======================= ESTUDIANTE: exámenes de su profesor ======================= */
+function miIntento(m,exId){return (inMap[m.sharedId]||{})[exId+'_'+currentUid]}
+function examenesEstudianteHTML(m){
+  const exs=examenesDe(m);
+  if(!exs.length)return '';
+  const sid=m.sharedId;
+  return `<div class="card shareBox" style="margin-top:12px"><b style="font-size:.9em">📝 Exámenes de tu profesor</b>
+    ${exs.map(ex=>{
+      const it=miIntento(m,ex.id);
+      let estado='',accion='';
+      if(it){
+        asegurarClave(m,ex.id);
+        const cl=(clMap[sid]||{})[ex.id];
+        const r=cl?calificar(ex,cl,it.respuestas||{}):null;
+        estado=r?`<span class="chip chipOk">✅ ${r.ok}/${r.total} · nota ${fmtN(r.nota)}/${r.escala}</span>`:'<span class="chip chipOk">✅ Entregado</span>';
+        accion=`<button class="sec" data-action="exPresentar" data-id="${m.id}" data-ex="${ex.id}">Ver resultado</button>`;
+      }else if(examAbierto(ex)){
+        estado=ex.cierre?`<span class="chip">⏰ hasta ${fmtFechaHora(ex.cierre)}</span>`:'<span class="chip">Pendiente</span>';
+        accion=`<button class="pr" data-action="exPresentar" data-id="${m.id}" data-ex="${ex.id}">Presentar examen</button>`;
+      }else estado='<span class="chip">🔒 Cerrado sin entregar</span>';
+      return `<div style="margin-top:12px"><div><b>${esc(ex.titulo||'Examen')}</b> <span class="meta">· ${(ex.preguntas||[]).length} preguntas</span></div><div class="row" style="flex-wrap:wrap">${estado}${accion}</div></div>`;
+    }).join('')}
+  </div>`;
+}
+async function abrirExamenEst(m,exId){
+  const exx=(exMap[m.sharedId]||{})[exId];
+  if(!miIntento(m,exId)&&(!exx||!examAbierto(exx))){alert('Este examen ya no está disponible.');return}
+  exTom={respuestas:{},resultado:null,cargando:false,error:''};
+  route={view:'examenDoc',materiaId:m.id,examId:exId};
+  render();
+  if(miIntento(m,exId))await cargarResultadoEst(m,exId);
+}
+async function cargarResultadoEst(m,exId){
+  exTom.cargando=true;render(true);
+  try{
+    const d=await baseDe(m).collection('claves').doc(exId).get();
+    if(!d.exists)throw new Error('sin-clave');
+    (clMap[m.sharedId]=clMap[m.sharedId]||{})[exId]={id:exId,...d.data()};
+    const ex=(exMap[m.sharedId]||{})[exId],it=miIntento(m,exId);
+    exTom.resultado=calificar(ex,clMap[m.sharedId][exId],(it&&it.respuestas)||exTom.respuestas);
+    exTom.error='';
+  }catch(e){console.error(e);exTom.error='No se pudieron cargar tus resultados'+detalleError(e)+'.'}
+  exTom.cargando=false;render(true);
+}
+async function entregarExamenEst(m){
+  const ex=(exMap[m.sharedId]||{})[route.examId];if(!ex||!exTom||exTom.enviando)return;
+  const faltan=(ex.preguntas||[]).filter(q=>exTom.respuestas[q.id]===undefined).length;
+  if(faltan){alert('Te faltan '+faltan+' pregunta'+(faltan==1?'':'s')+' por responder.');return}
+  if(!confirm('¿Entregar el examen? No podrás cambiar tus respuestas.'))return;
+  exTom.enviando=true;exTom.error='';render(true);
+  try{
+    const u=auth.currentUser;
+    await baseDe(m).collection('intentos').doc(ex.id+'_'+currentUid).set({
+      examId:ex.id,uid:currentUid,nombre:miNombre(),email:(u&&u.email)||'',
+      respuestas:exTom.respuestas,enviado:firebase.firestore.FieldValue.serverTimestamp()});
+    exTom.enviando=false;
+    (inMap[m.sharedId]=inMap[m.sharedId]||{})[ex.id+'_'+currentUid]={id:ex.id+'_'+currentUid,examId:ex.id,uid:currentUid,respuestas:{...exTom.respuestas}};
+    await cargarResultadoEst(m,ex.id);
+  }catch(e){
+    console.error(e);exTom.enviando=false;
+    exTom.error=(e&&e.code==='permission-denied')?'No se pudo entregar: el examen ya cerró o no tienes permiso. Avisa a tu profesor.':'No se pudo entregar'+detalleError(e)+'. Inténtalo de nuevo.';
+    render(true);
+  }
+}
+function viewExamenDocHTML(){
+  const m=materiaRuta(),ex=m&&(exMap[m.sharedId]||{})[route.examId];
+  if(!m||!ex||!exTom)return '<div class="empty">No se encontró el examen. <button class="sec" data-action="backMaterias">Volver</button></div>';
+  const volver=`<button class="sec" data-action="backMateria" data-id="${m.id}">← ${esc(m.name)}</button>`;
+  const err=exTom.error?`<div class="fb fbNo" role="alert">${esc(exTom.error)}</div>`:'';
+  if(exTom.resultado){
+    const r=exTom.resultado,tono=r.pct>=70?'alto':r.pct>=40?'medio':'bajo';
+    const msg=r.pct===100?'¡Perfecto! 🤩':r.pct>=70?'¡Excelente trabajo! 🎉':r.pct>=40?'Vas bien, repasa lo que fallaste 💪':'Cada intento cuenta. ¡Repasa y sigue! 🌱';
+    return `${volver}
+    <div class="empty resultado" style="margin-top:14px"><h2>📝 ${esc(ex.titulo||'Examen')}</h2>
+      <div class="ringWrap ${tono}"><svg class="ring" viewBox="0 0 120 120" aria-hidden="true"><circle class="rbg" cx="60" cy="60" r="52"/><circle class="rfg" cx="60" cy="60" r="52" style="--p:${r.pct}"/></svg>
+        <div class="ringTxt"><b class="countUp" data-to="${r.ok}">${r.ok}</b><span>/ ${r.total}</span></div></div>
+      <p class="resMsg">${msg}</p>
+      <p class="meta">Nota: <b>${fmtN(r.nota)} / ${r.escala}</b> · ${r.pct}%</p>
+      <div class="resList">${r.det.map((d,i)=>`<div class="resRow ${d.acierto?'bien':'mal'}" style="--i:${Math.min(i,14)};margin-top:10px"><b>${i+1}. ${esc(d.q.enunciado)}</b>
+        <div class="meta" style="margin:2px 0 0">${d.acierto?'✅':'❌'} Tu respuesta: <b>${esc((d.q.opciones||[])[d.elegido]||'(sin responder)')}</b>${d.acierto?'':' · Correcta: <b>'+esc((d.q.opciones||[])[d.correcta]||'')+'</b>'}</div></div>`).join('')}</div>
+    </div>`;
+  }
+  if(exTom.cargando||miIntento(m,ex.id))return `${volver}<div class="empty" style="margin-top:14px">${err||'Cargando tus resultados…'}</div>`;
+  const total=(ex.preguntas||[]).length,hechas=(ex.preguntas||[]).filter(q=>exTom.respuestas[q.id]!==undefined).length;
+  return `${volver}
+  <div class="viewhead" style="margin-top:14px"><h1>📝 ${esc(ex.titulo||'Examen')}</h1><span class="meta">${hechas} / ${total}</span></div>
+  <div class="bar qbar"><i style="width:${total?Math.round(hechas/total*100):0}%;--from:${total?Math.round(hechas/total*100):0}%"></i></div>
+  ${ex.cierre?`<p class="meta">Cierra ${fmtFechaHora(ex.cierre)}</p>`:''}
+  ${(ex.preguntas||[]).map((q,i)=>`<div class="card qCard" style="margin-bottom:12px"><h3 style="margin-top:0">${i+1}. ${esc(q.enunciado)}</h3>
+    ${(q.opciones||[]).map((o,j)=>String(o||'').trim()?`<button class="sec optBtn ${exTom.respuestas[q.id]===j?'chosen':''}" data-action="exResp" data-q="${q.id}" data-i="${j}">${esc(o)}</button>`:'').join('')}</div>`).join('')}
+  ${err}
+  <button class="pr nextBtn" data-action="exEntregar" ${hechas<total||exTom.enviando?'disabled':''}>${exTom.enviando?'Entregando…':'Entregar examen'}</button>
+  ${hechas<total?'<p class="meta">Responde todas las preguntas para poder entregar.</p>':''}`;
+}
+
+/* ======================= Menús y pantallas por rol ======================= */
+function aplicarRolMenu(){
+  const prof=esProfesor();
+  document.body.classList.toggle('modoProfe',prof);
+  const visibles=prof?['docente','perfil']:['materias','calendario','logros','perfil'];
+  document.querySelectorAll('#mainNav [data-nav]').forEach(b=>{b.style.display=visibles.includes(b.dataset.nav)?'':'none'});
+  const d=document.querySelector('#mainNav [data-nav="docente"]');if(d)d.textContent='🏫 Mis materias';
+  const ct=$('ct');if(ct)ct.textContent=prof?'🏫 Mi cuaderno · Docente':'📚 Mi cuaderno';
+  const sw=$('searchWrap');if(sw)sw.style.display=prof?'none':'';
+}
+/* Cada rol solo entra a sus propias pantallas */
+function guardarRuta(){
+  const m=route.materiaId?state.materias.find(x=>x.id===route.materiaId):null;
+  if(esProfesor()){
+    const personal=['materias','calendario','logros'].includes(route.view)||(['materiaDetail','tool'].includes(route.view)&&!(m&&m.rol==='docente'));
+    if(personal)route={view:'docente',materiaId:null};
+  }else if(['docente','docExamen','docResultados'].includes(route.view)){
+    route={view:'materias',materiaId:null};
+  }
+}
+function viewPerfilDocenteHTML(){
+  const p=state.profile;
+  const mats=state.materias.filter(m=>m.rol==='docente');
+  const nEx=mats.reduce((a,m)=>a+Object.keys(exMap[m.sharedId]||{}).length,0);
+  return `
+    <div class="viewhead"><h1>👤 Mi perfil</h1></div>
+    <div class="card">
+      <div class="pfhero"><div class="pfav">${esc(p.avatar)}</div><div><h2 style="margin:0">${esc(p.name)||'Profesor'}</h2><p class="meta" style="margin:2px 0 0">${esc(p.career)||'Agrega tu institución'}</p></div></div>
+      <div class="pgs"><div><b>${mats.length}</b>materias</div><div><b>${nEx}</b>exámenes</div></div>
+    </div>
+    <div class="card"><h3>Avatar</h3><div class="avatarPicker">${AV.map(a=>`<button class="avBtn ${a===p.avatar?'on':''}" data-action="setAvatar" data-a="${a}">${a}</button>`).join('')}</div></div>
+    <div class="card">
+      <h3>Editar perfil</h3>
+      <label class="lbl">Nombre (lo verán tus estudiantes)</label><input class="fld" data-action="profileField" data-f="name" value="${esc(p.name)}" maxlength="40">
+      <label class="lbl">Institución</label><input class="fld" data-action="profileField" data-f="career" value="${esc(p.career)}" maxlength="80">
+      <label class="lbl">Escala de notas de tus exámenes</label><select class="fld" data-action="setScale" style="max-width:220px">${[5,10,100].map(n=>`<option value="${n}" ${scaleMax()===n?'selected':''}>0 a ${n}</option>`).join('')}</select>
+      <p class="meta" style="margin:6px 0 0">Se aplica a los exámenes nuevos. Los ya creados conservan su escala.</p>
+    </div>
+    <div class="card">
+      <h3>Tipo de cuenta</h3>
+      <p class="meta">Estás en el portal docente. Si cambias a estudiante verás el cuaderno de estudio; tus materias de profesor no se borran.</p>
+      <div class="row"><button class="sec" data-action="setRol" data-rol="estudiante">🎓 Estudiante</button><button class="pr" data-action="setRol" data-rol="docente">👩‍🏫 Profesor</button></div>
+    </div>
+    <div class="card">
+      <h3>Cuenta</h3>
+      <p class="meta">Conectado como <b>${esc(auth.currentUser&&auth.currentUser.email||'')}</b></p>
+      <button class="sec" data-action="logout">🚪 Cerrar sesión</button>
+    </div>`;
+}
+
+/* ======================= Acciones ======================= */
+document.addEventListener('input',e=>{
+  const el=e.target,k=el.dataset&&el.dataset.ex;
+  if(!k||!exBuf||exBuf.estado!=='borrador')return;
+  if(k==='titulo')exBuf.titulo=el.value;
+  else if(k==='cierre')exBuf.cierre=el.value?new Date(el.value).getTime():0;
+  else{
+    const q=exBuf.preguntas.find(x=>x.id===el.dataset.q);if(!q)return;
+    if(k==='enun')q.enunciado=el.value;
+    else if(k==='opt')q.opciones[+el.dataset.i]=el.value;
+  }
+  exGuardarLuego();
+});
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-action]');if(!b)return;
+  const a=b.dataset.action;
+  const m=b.dataset.id?state.materias.find(x=>x.id===b.dataset.id):null;
+  if(a==='docTab'){docTab=b.dataset.tab;render(true)}
+  else if(a==='newExam'&&m)crearExamen(m);
+  else if(a==='exEditar'&&m)abrirEditor(m,b.dataset.ex);
+  else if(a==='exResultados'&&m){docResSel=null;route={view:'docResultados',materiaId:m.id,examId:b.dataset.ex};render()}
+  else if(a==='exEstado'&&m){
+    try{await baseDe(m).collection('examenes').doc(b.dataset.ex).update({estado:b.dataset.to})}
+    catch(err){console.error(err);alert('No se pudo cambiar el estado'+detalleError(err)+'.')}
+  }
+  else if(a==='exEliminarLista'&&m){
+    if(confirm('¿Eliminar este examen y todas las entregas de tus estudiantes? No se puede deshacer.'))exEliminarExamen(m,b.dataset.ex);
+  }
+  else if(a==='exVolver'){
+    await exGuardarYa();exBuf=null;
+    const mm=materiaRuta();
+    if(mm){docTab='examenes';docTabMat=mm.id;route={view:'materiaDetail',materiaId:mm.id};render()}
+  }
+  else if(a==='exAddQ'&&exBuf){
+    exBuf.preguntas.push({id:uid(),enunciado:'',opciones:['','','',''],correcta:0,temaId:'',temaTitulo:''});
+    exGuardarLuego();render(true);
+  }
+  else if(a==='exDelQ'&&exBuf){
+    exBuf.preguntas=exBuf.preguntas.filter(q=>q.id!==b.dataset.q);exGuardarLuego();render(true);
+  }
+  else if(a==='exCorrecta'&&exBuf&&exBuf.estado==='borrador'){
+    const q=exBuf.preguntas.find(x=>x.id===b.dataset.q);if(q){q.correcta=+b.dataset.i;exGuardarLuego();render(true)}
+  }
+  else if(a==='exGenerar'&&exBuf){
+    const mm=materiaRuta();if(!mm)return;
+    const ids=[...document.querySelectorAll('.exTema:checked')].map(x=>x.value);
+    const n=Math.max(1,Math.min(40,parseInt($('exN').value)||10));
+    if(!ids.length){alert('Elige al menos un tema.');return}
+    const nuevas=generarPreguntas(mm,ids,n);
+    if(!nuevas.length){alert('No se pudieron generar preguntas. Los temas elegidos necesitan tarjetas, y la materia necesita al menos 2 respuestas distintas.');return}
+    exBuf.preguntas=exBuf.preguntas.concat(nuevas);exGuardarLuego();render(true);
+  }
+  else if(a==='exPublicar'&&exBuf){
+    const err=validarExamen(exBuf);if(err){alert(err);return}
+    if(!confirm('¿Publicar el examen? Tus estudiantes lo verán de inmediato y ya no podrás editarlo.'))return;
+    exBuf.estado='publicado';exBuf.publicadoEn=Date.now();
+    await exGuardarYa();render(true);
+  }
+  else if(a==='exABorrador'&&exBuf){
+    const mm=materiaRuta();
+    if(Object.values(inMap[mm.sharedId]||{}).some(i=>i.examId===exBuf.id)){alert('Ya hay estudiantes que lo presentaron, así que no se puede volver a borrador. Puedes cerrarlo.');return}
+    exBuf.estado='borrador';await exGuardarYa();render(true);
+  }
+  else if(a==='exEliminar'&&exBuf){
+    const mm=materiaRuta();
+    if(mm&&confirm('¿Eliminar este examen? No se puede deshacer.')){
+      const id=exBuf.id;exBuf=null;clearTimeout(exGuardarT);
+      await exEliminarExamen(mm,id);
+      docTab='examenes';docTabMat=mm.id;route={view:'materiaDetail',materiaId:mm.id};render();
+    }
+  }
+  else if(a==='resFila'){docResSel=docResSel===b.dataset.u?null:b.dataset.u;render(true)}
+  else if(a==='exRepetir'){
+    const mm=materiaRuta();
+    if(mm&&confirm('¿Permitir que este estudiante vuelva a presentar el examen? Se borra su entrega actual.')){
+      try{await baseDe(mm).collection('intentos').doc(route.examId+'_'+b.dataset.u).delete()}
+      catch(err){console.error(err);alert('No se pudo borrar la entrega'+detalleError(err)+'.')}
+    }
+  }
+  else if(a==='exCsv'){const mm=materiaRuta(),ex=mm&&(exMap[mm.sharedId]||{})[route.examId];if(ex)descargarCsv(mm,ex)}
+  else if(a==='exPresentar'&&m)abrirExamenEst(m,b.dataset.ex);
+  else if(a==='exResp'&&exTom){exTom.respuestas[b.dataset.q]=+b.dataset.i;render(true)}
+  else if(a==='exEntregar'){const mm=materiaRuta();if(mm)entregarExamenEst(mm)}
+});
 
 })();
 </script>
