@@ -102,7 +102,7 @@ const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const fmtDateLong=s=>new Date(s+'T00:00').toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'});
 const relDate=s=>{const n=Math.round((new Date(s+'T00:00')-new Date(ymd(new Date())+'T00:00'))/864e5);return n==0?'hoy':n==1?'mañana':n>1?`en ${n} días`:`hace ${-n} días`};
-const TY={ex:'📝 Examen',en:'📤 Entrega',ot:'📌 Otro'};
+const TY={ex:'📝 Examen',en:'📤 Entrega',ac:'🎯 Actividad',ot:'📌 Otro'};
 const AV=['🎓','📚','🦉','🐱','🦊','🐼','🌸','⭐','🔥','🌙'];
 
 /* ================= ESTADO ================= */
@@ -964,17 +964,19 @@ function viewCalendarioHTML(){
   const monthNames=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   const first=new Date(y,m,1),startOff=(first.getDay()+6)%7,daysInMonth=new Date(y,m+1,0).getDate();
   const todayStr=ymd(new Date());
-  const evByDate={};state.events.forEach(e=>{(evByDate[e.date]=evByDate[e.date]||[]).push(e)});
+  const todosEv=eventosTodos();
+  const evByDate={};todosEv.forEach(e=>{(evByDate[e.date]=evByDate[e.date]||[]).push(e)});
   let cells='';
   for(let i=0;i<startOff;i++)cells+='<div class="dcell empty"></div>';
   for(let d=1;d<=daysInMonth;d++){
     const ds=ymd(new Date(y,m,d));
     const has=evByDate[ds];
-    cells+=`<button class="dcell ${ds===todayStr?'today':''} ${ds===calView.sel?'sel':''}" data-action="selDay" data-date="${ds}">${d}${has?'<i class="dot"></i>':''}</button>`;
+    cells+=`<button class="dcell ${ds===todayStr?'today':''} ${ds===calView.sel?'sel':''}" data-action="selDay" data-date="${ds}">${d}${has?(has.some(x=>!x.docente)?'<i class="dot"></i>':'')+(has.some(x=>x.docente)?'<i class="dot doc"></i>':''):''}</button>`;
   }
   const sel=calView.sel;
-  const selEvents=sel?(evByDate[sel]||[]):[];
-  const upcoming=state.events.filter(e=>e.date>=todayStr).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,8);
+  const selEvents=sel?(evByDate[sel]||[]).slice().sort(sortEv):[];
+  const soyDoc=state.materias.some(x=>x.rol==='docente'&&x.sharedId);
+  const upcoming=todosEv.filter(e=>e.date>=todayStr).sort(sortEv).slice(0,8);
   return `
     <div class="viewhead"><h1>🗓️ Calendario</h1></div>
     <div class="calNav">
@@ -985,11 +987,11 @@ function viewCalendarioHTML(){
     <div class="calGrid">${['L','M','X','J','V','S','D'].map(x=>`<i class="dh">${x}</i>`).join('')}${cells}</div>
     ${sel?`<div class="card">
       <h3>${fmtDateLong(sel)}</h3>
-      ${selEvents.length?selEvents.map(e=>`<div class="li"><span>${TY[e.type]||'📌'} ${esc(e.title)}</span><button class="icon-btn" data-action="delEvent" data-id="${e.id}">🗑️</button></div>`).join(''):'<p class="meta">Sin eventos este día.</p>'}
-      <button class="sec" style="margin-top:10px" data-action="addEvent" data-date="${sel}">+ Agregar evento</button>
+      ${selEvents.length?selEvents.map(e=>e.docente?evDocFilaHTML(e,true):`<div class="li"><span>${TY[e.type]||'📌'} ${esc(e.title)}</span><button class="icon-btn" data-action="delEvent" data-id="${e.id}">🗑️</button></div>`).join(''):'<p class="meta">Sin eventos este día.</p>'}
+      <div class="row" style="margin-top:10px;flex-wrap:wrap"><button class="sec" data-action="addEvent" data-date="${sel}">+ Agregar evento</button>${soyDoc?`<button class="pr" data-action="newEvDocCal" data-date="${sel}">👩‍🏫 Evento para mis estudiantes</button>`:''}</div>
     </div>`:'<p class="meta">Toca un día para ver o agregar eventos.</p>'}
     <h3>Próximos</h3>
-    ${upcoming.length?upcoming.map(e=>`<div class="li"><span><b>${TY[e.type]||'📌'}</b> ${esc(e.title)}<br><small>${fmtDateLong(e.date)} · ${relDate(e.date)}</small></span></div>`).join(''):'<p class="meta">No tienes eventos próximos.</p>'}
+    ${upcoming.length?upcoming.map(e=>`<div class="li"><span><b>${e.docente?tipoEv(e.type):(TY[e.type]||'📌')}</b> ${esc(e.title)}${e.hora?` · 🕒 ${esc(e.hora)}`:''}<br><small>${e.docente?esc(e.icon)+' '+esc(e.materia)+' · ':''}${fmtDateLong(e.date)} · ${relDate(e.date)}</small></span></div>`).join(''):'<p class="meta">No tienes eventos próximos.</p>'}
   `;
 }
 
@@ -1608,7 +1610,7 @@ function quitarTemaLocal(id){
 }
 /* Repinta sin interrumpir: si estoy escribiendo, espera a que suelte el campo */
 function renderSeguro(){
-  if(!['materias','materiaDetail','perfil','docente','logros','docResultados','examenDoc'].includes(route.view))return;
+  if(!['materias','materiaDetail','perfil','docente','logros','docResultados','examenDoc','calendario'].includes(route.view))return;
   const a=document.activeElement;
   if(a&&a.matches&&a.matches('textarea,input,select')&&$('view').contains(a)){pendingRender=true;return}
   render(true);
@@ -1670,6 +1672,7 @@ function escucharCompartida(m){
   sharedUnsub[sid]=[u1,u2];
   if(m.rol==='docente')sharedUnsub[sid].push(escucharInvitaciones(sid));
   if(m.rol==='docente'||m.rol==='estudiante')escucharExamenes(m).forEach(f=>sharedUnsub[sid].push(f));
+  if(m.rol==='docente'||m.rol==='estudiante')sharedUnsub[sid].push(escucharEventos(m));
 }
 function detener(sid){
   (sharedUnsub[sid]||[]).forEach(f=>{try{f()}catch(e){}});
@@ -2594,7 +2597,133 @@ function escucharExamenes(m){
   },aviso('claves')));
   return u;
 }
-function limpiarExamenes(sid){delete exMap[sid];delete clMap[sid];delete inMap[sid]}
+function limpiarExamenes(sid){delete exMap[sid];delete clMap[sid];delete inMap[sid];delete evMap[sid]}
+
+/* ======================= EVENTOS DEL DOCENTE EN EL CALENDARIO ======================= */
+/* Viven en temarios/{sid}/eventos. El docente (dueño) escribe; los estudiantes de la materia solo leen. */
+const evMap={};   // sid -> {id: evento}
+const TIPOS_EV=[['ex','📝 Examen'],['en','📤 Entrega'],['ac','🎯 Actividad'],['ot','📌 Otro']];
+function escucharEventos(m){
+  const sid=m.sharedId;
+  return refTemario(sid).collection('eventos').onSnapshot(snap=>{
+    evMap[sid]={};snap.docs.forEach(d=>{evMap[sid][d.id]={id:d.id,...d.data()}});renderSeguro();
+  },err=>console.warn('Eventos:',err));
+}
+function eventosDocentes(){
+  const out=[];
+  state.materias.forEach(m=>{
+    if(!m.sharedId||(m.rol!=='docente'&&m.rol!=='estudiante'))return;
+    Object.values(evMap[m.sharedId]||{}).forEach(e=>{
+      if(!e.date)return;
+      out.push({id:'d:'+m.sharedId+':'+e.id,evId:e.id,sid:m.sharedId,materiaId:m.id,materia:m.name,icon:m.icon||'📘',
+        date:e.date,title:e.title||'(sin título)',type:e.type||'ot',hora:e.hora||'',nota:e.nota||'',by:e.by||'',docente:true,editable:m.rol==='docente'});
+    });
+  });
+  return out;
+}
+const eventosTodos=()=>state.events.concat(eventosDocentes());
+const tipoEv=t=>(TIPOS_EV.find(x=>x[0]===t)||['','📌 Otro'])[1];
+const sortEv=(a,b)=>a.date.localeCompare(b.date)||(a.hora||'99').localeCompare(b.hora||'99');
+
+/* Fila de un evento del docente (calendario del estudiante y del docente) */
+function evDocFilaHTML(e,conMateria){
+  return `<div class="li evDoc"><span><b>${tipoEv(e.type)}</b> · ${esc(e.title)}${e.hora?` <small>🕒 ${esc(e.hora)}</small>`:''}
+    <br><small class="meta">${conMateria?`${esc(e.icon)} ${esc(e.materia)} · `:''}${e.editable?'Publicado para tus estudiantes':'👩‍🏫 '+esc(e.by||'Tu docente')}${e.nota?' · '+esc(e.nota):''}</small></span>
+    ${e.editable?`<span class="row" style="margin:0"><button class="icon-btn" data-action="editEvDoc" data-sid="${e.sid}" data-ev="${e.evId}" title="Editar evento" aria-label="Editar evento">✏️</button><button class="icon-btn" data-action="delEvDoc" data-sid="${e.sid}" data-ev="${e.evId}" title="Eliminar evento" aria-label="Eliminar evento">🗑️</button></span>`:''}</div>`;
+}
+
+/* Pestaña "Calendario" del espacio docente */
+function docenteEventosHTML(m){
+  const hoy=ymd(new Date());
+  const todos=Object.values(evMap[m.sharedId]||{}).filter(e=>e.date).map(e=>({...e,evId:e.id,sid:m.sharedId,editable:true,materia:m.name,icon:m.icon||'📘'})).sort(sortEv);
+  const prox=todos.filter(e=>e.date>=hoy),pas=todos.filter(e=>e.date<hoy).reverse();
+  const fila=e=>`<div class="li evDoc"><span><b>${tipoEv(e.type)}</b> · ${esc(e.title)}${e.hora?` <small>🕒 ${esc(e.hora)}</small>`:''}
+    <br><small class="meta">${fmtDateLong(e.date)} · ${relDate(e.date)}${e.nota?' · '+esc(e.nota):''}</small></span>
+    <span class="row" style="margin:0"><button class="icon-btn" data-action="editEvDoc" data-sid="${e.sid}" data-ev="${e.evId}" title="Editar evento" aria-label="Editar evento">✏️</button><button class="icon-btn" data-action="delEvDoc" data-sid="${e.sid}" data-ev="${e.evId}" title="Eliminar evento" aria-label="Eliminar evento">🗑️</button></span></div>`;
+  const n=nEstudiantes(m);
+  return `<div class="card shareBox">
+    <b style="font-size:.9em">🗓️ Calendario de la materia</b>
+    <p class="meta" style="margin:4px 0 0">Los eventos que agregues aparecen en el calendario de ${n?`tus <b>${n}</b> estudiante${n==1?'':'s'}`:'tus estudiantes'} (y en el tuyo). Puedes editarlos o eliminarlos cuando quieras y el cambio les llega en vivo.</p>
+    <button class="pr" style="margin-top:10px" data-action="newEvDoc" data-id="${m.id}">+ Agregar evento</button>
+  </div>
+  <h3>Próximos</h3>
+  ${prox.length?prox.map(fila).join(''):'<p class="meta">No hay eventos próximos.</p>'}
+  ${pas.length?`<details class="evPas"><summary class="meta">Anteriores (${pas.length})</summary>${pas.map(fila).join('')}</details>`:''}`;
+}
+
+/* Formulario (ventana) para crear o editar */
+function abrirEventoForm({sid=null,ev=null,fecha=''}={}){
+  const docs=state.materias.filter(x=>x.rol==='docente'&&x.sharedId);
+  if(!docs.length){alert('Primero crea una materia en tu espacio docente.');return}
+  if(document.getElementById('evOverlay'))return;
+  const cur=ev?(evMap[sid]||{})[ev]:null;
+  if(ev&&!cur)return;
+  const selSid=sid||docs[0].sharedId;
+  const ov=document.createElement('div');
+  ov.id='evOverlay';ov.className='rolOverlay';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-labelledby','evTitulo');
+  ov.innerHTML=`<form class="rolBox evBox" id="evForm" novalidate>
+    <h2 id="evTitulo" style="margin:0 0 4px">${cur?'Editar evento':'Nuevo evento'}</h2>
+    <p class="meta" style="margin:0 0 6px">Lo verán los estudiantes de la materia en su calendario.</p>
+    <label class="lbl" for="evMat">Materia</label>
+    <select class="fld" id="evMat" ${cur||docs.length==1?'disabled':''}>${docs.map(x=>`<option value="${x.sharedId}" ${x.sharedId===selSid?'selected':''}>${esc(x.icon||'📘')} ${esc(x.name)}</option>`).join('')}</select>
+    <label class="lbl" for="evTit">Título</label>
+    <input class="fld" id="evTit" maxlength="120" required placeholder="Ej. Parcial 1 · Unidades 1 a 3" value="${esc(cur?cur.title:'')}">
+    <div class="two">
+      <div><label class="lbl" for="evTipo">Tipo</label><select class="fld" id="evTipo">${TIPOS_EV.map(([k,t])=>`<option value="${k}" ${(cur?cur.type:'ex')===k?'selected':''}>${t}</option>`).join('')}</select></div>
+      <div><label class="lbl" for="evFecha">Fecha</label><input class="fld" type="date" id="evFecha" required value="${esc(cur?cur.date:fecha)}"></div>
+    </div>
+    <label class="lbl" for="evHora">Hora (opcional)</label>
+    <input class="fld" type="time" id="evHora" value="${esc(cur?cur.hora||'':'')}">
+    <label class="lbl" for="evNota">Detalle (opcional)</label>
+    <textarea class="fld" id="evNota" maxlength="500" placeholder="Salón, temas, material permitido…">${esc(cur?cur.nota||'':'')}</textarea>
+    <p id="evErr" class="authError" hidden></p>
+    <div class="row evBtns"><button type="button" class="sec" id="evCancel">Cancelar</button><button type="submit" class="pr" id="evSave">${cur?'Guardar cambios':'Agregar al calendario'}</button></div>
+  </form>`;
+  const cerrar=()=>{ov.remove();document.removeEventListener('keydown',esc_)};
+  const esc_=e=>{if(e.key==='Escape')cerrar()};
+  document.addEventListener('keydown',esc_);
+  ov.addEventListener('mousedown',e=>{if(e.target===ov)cerrar()});
+  document.body.appendChild(ov);
+  ov.querySelector('#evCancel').onclick=cerrar;
+  ov.addEventListener('input',()=>{ov.querySelector('#evErr').hidden=true});
+  ov.querySelector('#evForm').addEventListener('submit',async e=>{
+    e.preventDefault();
+    const q=id=>ov.querySelector('#'+id).value;
+    const title=q('evTit').trim(),date=q('evFecha'),err=ov.querySelector('#evErr');
+    if(!title){err.textContent='Escribe un título.';err.hidden=false;return}
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){err.textContent='Elige una fecha válida.';err.hidden=false;return}
+    const btn=ov.querySelector('#evSave');btn.disabled=true;btn.textContent='Guardando…';
+    const ok=await guardarEventoDoc(q('evMat'),ev,{title,date,type:q('evTipo'),hora:q('evHora'),nota:q('evNota').trim()});
+    if(ok){if(calView)calView.sel=date;cerrar()}else{btn.disabled=false;btn.textContent=cur?'Guardar cambios':'Agregar al calendario'}
+  });
+  setTimeout(()=>{const t=ov.querySelector('#evTit');if(t)t.focus()},30);
+}
+async function guardarEventoDoc(sid,evId,d){
+  const m=state.materias.find(x=>x.sharedId===sid&&x.rol==='docente');
+  if(!m)return false;
+  const col=refTemario(sid).collection('eventos'),ref=evId?col.doc(evId):col.doc();
+  const ts=firebase.firestore.FieldValue.serverTimestamp();
+  const datos={title:d.title,date:d.date,type:d.type,hora:d.hora||'',nota:d.nota||'',by:miNombre(),actualizado:ts};
+  if(!evId)datos.creado=ts;
+  try{await ref.set(datos,{merge:true});return true}
+  catch(e){console.error(e);alert('No se pudo guardar el evento'+detalleError(e)+'. Si dice permission-denied, publica las reglas nuevas de firestore.rules en Firebase.');return false}
+}
+async function borrarEventoDoc(sid,evId){
+  const m=state.materias.find(x=>x.sharedId===sid&&x.rol==='docente');
+  if(!m)return;
+  if(!confirm('¿Eliminar este evento del calendario de tus estudiantes?'))return;
+  try{await refTemario(sid).collection('eventos').doc(evId).delete()}
+  catch(e){console.error(e);alert('No se pudo eliminar el evento'+detalleError(e)+'.')}
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-action]');if(!b)return;
+  const a=b.dataset.action;
+  if(a==='newEvDoc'){const m=state.materias.find(x=>x.id===b.dataset.id);if(m&&m.sharedId)abrirEventoForm({sid:m.sharedId,fecha:ymd(new Date())})}
+  else if(a==='newEvDocCal')abrirEventoForm({fecha:b.dataset.date||''});
+  else if(a==='editEvDoc')abrirEventoForm({sid:b.dataset.sid,ev:b.dataset.ev});
+  else if(a==='delEvDoc')borrarEventoDoc(b.dataset.sid,b.dataset.ev);
+});
+
 /* El estudiante trae la clave solo cuando ya entregó (las reglas no se la dan antes) */
 async function asegurarClave(m,exId){
   const sid=m.sharedId,k=sid+'/'+exId;
@@ -2609,7 +2738,7 @@ async function asegurarClave(m,exId){
 
 /* ======================= DOCENTE: pestañas de la materia ======================= */
 function docenteTabsHTML(m){
-  const tabs=[['contenido','📚 Contenido'],['examenes','📝 Exámenes'],['estudiantes','👥 Estudiantes']];
+  const tabs=[['contenido','📚 Contenido'],['examenes','📝 Exámenes'],['eventos','🗓️ Calendario'],['estudiantes','👥 Estudiantes']];
   return `<div class="tabsT docTabs" style="margin:14px 0">${tabs.map(([k,t])=>`<button type="button" data-action="docTab" data-tab="${k}" class="${docTab===k?'on':''}">${t}</button>`).join('')}</div>`;
 }
 function docentePanelHTML(m){
@@ -2639,7 +2768,7 @@ function viewDocenteTabHTML(m){
   return `<button class="sec" data-action="backDocente">← Mis materias</button>
     <div class="viewhead" style="margin-top:14px"><h1>${esc(m.icon||'📘')} ${esc(m.name)}</h1></div>
     ${docenteTabsHTML(m)}
-    ${docTab==='examenes'?docenteExamenesHTML(m):docenteEstudiantesHTML(m)}`;
+    ${docTab==='examenes'?docenteExamenesHTML(m):docTab==='eventos'?docenteEventosHTML(m):docenteEstudiantesHTML(m)}`;
 }
 
 /* ---------- Lista de exámenes ---------- */
