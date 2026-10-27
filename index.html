@@ -9,16 +9,17 @@
 <title>Mi cuaderno de estudio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
 /* Hecho por Sebastián Poveda y Santiago Romero. 2026 — Mi cuaderno de estudio · estilos */
 :root{
-  --bg:#f5f1e8;--c:#fffdf8;--t:#25211d;--m:#8a7f70;--a:#7a2e2c;--al:#f2e2dc;--b:#e6ddc9;--ok:#3f7d5c;--no:#a8433a;
+  --bg:#F4F2EE;--c:#FFFFFF;--t:#17181C;--m:#5E6472;--a:#B9472A;--al:#F8E8E1;--b:#E4E0D8;--ok:#3f7d5c;--no:#B3261E;
+  --panel:#FFFFFF;--card:#FAF9F6;--hover:#EFECE6;--line2:#CFCAC0;--on:#FFFFFF;--glow:rgba(185,71,42,.14);--dsoft:#FBE9E7;--danger:#B3261E;--shadow:0 1px 2px rgba(30,25,15,.05),0 12px 28px -18px rgba(30,25,15,.25);--dot:rgba(23,24,28,.07);--gl:rgba(23,24,28,.05);--glass:rgba(255,255,255,.94);--glass2:rgba(250,249,246,.85);
   --serif:'Fraunces',Georgia,"Times New Roman",serif;--sans:'Inter',system-ui,-apple-system,"Segoe UI",sans-serif;
   box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)
 }
-:root[data-theme=dark]{--bg:#1b1e24;--c:#242830;--t:#e7e9ec;--m:#9aa1ac;--a:#dc9c86;--al:#333944;--b:#343a45}
-@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#1b1e24;--c:#242830;--t:#e7e9ec;--m:#9aa1ac;--a:#dc9c86;--al:#333944;--b:#343a45}}
+:root[data-theme=dark]{--bg:#0B0D12;--c:#11141B;--t:#EAEDF3;--m:#8B95A7;--a:#F4A78C;--al:#241B1A;--b:#1E2430;--no:#F08A82;--panel:#11141B;--card:#0D1016;--hover:#171C26;--line2:#2A3240;--on:#1A0E0A;--glow:rgba(244,167,140,.16);--dsoft:#2A1A1C;--danger:#F08A82;--shadow:0 1px 0 rgba(255,255,255,.03) inset,0 12px 32px -16px rgba(0,0,0,.6);--dot:rgba(255,255,255,.06);--gl:rgba(255,255,255,.045);--glass:rgba(17,20,27,.92);--glass2:rgba(13,16,22,.75)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0B0D12;--c:#11141B;--t:#EAEDF3;--m:#8B95A7;--a:#F4A78C;--al:#241B1A;--b:#1E2430;--no:#F08A82;--panel:#11141B;--card:#0D1016;--hover:#171C26;--line2:#2A3240;--on:#1A0E0A;--glow:rgba(244,167,140,.16);--dsoft:#2A1A1C;--danger:#F08A82;--shadow:0 1px 0 rgba(255,255,255,.03) inset,0 12px 32px -16px rgba(0,0,0,.6);--dot:rgba(255,255,255,.06);--gl:rgba(255,255,255,.045);--glass:rgba(17,20,27,.92);--glass2:rgba(13,16,22,.75)}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--t);font:15.5px/1.65 var(--sans);-webkit-font-smoothing:antialiased}
 h1,h2,h3,h4{font-family:var(--serif);font-weight:500;margin:.4em 0;letter-spacing:-.01em}
@@ -28,7 +29,7 @@ button{font:inherit;color:inherit;cursor:pointer;background:none}
 input,textarea{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--b);border-radius:10px;padding:9px 12px;width:100%}
 input:focus,textarea:focus{outline:0;border-color:var(--a);box-shadow:0 0 0 3px color-mix(in srgb,var(--a) 14%,transparent)}
 textarea{min-height:110px;resize:vertical;font-family:inherit}
-.pr{border:1px solid var(--a);background:var(--a);color:#fff;border-radius:10px;padding:9px 16px;font-weight:600}
+.pr{border:1px solid var(--a);background:var(--a);color:var(--on);border-radius:10px;padding:9px 16px;font-weight:600}
 .sec{border:1px solid var(--b);background:transparent;border-radius:10px;padding:8px 14px;color:var(--t)}
 .sec:hover,.pr:hover{filter:brightness(1.05)}
 .icon-btn{border:1px solid var(--b);background:transparent;border-radius:50%;width:36px;height:36px;flex:none;display:flex;align-items:center;justify-content:center}
@@ -98,7 +99,7 @@ textarea{min-height:110px;resize:vertical;font-family:inherit}
 .authCard>p.meta{text-align:center;margin-top:0}
 .authTabs{display:flex;gap:6px;background:var(--bg);border-radius:10px;padding:4px;margin:16px 0}
 .authTabs button{flex:1;padding:8px;border-radius:8px;font-weight:600;color:var(--m)}
-.authTabs button.on{background:var(--a);color:#fff}
+.authTabs button.on{background:var(--a);color:var(--on)}
 #authForm input{margin-bottom:10px}
 #authForm .pr{width:100%}
 .authError{background:#a8433a20;color:var(--no);border-radius:10px;padding:10px 12px;font-size:.9em;margin-top:12px}
@@ -478,15 +479,126 @@ body.modoProfe{--a:#2f5d8a;--al:#e3ecf5}
   .toast.on{animation:anPop .5s ease}
 }
 .docRO [data-action="addTema"],.docRO [data-action="delTema"],.docRO [data-action="addSec"],.docRO .secFoot,.docRO [data-action="addCard"],.docRO [data-action="delCard"],.docRO .iaCard{display:none!important}
+/* ===== Rediseño visual (solo estilos) ===== */
+.fx{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.fx:before{content:"";position:absolute;inset:0;background-image:radial-gradient(var(--dot) 1px,transparent 1.3px);background-size:26px 26px;-webkit-mask-image:radial-gradient(ellipse 85% 75% at 50% 25%,#000 15%,transparent 80%);mask-image:radial-gradient(ellipse 85% 75% at 50% 25%,#000 15%,transparent 80%)}
+.fx:after{content:"";position:absolute;inset:0;background:radial-gradient(900px 420px at 50% -120px,var(--glow),transparent 70%)}
+#appRoot{position:relative;z-index:1}
+body{transition:background .3s}
+/* barra superior y navegación */
+header#topbar{padding:12px 28px;gap:14px;background:color-mix(in srgb,var(--bg) 70%,transparent);-webkit-backdrop-filter:blur(16px) saturate(1.3);backdrop-filter:blur(16px) saturate(1.3)}
+header#topbar b{font:600 20px var(--serif);letter-spacing:-.01em;margin-right:auto}
+#searchWrap{max-width:420px}
+#searchBox{height:44px;background:var(--glass);border-color:var(--b)}
+#searchBox:focus{border-color:var(--a);box-shadow:0 0 0 3px var(--glow)}
+header#topbar .icon-btn{width:44px;height:44px;background:var(--glass);color:var(--m);transition:color .15s,border-color .15s,box-shadow .15s}
+header#topbar .icon-btn:hover{background:var(--glass);color:var(--a);border-color:var(--a);box-shadow:0 0 0 3px var(--glow)}
+nav#mainNav{max-width:1180px;margin:0 auto;padding:10px 24px;background:transparent;border-bottom:0;gap:4px}
+nav#mainNav button{height:44px;padding:0 18px;font-weight:500;transition:background .15s,color .15s}
+nav#mainNav button:hover{background:var(--hover);color:var(--t)}
+nav#mainNav button.on{background:var(--al);color:var(--a);font-weight:600}
+main#view:has(.mv){max-width:1180px;padding:28px 24px 72px}
+/* login */
+#authScreen{background:var(--bg);overflow:hidden}
+#authScreen:before{content:"";position:absolute;inset:0;background-image:linear-gradient(var(--gl) 1px,transparent 1px),linear-gradient(90deg,var(--gl) 1px,transparent 1px);background-size:48px 48px;-webkit-mask-image:radial-gradient(ellipse 55% 50% at 50% 45%,#000 10%,transparent 75%);mask-image:radial-gradient(ellipse 55% 50% at 50% 45%,#000 10%,transparent 75%);pointer-events:none}
+#authScreen:after{content:"";position:absolute;left:50%;top:46%;width:620px;height:620px;max-width:100vw;transform:translate(-50%,-55%);background:radial-gradient(circle,var(--glow),transparent 65%);pointer-events:none}
+.authCard{position:relative;z-index:2;max-width:400px;background:var(--glass);-webkit-backdrop-filter:blur(20px) saturate(1.4);backdrop-filter:blur(20px) saturate(1.4);border:1px solid var(--line2);border-radius:22px;box-shadow:var(--shadow);padding:34px}
+.authCard:before{content:"";position:absolute;left:28px;right:28px;top:-1px;height:1px;background:linear-gradient(90deg,transparent,var(--a),transparent)}
+.authCard h1.brand{display:flex;align-items:center;justify-content:center;gap:10px;font:600 28px var(--serif);letter-spacing:-.01em}
+.sys{display:flex;align-items:center;justify-content:center;gap:8px;font:500 12px "JetBrains Mono",monospace;color:var(--m);margin:10px 0 0}
+.sys i{width:7px;height:7px;border-radius:50%;background:var(--a);box-shadow:0 0 0 3px var(--glow),0 0 10px var(--a)}
+.googleBtn{height:46px;border-radius:12px;border-color:var(--line2);background:var(--glass)}
+.authTabs{background:color-mix(in srgb,var(--bg) 80%,transparent);border-radius:12px}
+.authTabs button{height:40px;border-radius:9px;border:0}
+#authForm input{height:46px;border-radius:10px;border-color:var(--line2);background:color-mix(in srgb,var(--bg) 70%,transparent);padding:0 14px}
+#authForm input:focus{border-color:var(--a);box-shadow:0 0 0 3px var(--glow)}
+#authForm .pr{height:46px;border-radius:12px}
+/* vista Materias (todo con prefijo .mv para no afectar otras pantallas) */
+.mv{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:28px;align-items:start}
+.mv-col{min-width:0}
+.mv h1{font-size:40px;font-weight:600;line-height:1.1;margin:0}
+.mv .viewhead{align-items:flex-end;flex-wrap:wrap;margin:0 0 28px}
+.mv .sub{margin:6px 0 0;color:var(--m);font-size:14px}
+.mv .sec,.mv .pr{height:44px;padding:0 18px;border-radius:12px;white-space:nowrap}
+.mv .sec{background:var(--glass);border-color:var(--line2)}
+.mv .sec:hover{background:var(--hover)}
+.mv details.sem{border:1px solid var(--b);border-radius:20px;background:var(--glass);-webkit-backdrop-filter:blur(14px) saturate(1.2);backdrop-filter:blur(14px) saturate(1.2);box-shadow:var(--shadow);padding:20px;margin-bottom:20px}
+.mv details.sem>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:0 4px}
+.mv details.sem>summary::-webkit-details-marker{display:none}
+.mv details.sem[open]>summary{margin-bottom:16px}
+.mv .semT h2{font-size:22px;font-weight:600;margin:0;color:var(--t)}
+.mv .semT p{margin:0;color:var(--m);font-size:13px}
+.mv .grid{display:flex;flex-direction:column;gap:10px}
+.mcard{position:relative;overflow:hidden;border:1px solid var(--b);border-radius:14px;background:var(--glass2);padding:14px 16px 14px 24px;display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,190px) auto;align-items:center;gap:20px;transition:border-color .15s,transform .15s}
+.mcard:hover{border-color:var(--line2);transform:translateY(-1px)}
+.mcard:before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--mc)}
+.mcard h3{font-size:17px;font-weight:600;line-height:1.3;margin:0}
+.mcard .ttl,.mcard .info{min-width:0}
+.mcard .sub2{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:4px}
+.mcard .info{display:flex;flex-direction:column;gap:8px}
+.mcard .avg{display:flex;align-items:baseline;gap:6px}
+.mcard .avg b{font:600 32px/1 var(--serif);letter-spacing:-.02em}
+.mcard .avg span{color:var(--m);font-size:13px}
+.mbar{height:4px;border-radius:9px;background:var(--b);overflow:hidden}
+.mbar i{display:block;height:100%;border-radius:9px;background:var(--mc)}
+.mtag{font-size:12px;font-weight:600;padding:2px 10px;border-radius:99px;background:var(--al);color:var(--a)}
+.macts{display:flex;align-items:center;gap:8px}
+.mopen{height:40px;padding:0 13px;display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:99px;background:var(--mc);color:#10131A;font-size:13px;font-weight:600;flex:none;transition:filter .15s}
+.mopen:hover{filter:brightness(1.07)}
+.mopen svg{width:14px;height:14px;transition:transform .15s}
+.mopen:hover svg{transform:translateX(3px)}
+.mopen .lb{max-width:0;overflow:hidden;opacity:0;transition:max-width .2s,opacity .15s,margin .2s}
+.mopen:hover .lb,.mopen:focus-visible .lb{max-width:50px;opacity:1;margin-right:7px}
+.mpair{display:inline-flex;align-items:center;border:1px solid var(--b);border-radius:99px;background:var(--panel);flex:none}
+.mpair i{width:1px;height:18px;background:var(--b)}
+.mpair .icon-btn{border:0;border-radius:99px;width:40px;height:38px;color:var(--m)}
+.mpair .icon-btn:hover{background:var(--hover);color:var(--t)}
+.mpair .icon-btn.del:hover{color:var(--danger);background:var(--dsoft)}
+.mpair svg{width:15px;height:15px}
+.madd{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.mv .madd .sec{background:none;border-style:dashed;color:var(--m)}
+.mv .madd .sec:hover{color:var(--t);background:var(--hover)}
+/* panel de estadísticas */
+.mv-stats{position:sticky;top:84px;display:flex;flex-direction:column;gap:16px}
+.stPn{border:1px solid var(--b);border-radius:20px;background:var(--glass);box-shadow:var(--shadow);padding:20px}
+.stK{color:var(--m);font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.stRing{position:relative;width:140px;height:140px;margin:14px auto 6px}
+.stRing svg{width:140px;height:140px;display:block}
+.stRc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.stRc b{font:600 34px/1 var(--serif);letter-spacing:-.02em}
+.stRc span{color:var(--m);font-size:12px;margin-top:2px}
+.stNote{margin:0 0 14px;text-align:center;color:var(--m);font-size:12px}
+.stHl{display:flex;flex-direction:column;gap:8px}
+.stHl>div{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border-radius:12px;background:var(--card);border:1px solid var(--b);font-size:13px}
+.stHl span{color:var(--m)}
+.stHl b{display:flex;align-items:center;gap:8px;font-weight:600;min-width:0}
+.stHl b i{width:8px;height:8px;border-radius:50%;background:var(--mc);flex:none}
+.stHl b em{font-style:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stKp{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.stKp>div{padding:12px 14px;border-radius:14px;background:var(--card);border:1px solid var(--b)}
+.stKp b{display:block;font:600 26px/1.1 var(--serif);letter-spacing:-.02em}
+.stKp span{color:var(--m);font-size:12px}
+.stRows{display:flex;flex-direction:column;gap:12px;margin-top:14px}
+.stRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;font-size:13px}
+.stRow span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stRow b{font-weight:600;font-variant-numeric:tabular-nums}
+.stRow .mbar{grid-column:1/-1}
+@media(max-width:980px){.mv{grid-template-columns:minmax(0,1fr)}.mv-stats{position:static}}
+@media(max-width:760px){.mcard{grid-template-columns:1fr;gap:12px}}
+@media(max-width:620px){header#topbar{padding:10px 14px;flex-wrap:wrap}header#topbar b{order:1}#searchWrap{order:3;flex-basis:100%;max-width:none}header#topbar .icon-btn{order:2}nav#mainNav{padding:6px 14px}.mv h1{font-size:32px}.mv details.sem{padding:14px}}
+@media(prefers-reduced-motion:reduce){.mcard,.mopen,.mopen svg,.mopen .lb{transition:none!important}}
+
 </style>
 </head>
 <body>
+<div class="fx" aria-hidden="true"></div>
 
 <!-- Hecho por Sebastián Poveda y Santiago Romero. 2026 · pantalla de acceso -->
 <div id="authScreen">
   <div class="authCard">
-    <h1>📚 Mi cuaderno</h1>
+    <h1 class="brand"><svg width="32" height="32" viewBox="0 0 28 28" aria-hidden="true"><rect x="2" y="6" width="16" height="20" rx="4" fill="#7FB3E6"/><rect x="6" y="3" width="16" height="20" rx="4" fill="#8ED1A4"/><rect x="10" y="6" width="16" height="20" rx="4" fill="#E9A58C"/></svg>Mi cuaderno</h1>
     <p class="meta">Organiza las materias y temas de tu carrera. Tus datos quedan guardados en tu cuenta.</p>
+    <div class="sys"><i></i>conexión cifrada</div>
     <button type="button" class="googleBtn" id="googleBtn">
       <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/><path fill="#FBBC05" d="M10.5 28.7A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.7l-7.9-6.1A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.9 2.3-8.4 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
       Continuar con Google
@@ -820,44 +932,84 @@ function weightedAvg(cortes){
 }
 
 /* ================= VISTA: MIS MATERIAS ================= */
+/* ===== Rediseño: colores por materia, iconos y panel de estadísticas ===== */
+const MAT_COLORS=['#7FB3E6','#A99BE8','#8ED1A4','#E8C27A','#E58FA8','#E9A58C'];
+function matColor(m){let h=0;const k=String(m.id||m.name||'');for(let i=0;i<k.length;i++)h=(h*31+k.charCodeAt(i))>>>0;return MAT_COLORS[h%MAT_COLORS.length]}
+const SVG_A='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+const IC_EDIT=SVG_A+'<path d="M4.5 19.5l.8-3.8L16.4 4.6a1.6 1.6 0 012.3 0l.7.7a1.6 1.6 0 010 2.3L8.3 18.7z"/></svg>';
+const IC_DEL=SVG_A+'<path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12M10 11v5M14 11v5"/></svg>';
+const IC_ARR=SVG_A+'<path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+function pluralMv(n,a,b){return n+' '+(n==1?a:b)}
+
+/* ================= VISTA: MIS MATERIAS ================= */
 function viewMateriasHTML(){
   const sems=state.semesters.filter(x=>!x.oculto);
-  let html=`<div class="viewhead"><h1>📚 Mis materias</h1><span class="row" style="margin:0"><button class="sec" data-action="joinSharedPrompt">🔗 Unirme con código</button><button class="pr" data-action="addSemester">+ Semestre</button></span></div>`;
-  html+=invitacionesHTML();
-  if(!sems.length){
-    html+=`<div class="empty">Aún no tienes semestres. Agrega uno para empezar a organizar tus materias.</div>`;
-  }
-  html+=sems.map(sem=>{
+  const todas=[];
+  const bloques=sems.map(sem=>{
     const mats=state.materias.filter(m=>m.semesterId===sem.id&&m.rol!=='docente');
-    return `<details class="s" open>
-      <summary>🎓 ${esc(sem.name)}
-        <span class="row" style="margin:0">
-          <button class="icon-btn" data-action="renameSemester" data-id="${sem.id}" title="Renombrar semestre">✏️</button>
-          <button class="icon-btn" data-action="delSemester" data-id="${sem.id}" title="Eliminar semestre">🗑️</button>
+    todas.push(...mats);
+    return `<details class="sem" open>
+      <summary>
+        <span class="semT"><h2>🎓 ${esc(sem.name)}</h2><p>${pluralMv(mats.length,'materia','materias')}</p></span>
+        <span class="mpair">
+          <button class="icon-btn" data-action="renameSemester" data-id="${sem.id}" title="Renombrar semestre" aria-label="Renombrar semestre">${IC_EDIT}</button><i></i>
+          <button class="icon-btn del" data-action="delSemester" data-id="${sem.id}" title="Eliminar semestre" aria-label="Eliminar semestre">${IC_DEL}</button>
         </span>
       </summary>
-      <div class="b">
-        <div class="grid">${mats.map(materiaCard).join('')||'<p class="meta">Sin materias en este semestre.</p>'}</div>
-        <div class="row" style="flex-wrap:wrap"><button class="sec" data-action="addMateria" data-sem="${sem.id}">+ Agregar materia</button><button class="sec" data-action="createShared" data-sem="${sem.id}">🤝 Materia compartida</button></div>
-      </div>
+      <div class="grid">${mats.map(materiaCard).join('')||'<p class="meta">Sin materias en este semestre.</p>'}</div>
+      <div class="madd"><button class="sec" data-action="addMateria" data-sem="${sem.id}">+ Agregar materia</button><button class="sec" data-action="createShared" data-sem="${sem.id}">🤝 Materia compartida</button></div>
     </details>`;
   }).join('');
-  return html;
+  return `<div class="mv"><div class="mv-col">
+    <div class="viewhead"><div><h1>Mis materias</h1><p class="sub">${pluralMv(sems.length,'semestre','semestres')} y ${pluralMv(todas.length,'materia','materias')}</p></div>
+      <span class="row" style="margin:0"><button class="sec" data-action="joinSharedPrompt">🔗 Unirme con código</button><button class="pr" data-action="addSemester">+ Semestre</button></span></div>
+    ${invitacionesHTML()}
+    ${sems.length?'':'<div class="empty">Aún no tienes semestres. Agrega uno para empezar a organizar tus materias.</div>'}
+    ${bloques}
+  </div><aside class="mv-stats" aria-label="Resumen del estudiante">${matStatsHTML(sems.length,todas)}</aside></div>`;
 }
 function materiaCard(m){
   const temasCount=state.temas.filter(t=>t.materiaId===m.id).length;
-  const cortes=state.cortes.filter(c=>c.materiaId===m.id);
-  const avg=weightedAvg(cortes);
-  return `<div class="card matCard">
-    <h3>${esc(m.icon||'📘')} ${esc(m.name)}</h3>
-    ${m.rol==='estudiante'?`<p class="meta" style="margin:0">👩‍🏫 Docente: ${esc(nombreDocente(m))} · solo lectura</p>`:m.sharedId?`<p class="meta" style="margin:0">🤝 Compartida · ${nMiembros(m)} persona${nMiembros(m)==1?'':'s'}</p>`:''}
-    <p class="meta">${temasCount} tema${temasCount==1?'':'s'} · ${avg==null?'sin notas registradas':'promedio '+fmtN(avg)+' / '+fmtN(scaleMax())}</p>
-    <div class="row">
-      <button class="sec" data-action="openMateria" data-id="${m.id}">Abrir →</button>
-      <button class="icon-btn" data-action="renameMateria" data-id="${m.id}" title="Editar materia">✏️</button>
-      <button class="icon-btn" data-action="delMateria" data-id="${m.id}" title="Eliminar materia">🗑️</button>
+  const avg=weightedAvg(state.cortes.filter(c=>c.materiaId===m.id));
+  const mx=scaleMax()||5;
+  const tag=m.rol==='estudiante'?`<span class="mtag">👩‍🏫 ${esc(nombreDocente(m))} · solo lectura</span>`
+    :m.sharedId?`<span class="mtag">🤝 Compartida · ${pluralMv(nMiembros(m),'persona','personas')}</span>`:'';
+  const info=avg==null
+    ?`<div class="meta">Sin notas registradas</div><div class="mbar"><i style="width:0"></i></div>`
+    :`<div class="avg"><b>${fmtN(avg)}</b><span>/ ${fmtN(mx)} de promedio</span></div><div class="mbar"><i style="width:${Math.max(0,Math.min(100,avg/mx*100))}%"></i></div>`;
+  return `<div class="mcard" style="--mc:${matColor(m)}">
+    <div class="ttl"><h3>${esc(m.icon||'📘')} ${esc(m.name)}</h3><div class="sub2"><span class="meta">${pluralMv(temasCount,'tema','temas')}</span>${tag}</div></div>
+    <div class="info">${info}</div>
+    <div class="macts">
+      <button class="mopen" data-action="openMateria" data-id="${m.id}" aria-label="Abrir ${esc(m.name)}"><span class="lb">Abrir</span>${IC_ARR}</button>
+      <span class="mpair">
+        <button class="icon-btn" data-action="renameMateria" data-id="${m.id}" title="Editar materia" aria-label="Editar ${esc(m.name)}">${IC_EDIT}</button><i></i>
+        <button class="icon-btn del" data-action="delMateria" data-id="${m.id}" title="Eliminar materia" aria-label="Eliminar ${esc(m.name)}">${IC_DEL}</button>
+      </span>
     </div>
   </div>`;
+}
+function matStatsHTML(nSem,mats){
+  const mx=scaleMax()||5;
+  const rows=mats.map(m=>({m,a:weightedAvg(state.cortes.filter(c=>c.materiaId===m.id))})).filter(x=>x.a!=null);
+  const avg=rows.length?rows.reduce((t,x)=>t+x.a,0)/rows.length:null;
+  const temas=mats.reduce((t,m)=>t+state.temas.filter(x=>x.materiaId===m.id).length,0);
+  const comp=mats.filter(m=>m.sharedId).length;
+  const srt=rows.slice().sort((x,y)=>y.a-x.a);
+  const best=srt[0],low=srt.length>1?srt[srt.length-1]:null;
+  const C=314.16,d=avg==null?0:Math.max(0,Math.min(avg/mx,1))*C;
+  const hl=(lbl,x)=>`<div><span>${lbl}</span><b style="--mc:${matColor(x.m)}"><i></i><em>${esc(x.m.name)}</em> ${fmtN(x.a)}</b></div>`;
+  const resaltes=(best?hl('Mejor promedio',best):'')+(low?hl('Por reforzar',low):'');
+  const filas=srt.map(x=>`<div class="stRow" style="--mc:${matColor(x.m)}"><span>${esc(x.m.name)}</span><b>${fmtN(x.a)}</b><div class="mbar"><i style="width:${Math.max(0,Math.min(100,x.a/mx*100))}%"></i></div></div>`).join('');
+  return `<section class="stPn"><div class="stK">Promedio general</div>
+      <div class="stRing"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--b)" stroke-width="9"/><circle cx="60" cy="60" r="50" fill="none" stroke="var(--a)" stroke-width="9" stroke-linecap="round" stroke-dasharray="${d.toFixed(1)} ${C}" transform="rotate(-90 60 60)"/></svg>
+      <div class="stRc"><b>${avg==null?'—':fmtN(avg)}</b><span>/ ${fmtN(mx)}</span></div></div>
+      <p class="stNote">${avg==null?'Aún no hay notas registradas':'Promedio de '+pluralMv(rows.length,'materia con notas','materias con notas')}</p>
+      <div class="stHl">${resaltes}</div></section>
+    <section class="stPn"><div class="stK">En resumen</div><div class="stKp">
+      <div><b>${nSem}</b><span>${nSem==1?'semestre':'semestres'}</span></div><div><b>${mats.length}</b><span>${mats.length==1?'materia':'materias'}</span></div>
+      <div><b>${temas}</b><span>${temas==1?'tema':'temas'}</span></div><div><b>${comp}</b><span>${comp==1?'compartida':'compartidas'}</span></div></div></section>
+    ${filas?`<section class="stPn"><div class="stK">Promedio por materia</div><div class="stRows">${filas}</div></section>`:''}`;
 }
 
 /* ================= VISTA: DETALLE DE MATERIA ================= */
