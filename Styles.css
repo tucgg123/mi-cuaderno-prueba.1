@@ -574,3 +574,15 @@ main#view:has(.mv){max-width:1180px;padding:28px 24px 72px}
 @media(max-width:760px){.mcard{grid-template-columns:1fr;gap:12px}}
 @media(max-width:620px){header#topbar{padding:10px 14px;flex-wrap:wrap}header#topbar b{order:1}#searchWrap{order:3;flex-basis:100%;max-width:none}header#topbar .icon-btn{order:2}nav#mainNav{padding:6px 14px}.mv h1{font-size:32px}.mv details.sem{padding:14px}}
 @media(prefers-reduced-motion:reduce){.mcard,.mopen,.mopen svg,.mopen .lb{transition:none!important}}
+/* ===== Eventos de docente ===== */
+.evBox{text-align:left;max-width:460px;max-height:92vh;overflow:auto}
+.evBox .fld{margin-bottom:2px}
+.evBox textarea.fld{min-height:84px}
+.evBtns{justify-content:flex-end;margin-top:16px}
+.evDoc{border-left:3px solid var(--a);padding-left:12px;margin:4px 0;border-bottom:0;background:var(--al);border-radius:0 10px 10px 0}
+.evDoc small{font-size:.8em}
+.evPas{margin-top:14px}
+.evPas>summary{cursor:pointer;padding:6px 0}
+.dcell .dot.doc{background:var(--ok)}
+.dcell .dot:has(+.dot.doc){left:calc(50% - 6px)}
+.dcell .dot+.dot.doc{left:calc(50% + 6px)}
