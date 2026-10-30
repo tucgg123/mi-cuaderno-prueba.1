@@ -76,6 +76,26 @@ service cloud.firestore {
         allow write: if request.auth != null
           && request.auth.uid in padre().members
           && ( !esDocente() || padre().ownerUid == request.auth.uid );
+
+        // Documento original que subió el docente (PDF/PPTX), troceado en base64: temas/{temaId}/archivo/{n}
+        // Lo lee quien puede leer el tema (el estudiante solo si el tema está publicado). Lo escribe quien puede escribir el tema.
+        match /archivo/{parte} {
+          allow read: if request.auth != null
+            && request.auth.uid in padre().members
+            && ( !esDocente()
+                 || padre().ownerUid == request.auth.uid
+                 || get(/databases/$(database)/documents/temarios/$(id)/temas/$(temaId)).data.publicado == true );
+          allow create, update: if request.auth != null
+            && request.auth.uid in padre().members
+            && ( !esDocente() || padre().ownerUid == request.auth.uid )
+            && request.resource.data.keys().hasOnly(['i', 'data'])
+            && request.resource.data.i is int
+            && request.resource.data.data is string
+            && request.resource.data.data.size() <= 700000;
+          allow delete: if request.auth != null
+            && request.auth.uid in padre().members
+            && ( !esDocente() || padre().ownerUid == request.auth.uid );
+        }
       }
 
       // ---- Exámenes de una materia de docente ----
