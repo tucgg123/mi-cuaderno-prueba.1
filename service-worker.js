@@ -1,6 +1,6 @@
 /* Mi cuaderno de estudio — service worker (PWA)
    Sube el número de VERSION cuando quieras forzar que todos reciban cambios. */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = 'cuaderno-' + VERSION;
 const BASE = ['/', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
 
