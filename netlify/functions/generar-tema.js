@@ -17,6 +17,7 @@ const ESQUEMA_RESPUESTA = {
   type: 'OBJECT',
   properties: {
     titulo: { type: 'STRING' },
+    resumen: { type: 'STRING' },
     secciones: {
       type: 'ARRAY',
       items: {
@@ -24,6 +25,7 @@ const ESQUEMA_RESPUESTA = {
         properties: {
           titulo: { type: 'STRING' },
           contenido: { type: 'STRING' },
+          relacion: { type: 'STRING' },
           ideas: {
             type: 'ARRAY',
             items: {
@@ -38,8 +40,8 @@ const ESQUEMA_RESPUESTA = {
             }
           }
         },
-        required: ['titulo', 'contenido', 'ideas'],
-        propertyOrdering: ['titulo', 'contenido', 'ideas']
+        required: ['titulo', 'contenido', 'relacion', 'ideas'],
+        propertyOrdering: ['titulo', 'contenido', 'relacion', 'ideas']
       }
     },
     tarjetas: {
@@ -52,8 +54,8 @@ const ESQUEMA_RESPUESTA = {
       }
     }
   },
-  required: ['titulo', 'secciones', 'tarjetas'],
-  propertyOrdering: ['titulo', 'secciones', 'tarjetas']
+  required: ['titulo', 'resumen', 'secciones', 'tarjetas'],
+  propertyOrdering: ['titulo', 'resumen', 'secciones', 'tarjetas']
 };
 
 const json = (statusCode, obj) => ({
@@ -66,6 +68,10 @@ const json = (statusCode, obj) => ({
 // (límite fijo), así que dejamos 10 s de margen para poder responder con un error claro
 // en vez de que Netlify devuelva un 502 sin explicación.
 const LIMITE_MS = 50000;
+
+// Texto máximo que se analiza. Antes eran 20 000 caracteres y todo lo que viniera después se ignoraba;
+// ahora entra mucho más (el cupo de Gemini se cuenta por petición, no por tamaño). El navegador avisa si se recortó.
+const LIMITE_TEXTO = 60000;
 
 // Hecho por Sebastián Poveda y Santiago Romero. 2026 · llamada a Gemini con tiempo límite y reintentos
 async function llamarGemini(apiKey, prompt, limiteMs = LIMITE_MS) {
@@ -82,7 +88,7 @@ async function llamarGemini(apiKey, prompt, limiteMs = LIMITE_MS) {
       const generationConfig = {
         responseMimeType: 'application/json',
         temperature: 0.4,
-        maxOutputTokens: 8192
+        maxOutputTokens: 12288
       };
       if (usaEsquema) generationConfig.responseSchema = ESQUEMA_RESPUESTA;
       if (usaPensamientoCorto) generationConfig.thinkingConfig = { thinkingLevel: 'low' };
@@ -222,32 +228,40 @@ exports.handler = async (event) => {
   }
 
   // Tope de seguridad: no mandamos textos gigantes a la IA (cuesta más y no hace falta).
-  const textoRecortado = texto.slice(0, 20000);
+  const textoRecortado = texto.slice(0, LIMITE_TEXTO);
 // Hecho por Sebastián Poveda y Santiago Romero. 2026 · modelos de IA
   // Hecho por Sebastián Poveda y Santiago Romero. 2026 · instrucciones para la IA
-  const prompt = `Eres un asistente que ayuda a estudiantes universitarios a convertir apuntes de clase (sacados de un PDF o una presentación) en material de estudio.
+  const prompt = `Eres un docente universitario experto en didáctica. Conviertes apuntes de clase (sacados de un PDF o una presentación) en material de estudio claro, para que un estudiante pueda aprender solo, sin ayuda de nadie.
 
 Materia: "${materia || 'sin especificar'}"
 
 PROCESO (hazlo mentalmente, no lo escribas):
-1. Analiza primero el texto completo: qué tipo de contenido es (teoría, un modelo o autor, un procedimiento, ejercicios, casos, formulario, legislación, etc.) y qué temas contiene realmente.
-2. Según ese análisis, decide TÚ cuáles secciones necesita este material. La estructura debe adaptarse al contenido: no uses una plantilla fija.
-3. Escribe cada sección únicamente con información que esté en el texto.
+1. Lee todo el texto y determina qué tipo de documento es (teoría, un modelo o autor, un procedimiento, ejercicios resueltos, casos, normativa, formulario, diapositivas con poco texto, etc.) y qué temas contiene realmente.
+2. Decide TÚ la estructura que mejor sirve a ESE documento. No existe una plantilla: dos documentos distintos deben producir secciones distintas. Evita repetir siempre la misma estructura ("Introducción / Desarrollo / Conclusión", "Definición / Características / Ejemplos"): crea una sección solo si el texto tiene material real para ella.
+3. Ordena las secciones como se aprende: de lo básico a lo complejo, o siguiendo el orden lógico del documento.
+4. Escribe todo usando únicamente información que esté en el texto.
+
+REGLAS DEL RESUMEN:
+- "resumen": 2 o 3 frases que digan de qué trata el documento y qué debería entender el estudiante al terminar de estudiarlo.
 
 REGLAS DE LAS SECCIONES:
-- Entre 3 y 6 secciones, ordenadas de forma lógica para estudiar.
-- Incluye una sección solo si el texto tiene material para ella. Por ejemplo, "Autor y año" solo si el texto menciona un autor o una fecha; "Ejemplos" solo si hay ejemplos; "Limitaciones o críticas" solo si se discuten; "Fórmulas" solo si hay fórmulas; "Pasos del procedimiento" solo si hay un procedimiento.
-- Los títulos deben ser específicos del contenido (por ejemplo "Componentes de la memoria de trabajo"), no genéricos.
-- No inventes datos que no estén en el texto. Si algo no aparece, no crees la sección.
+- Entre 3 y 8 secciones: pocas para textos cortos, más para textos largos o con muchos temas distintos.
+- Los títulos deben ser específicos y explicativos del contenido (por ejemplo "Componentes de la memoria de trabajo"), nunca genéricos como "Conceptos" u "Otros".
+- No inventes datos que no estén en el texto. Si algo no aparece, no crees la sección ni lo agregues.
+- "contenido": explicación didáctica, clara y bien conectada, escrita para quien ve el tema por primera vez. Usa párrafos cortos para explicar. Si la sección abarca varios subtemas, sepáralos con subtítulos escritos en una línea que empiece con "## " (por ejemplo "## Etapas del proceso"). Usa listas de guiones ("- ") para pasos, rasgos o clasificaciones. Explica el porqué y el cómo cuando el texto lo permita, no solo enumeres. Si el texto trae ejemplos que ilustran la idea, inclúyelos aquí. Texto plano: sin asteriscos ni otro markdown.
+- "relacion": una o dos frases que expliquen cómo se conecta esta sección con otras ideas del documento (causa y efecto, parte y todo, comparación, secuencia, dependencia), nombrando esas otras secciones o conceptos. Si el texto no muestra una relación real, devuelve una cadena vacía "".
 - "ideas" son de 2 a 5 por sección, tomadas del texto. Cada idea tiene: "tipo", "termino" y "texto". El "tipo" debe ser EXACTAMENTE "definicion" (qué es el concepto), "caracteristica" (rasgos, propiedades, pasos, datos, causas) o "ejemplo" (un caso que aparezca en el texto; no inventes ejemplos). El "termino" es el concepto, autor, etapa, teoría o nombre propio central de esa idea (1 a 4 palabras). El "texto" explica ese término en máximo 16 palabras y no repite el término al inicio. Procura que cada sección tenga al menos una definición si el texto la da.
 - USA EL VOCABULARIO DEL TEXTO: los términos técnicos, nombres de autores, teorías, siglas y títulos deben escribirse tal como aparecen en el texto original, sin reemplazarlos por sinónimos ni términos genéricos. Los títulos de las secciones también deben usar esos términos (por ejemplo "Teoría del apego de Bowlby", no "Otra teoría").
-- "contenido" debe ser claro y bien organizado, 1 o 2 párrafos cortos, o una lista de 3 a 6 guiones cuando sea más claro. Sé conciso. Texto plano, sin markdown con asteriscos.
+
+REGLAS DE LAS TARJETAS:
+- Entre 8 y 15 tarjetas, más cuanto más largo y variado sea el texto. Deben cubrir las ideas importantes de TODO el texto, no solo del principio.
+- Mezcla tipos: definiciones de conceptos, preguntas de comprensión ("¿por qué…?", "¿cómo…?", "¿en qué se diferencia X de Y?"), ejemplos y relaciones entre ideas.
+- El "frente" debe ser corto y entenderse sin haber visto el documento (un término o una pregunta clara).
+- El "reverso" es una respuesta precisa, autónoma y breve (máximo 25 palabras). Se usa como opción en exámenes de opción múltiple, así que cada reverso debe ser DISTINTO de los demás y de longitud y estilo parecidos entre sí.
 
 Devuelve EXCLUSIVAMENTE un JSON válido, sin explicación adicional, con esta forma exacta:
 
-{"titulo":"título corto para el tema (máx 8 palabras)","secciones":[{"titulo":"título de la sección","contenido":"contenido de la sección","ideas":[{"tipo":"definicion","termino":"término clave","texto":"explicación corta"},{"tipo":"caracteristica","termino":"otro término","texto":"explicación corta"},{"tipo":"ejemplo","termino":"nombre del caso","texto":"el ejemplo en pocas palabras"}]}],"tarjetas":[{"frente":"término o pregunta corta","reverso":"definición o respuesta clara y no muy larga"}]}
-
-Genera entre 8 y 12 tarjetas que cubran los conceptos, definiciones y términos clave del texto. El "frente" debe ser corto (un término o una pregunta). El "reverso" debe responder con precisión sin ser un párrafo entero.
+{"titulo":"título corto para el tema (máx 8 palabras)","resumen":"2 o 3 frases","secciones":[{"titulo":"título de la sección","contenido":"contenido de la sección","relacion":"cómo se conecta con otras ideas, o cadena vacía","ideas":[{"tipo":"definicion","termino":"término clave","texto":"explicación corta"},{"tipo":"caracteristica","termino":"otro término","texto":"explicación corta"},{"tipo":"ejemplo","termino":"nombre del caso","texto":"el ejemplo en pocas palabras"}]}],"tarjetas":[{"frente":"término o pregunta corta","reverso":"respuesta clara y breve"}]}
 
 TEXTO A ANALIZAR:
 """
@@ -313,6 +327,12 @@ ${textoRecortado}
         sec.puntos = pares.map(o => o.texto);
         sec.tipos = pares.map(o => o.tipo);
         delete sec.ideas;
+      });
+    }
+    parsed.resumen = typeof parsed.resumen === 'string' ? parsed.resumen.trim() : '';
+    if (Array.isArray(parsed.secciones)) {
+      parsed.secciones.forEach(sec => {
+        if (sec && typeof sec === 'object') sec.relacion = typeof sec.relacion === 'string' ? sec.relacion.trim() : '';
       });
     }
     if (!Array.isArray(parsed.tarjetas)) parsed.tarjetas = [];
