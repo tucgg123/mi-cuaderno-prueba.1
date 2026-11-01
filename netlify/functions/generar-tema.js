@@ -184,6 +184,42 @@ async function verificarUsuario(event) {
 
 // Límite por persona. Es "de mejor esfuerzo": vive en la memoria de la instancia de Netlify y se
 // reinicia cuando esta se apaga, pero frena a quien intente gastar la cuota en bucle.
+// ---------------------------------------------------------------------------------------------
+// Cupo DIARIO de archivos por persona, guardado en Firestore (iaUso/{uid}). A diferencia del límite por hora de
+// abajo, no se pierde cuando Netlify apaga la función. Se lee y se escribe con el token de la propia persona, y las
+// reglas de Firestore solo le permiten subirlo de 1 en 1. El día cambia a medianoche de Colombia (UTC-5).
+// Solo se descuenta cuando la IA SÍ devolvió un resultado: si falla, la persona no pierde un archivo.
+// Cambia el límite con la variable de entorno LIMITE_IA_DIARIO en Netlify (el navegador usa IA_LIMITE_DIARIO en index.html:
+// mantenlos iguales para que el aviso "te quedan X archivos" coincida).
+// ---------------------------------------------------------------------------------------------
+const PROYECTO = process.env.FIREBASE_PROJECT_ID || 'mi-cuaderno-904fa';
+const LIMITE_DIARIO = Number(process.env.LIMITE_IA_DIARIO) || 20;
+const diaColombia = () => Math.floor((Date.now() - 5 * 3600 * 1000) / 86400000);
+const urlUso = uid => 'https://firestore.googleapis.com/v1/projects/' + PROYECTO + '/databases/(default)/documents/iaUso/' + uid;
+function tokenDe(event) {
+  const h = event.headers || {};
+  const m = (h.authorization || h.Authorization || '').match(/^Bearer\s+(.+)$/i);
+  return m ? m[1] : null;
+}
+async function leerUso(uid, token) {
+  const r = await fetch(urlUso(uid), { headers: { authorization: 'Bearer ' + token } });
+  if (r.status === 404) return { n: 0 };
+  if (!r.ok) throw new Error('Firestore respondió ' + r.status);
+  const d = await r.json();
+  const f = d.fields || {};
+  const dia = Number(f.dia && f.dia.integerValue);
+  const n = Number(f.n && f.n.integerValue) || 0;
+  return { n: dia === diaColombia() ? n : 0 };
+}
+async function sumarUso(uid, token, n) {
+  const r = await fetch(urlUso(uid), {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
+    body: JSON.stringify({ fields: { dia: { integerValue: String(diaColombia()) }, n: { integerValue: String(n + 1) } } })
+  });
+  if (!r.ok) throw new Error('Firestore respondió ' + r.status + ': ' + (await r.text()).slice(0, 200));
+}
+
 const LIMITE_POR_HORA = 30;
 const usoPorUsuario = new Map();
 function superaLimite(uid) {
@@ -225,6 +261,22 @@ exports.handler = async (event) => {
 
   if (!texto.trim()) {
     return json(400, { error: 'No llegó texto para analizar.' });
+  }
+
+  // Cupo diario (antes de gastar la IA)
+  const token = tokenDe(event);
+  let uso;
+  try {
+    uso = await leerUso(usuario.localId, token);
+  } catch (e) {
+    console.error('No se pudo leer el cupo diario:', e);
+    return json(503, { error: 'No se pudo comprobar tu cupo diario de archivos. Si eres quien administra la página, revisa que las reglas de Firestore (colección iaUso) estén publicadas. Inténtalo de nuevo en un momento.' });
+  }
+  if (uso.n >= LIMITE_DIARIO) {
+    return json(429, {
+      error: 'Ya usaste tus ' + LIMITE_DIARIO + ' archivos de hoy. El cupo se renueva a la medianoche (hora de Colombia).',
+      cupo: { usados: uso.n, limite: LIMITE_DIARIO, restantes: 0 }
+    });
   }
 
   // Tope de seguridad: no mandamos textos gigantes a la IA (cuesta más y no hace falta).
@@ -344,6 +396,11 @@ ${textoRecortado}
       return json(502, { error: 'La respuesta de la IA no tiene el formato esperado.' });
     }
 
+    // La IA respondió bien: ahora sí se descuenta un archivo del cupo de hoy
+    let usados = uso.n;
+    try { await sumarUso(usuario.localId, token, uso.n); usados = uso.n + 1; }
+    catch (e) { console.error('No se pudo registrar el uso (se entrega el resultado igual):', e); }
+    parsed.cupo = { usados, limite: LIMITE_DIARIO, restantes: Math.max(0, LIMITE_DIARIO - usados) };
     return json(200, parsed);
   } catch (err) {
     if (err.message === 'TIMEOUT') {
