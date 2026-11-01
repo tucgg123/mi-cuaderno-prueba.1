@@ -11,3 +11,18 @@
   for = "/manifest.json"
   [headers.values]
     Content-Type = "application/manifest+json"
+
+# Cabeceras de seguridad para todo el sitio
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    Cross-Origin-Opener-Policy = "same-origin-allow-popups"
+    # Política de contenido en modo SOLO REPORTE: no bloquea nada, solo anota en la consola del navegador (F12)
+    # lo que bloquearía. Cuando pruebes login con Google, subir un PDF y usar la app sin avisos, cambia el nombre
+    # de la cabecera a "Content-Security-Policy" para que se aplique de verdad.
+    Content-Security-Policy-Report-Only = "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com https://cdn.jsdelivr.net; frame-src https://*.firebaseapp.com https://accounts.google.com https://apis.google.com; worker-src 'self' blob: https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
