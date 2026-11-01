@@ -190,6 +190,25 @@ service cloud.firestore {
       allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
     }
 
+    // Cupo diario de archivos para la IA (día en hora de Colombia, UTC-5). La función de Netlify lo lee y lo sube de 1 en 1
+    // con el token de la propia persona; las reglas impiden bajarlo, borrarlo o reiniciarlo antes de medianoche.
+    match /iaUso/{u} {
+      function hoyCol() {
+        return math.floor((request.time.toMillis() - 18000000) / 86400000);
+      }
+      allow read: if request.auth != null && request.auth.uid == u;
+      allow create: if request.auth != null && request.auth.uid == u
+        && request.resource.data.keys().hasOnly(['dia', 'n'])
+        && request.resource.data.dia == hoyCol()
+        && request.resource.data.n == 1;
+      allow update: if request.auth != null && request.auth.uid == u
+        && request.resource.data.keys().hasOnly(['dia', 'n'])
+        && request.resource.data.dia == hoyCol()
+        && ( ( resource.data.dia == hoyCol() && request.resource.data.n == resource.data.n + 1 )
+             || ( resource.data.dia != hoyCol() && request.resource.data.n == 1 ) );
+      allow delete: if false;
+    }
+
     // Trabajos de IA en segundo plano. La función de Netlify escribe aquí el resultado usando el
     // token de la propia persona, así que solo puede tocar sus propios trabajos.
     match /iaJobs/{job} {
