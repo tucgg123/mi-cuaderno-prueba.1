@@ -104,7 +104,7 @@ const db = firebase.firestore();
 (()=>{
 /* ================= UTILIDADES ================= */
 const $=id=>document.getElementById(id);
-const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -167,6 +167,57 @@ function localKey(){return 'cuaderno_'+(currentUid||'anon')}
 function saveLocal(){try{localStorage.setItem(localKey(),JSON.stringify(state))}catch(e){}}
 function loadLocal(){try{const raw=localStorage.getItem(localKey());return raw?JSON.parse(raw):null}catch(e){return null}}
 
+/* ---------- Estado de la sincronización: avisa si algo falla (antes solo quedaba en la consola) ---------- */
+const FIRESTORE_MAX=1048576;           // límite de Firestore por documento (1 MiB)
+const sync={fallo:'',falloMateria:'',aviso:'',tamAlto:false,offline:typeof navigator!=='undefined'&&navigator.onLine===false,soloLocal:false};
+function textoFalloSync(e){
+  const c=(e&&e.code)||'',msg=String((e&&e.message)||'');
+  if(c==='permission-denied')return 'no tienes permiso para guardar (revisa que las reglas de Firestore estén publicadas o vuelve a iniciar sesión).';
+  if(c==='unauthenticated')return 'tu sesión venció. Cierra sesión y vuelve a entrar.';
+  if(/exceeds the maximum|too large|payload/i.test(msg)||c==='invalid-argument')return 'tu cuaderno es demasiado grande para la nube. Usa "Liberar espacio" o elimina materias que ya no uses.';
+  if(c==='resource-exhausted')return 'se alcanzó la cuota diaria de Firebase. Se reintentará más tarde.';
+  if(c==='unavailable'||c==='deadline-exceeded')return 'no hay conexión con la nube.';
+  return 'error inesperado'+(msg?' ('+msg.slice(0,120)+')':'')+'.';
+}
+function pintarBanner(){
+  let b=document.getElementById('syncBanner');
+  const grave=sync.fallo||sync.falloMateria;
+  const msg=grave||sync.aviso||(sync.offline?'📴 Sin conexión: tus cambios se guardan en este dispositivo y se subirán a la nube cuando vuelva internet.':'');
+  if(!msg||!currentUid){if(b)b.remove();return}
+  if(!b){b=document.createElement('div');b.id='syncBanner';b.setAttribute('role','alert');document.body.appendChild(b)}
+  b.className='syncBanner'+(grave?' grave':'');
+  b.innerHTML=`<span>${msg}</span>${grave?'<button type="button" data-action="syncReintentar">Reintentar</button>':''}${(!grave&&sync.tamAlto)?'<button type="button" data-action="liberarEspacio">Liberar espacio</button>':''}`;
+}
+function syncFallo(e){sync.fallo='⚠️ No se pudo guardar en la nube: '+esc(textoFalloSync(e))+' Tus cambios siguen guardados en este dispositivo.';pintarBanner()}
+function syncOk(){sync.fallo='';pintarBanner()}
+function revisarTamano(bytes){
+  const pct=Math.round(bytes/FIRESTORE_MAX*100);
+  sync.tamAlto=pct>=80;
+  sync.aviso=sync.tamAlto?'💾 Tu cuaderno ocupa el '+pct+' % del espacio que permite la nube. Si se llena dejará de sincronizarse: libera espacio.':'';
+}
+function liberarEspacio(){
+  const lim=Date.now()-120*864e5,viejos=(state.attempts||[]).filter(a=>a.date<lim).length;
+  if(!viejos){alert('No hay intentos antiguos que borrar. Para liberar más espacio elimina materias o temas que ya no uses.');return}
+  if(confirm('Se borrarán '+viejos+' intentos de quiz y examen de hace más de 4 meses. Tu racha, tus insignias y las etapas ya completadas se conservan; las etapas sin completar podrían perder avance de exámenes antiguos. ¿Continuar?'))mutate(s=>{s.attempts=s.attempts.filter(a=>a.date>=lim)});
+}
+async function reintentarSync(){
+  if(!currentUid)return;
+  if(sync.soloLocal){
+    try{
+      const doc=await db.collection('users').doc(currentUid).get();
+      if(doc.exists&&doc.data().data){
+        if(confirm('Se encontró tu cuaderno guardado en la nube.\n\nAceptar = cargar la versión de la nube (se descartan los cambios hechos sin conexión en este dispositivo).\nCancelar = conservar lo de este dispositivo y reemplazar la nube.')){
+          state=JSON.parse(doc.data().data);normalizeState();saveLocal();applyTheme();updateThemeBtn();render();startShared();
+        }
+      }
+      sync.soloLocal=false;sync.fallo='';
+    }catch(e){syncFallo(e);return}
+  }
+  await pushCloudNow();
+}
+window.addEventListener('online',()=>{sync.offline=false;pintarBanner();pushCloudNow()});
+window.addEventListener('offline',()=>{sync.offline=true;pintarBanner()});
+
 let cloudTimer=null;
 function scheduleCloud(){
   if(!currentUid)return;
@@ -176,12 +227,16 @@ function scheduleCloud(){
 async function pushCloudNow(){
   if(!currentUid)return;
   pushShared();
+  if(sync.soloLocal){sync.fallo='⚠️ No se pudo leer tu cuaderno de la nube al iniciar. Por seguridad no se sube nada para no pisarlo con datos viejos. Tus cambios siguen en este dispositivo.';pintarBanner();return}
   try{
+    const data=JSON.stringify(state);
+    revisarTamano(new Blob([data]).size);
     await db.collection('users').doc(currentUid).set({
-      data:JSON.stringify(state),
+      data,
       updatedAt:firebase.firestore.FieldValue.serverTimestamp()
     });
-  }catch(e){console.error('No se pudo sincronizar con la nube:',e)}
+    syncOk();
+  }catch(e){console.error('No se pudo sincronizar con la nube:',e);syncFallo(e)}
 }
 async function hydrateFromCloud(u){
   currentUid=u;
@@ -196,6 +251,8 @@ async function hydrateFromCloud(u){
   }catch(e){
     console.error('No se pudo leer la nube, uso datos locales:',e);
     state=loadLocal()||defaultState();
+    sync.soloLocal=true;sync.fallo='⚠️ No se pudo leer tu cuaderno de la nube ('+esc(textoFalloSync(e))+') Trabajas con los datos de este dispositivo y no se subirá nada hasta que reintentes.';
+    pintarBanner();
   }
   normalizeState();
   saveLocal();
@@ -287,6 +344,7 @@ auth.onAuthStateChanged(async user=>{
     const ovRol=document.getElementById('rolOverlay');if(ovRol)ovRol.remove();
     stopShared();
     currentUid=null;
+    sync.fallo='';sync.falloMateria='';sync.aviso='';sync.tamAlto=false;sync.soloLocal=false;pintarBanner();
     state=defaultState();
     $('appRoot').hidden=true;
     $('authScreen').hidden=false;
@@ -452,6 +510,7 @@ function viewMateriaDetailHTML(materiaId){
   }
   const cortes=state.cortes.filter(c=>c.materiaId===materiaId);
   const iaSel=cortes.some(c=>c.id===ui.iaCorte)?ui.iaCorte:(cortes[0]&&cortes[0].id);
+  if(m.rol!=='estudiante'&&(!ui.iaUso||(!ui.iaUso.cargando&&Date.now()-(ui.iaUso.t||0)>60000)))setTimeout(cargarUsoIA,0);   // se consulta el cupo al abrir la materia
   return `
     <button class="sec" data-action="${m.rol==='docente'?'backDocente':'backMaterias'}">${m.rol==='docente'?'← Espacio docente':'← Mis materias'}</button>
     <div class="viewhead" style="margin-top:14px"><h1>${esc(m.icon||'📘')} ${esc(m.name)}</h1></div>
@@ -470,6 +529,7 @@ function viewMateriaDetailHTML(materiaId){
         <select class="fld" id="iaCorte" data-action="iaCorteSel">${cortes.map(c=>`<option value="${c.id}" ${c.id===iaSel?'selected':''}>${esc(c.name)||'(corte sin nombre)'}</option>`).join('')}</select>
         <input type="file" id="iaFileInput" accept=".pdf,.pptx" data-mat="${materiaId}" style="display:none">
         <button class="sec" id="iaUploadBtn" data-action="iaPickFile" style="margin-top:10px">📎 Subir PDF o PPTX</button>
+        <div id="iaCupo" style="margin-top:10px">${cupoIAHTML()}</div>
         <div id="iaStatus" class="meta" style="margin-top:8px"></div>
       </div>
       ${cortes.map(c=>corteFolder(c,materiaId)).join('')}
@@ -1240,6 +1300,8 @@ document.addEventListener('click',e=>{
     if(confirm('¿Eliminar esta sección?'))mutate(s=>{const t=s.temas.find(x=>x.id===b.dataset.id);if(t&&t.secciones)t.secciones=t.secciones.filter(x=>x.id!==b.dataset.sid)});
   }
   else if(a==='descargarOriginal'){descargarOriginal(b.dataset.id)}
+  else if(a==='syncReintentar'){reintentarSync()}
+  else if(a==='liberarEspacio'){liberarEspacio()}
   else if(a==='delTema'){
     if(confirm(msgDelTema(b.dataset.id))){
       const t0=state.temas.find(x=>x.id===b.dataset.id);
@@ -1475,6 +1537,7 @@ document.addEventListener('input',e=>{if(e.target.matches&&e.target.matches('.se
 /* Caché de resultados de IA: si subes otra vez el mismo archivo, se reutiliza el resultado
    y NO se gasta una petición del límite diario de Gemini (que cuenta peticiones, no tokens). */
 const IA_CACHE_VER='v5';   // súbela cada vez que cambies las instrucciones de la IA, para no reutilizar resultados viejos
+const IA_LIMITE_DIARIO=20;   // archivos (PDF o PPTX) por persona y por día. Debe coincidir con LIMITE_DIARIO en netlify/functions/generar-tema.js
 const IA_MAX_CHARS=60000;   // texto máximo que se manda a la IA (antes 20 000: el resto se ignoraba en silencio)
 const IA_CACHE_MAX=15;     // cuántos resultados se recuerdan en este navegador
 async function iaHash(texto){
@@ -1494,6 +1557,27 @@ async function iaCacheSet(texto,data){
   const c=iaCacheLeer();c[k]={t:Date.now(),v:IA_CACHE_VER,d:data};
   Object.keys(c).sort((a,b)=>c[b].t-c[a].t).slice(IA_CACHE_MAX).forEach(x=>delete c[x]);
   try{localStorage.setItem('iaCache',JSON.stringify(c))}catch(e){/* sin espacio: no pasa nada */}
+}
+/* ---------- Cupo diario de archivos ---------- */
+const diaColombia=()=>Math.floor((Date.now()-18000000)/86400000);    // el día cambia a medianoche de Colombia (UTC-5)
+function iaRestantes(){const u=ui.iaUso;return u&&u.ok?Math.max(0,IA_LIMITE_DIARIO-u.usados):null}
+function textoRenueva(){const min=Math.max(1,Math.ceil((86400000-((Date.now()-18000000)%86400000))/60000)),h=Math.floor(min/60),m=min%60;return h?h+' h'+(m?' '+m+' min':''):m+' min'}
+function cupoIAHTML(){
+  const u=ui.iaUso;
+  if(!u||(!u.ok&&u.cargando))return '<span class="meta">Consultando cuántos archivos te quedan hoy…</span>';
+  if(!u.ok)return `<span class="meta">No pude consultar tu cupo ahora. El límite es de <b>${IA_LIMITE_DIARIO} archivos (PDF o PPTX) por día</b>.</span>`;
+  const rest=Math.max(0,IA_LIMITE_DIARIO-u.usados),cls=rest===0?'cupo0':rest<=3?'cupoBajo':'';
+  return `<div class="cupoIA ${cls}"><b>📎 Te quedan ${rest} de ${IA_LIMITE_DIARIO} archivos hoy</b><div class="bar"><i style="width:${Math.round(rest/IA_LIMITE_DIARIO*100)}%"></i></div><small class="meta">${rest===0?'Ya usaste todos los de hoy. ':''}Se renuevan a la medianoche (hora de Colombia), en ${textoRenueva()}. Si subes un archivo que ya analizaste antes en este navegador, no gasta cupo. Si la IA falla, tampoco.</small></div>`;
+}
+function actualizarCupoUI(){const el=$('iaCupo');if(el)el.innerHTML=cupoIAHTML()}
+async function cargarUsoIA(){
+  if(!currentUid||(ui.iaUso&&ui.iaUso.cargando))return;
+  ui.iaUso={...(ui.iaUso||{}),cargando:true};
+  try{
+    const d=await db.collection('iaUso').doc(currentUid).get(),x=d.exists?d.data():null;
+    ui.iaUso={ok:true,usados:(x&&x.dia===diaColombia())?(+x.n||0):0,t:Date.now()};
+  }catch(e){console.warn('No se pudo leer el cupo de IA:',e);ui.iaUso={ok:false,t:Date.now()}}
+  actualizarCupoUI();
 }
 async function extraerTextoPDF(file){
   const buf=await file.arrayBuffer();
@@ -1628,10 +1712,16 @@ document.addEventListener('change',async e=>{
     if(desdeCache){
       statusEl.textContent='♻️ Ya había analizado este archivo: reutilicé el resultado sin gastar IA.';
     }else{
+      if(iaRestantes()===0){
+        statusEl.textContent='❌ Ya usaste tus '+IA_LIMITE_DIARIO+' archivos de hoy. Se renuevan a la medianoche (hora de Colombia), en '+textoRenueva()+'. Los archivos que ya analizaste antes en este navegador sí puedes volver a subirlos sin gastar cupo.';
+        btn.disabled=false;return;
+      }
       statusEl.textContent='🤖 La IA está armando el tema y las tarjetas… puede tardar hasta un minuto.';
       const r=await pedirIA(texto,materia?materia.name:'',statusEl);
-      if(!r.ok){statusEl.textContent='❌ '+r.error;btn.disabled=false;return}
+      if(!r.ok){statusEl.textContent='❌ '+r.error;btn.disabled=false;ui.iaUso=null;cargarUsoIA();return}
       data=r.data;
+      if(data&&data.cupo){ui.iaUso={ok:true,usados:+data.cupo.usados||0,t:Date.now()}}else{ui.iaUso=null;cargarUsoIA()}
+      if(data)delete data.cupo;     // el cupo no es parte del tema ni debe quedar en la caché
     }
     if(!data.titulo||!Array.isArray(data.tarjetas)){
       statusEl.textContent='❌ La IA no devolvió un resultado válido. Probá de nuevo.';
@@ -1654,7 +1744,7 @@ document.addEventListener('change',async e=>{
     });
     const avisoRecorte=texto.length>IA_MAX_CHARS?` ⚠️ El archivo es muy largo: la IA analizó solo los primeros ${IA_MAX_CHARS.toLocaleString('es')} caracteres.`:'';
     const setEstado=txt=>{const st=$('iaStatus');if(st)st.textContent=txt};
-    const base_ok=`✅ Listo — se creó el tema "${data.titulo}" con ${(data.tarjetas||[]).length} tarjetas.${desdeCache?' (resultado reutilizado, sin gastar IA)':''}${avisoRecorte}`;
+    const base_ok=`✅ Listo — se creó el tema "${data.titulo}" con ${(data.tarjetas||[]).length} tarjetas.${desdeCache?' (resultado reutilizado, sin gastar IA ni cupo)':''}${avisoRecorte}${(!desdeCache&&iaRestantes()!=null)?' Te quedan '+iaRestantes()+' de '+IA_LIMITE_DIARIO+' archivos hoy.':''}`;
     setEstado(base_ok);
     /* Documento original: se guarda aparte de lo que genera la IA (solo en materias compartidas / de docente) */
     if(materia&&materia.sharedId&&materia.rol!=='estudiante'){
@@ -1727,10 +1817,12 @@ async function pushShared(){
   if(pushingShared){repushShared=true;return}
   pushingShared=true;
   try{
+    let huboFallo=false;
     for(const m of state.materias.filter(x=>x.sharedId)){
       try{await pushSharedMateria(m,false)}
-      catch(e){console.error('No se pudo sincronizar "'+m.name+'":',e)}
+      catch(e){console.error('No se pudo sincronizar "'+m.name+'":',e);huboFallo=true;sync.falloMateria='⚠️ No se pudo sincronizar la materia compartida "'+esc(m.name)+'": '+esc(textoFalloSync(e));pintarBanner()}
     }
+    if(!huboFallo&&sync.falloMateria){sync.falloMateria='';pintarBanner()}
   }finally{
     pushingShared=false;
     if(repushShared){repushShared=false;pushShared()}
