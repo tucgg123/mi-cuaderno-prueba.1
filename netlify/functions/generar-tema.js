@@ -1,5 +1,5 @@
 // Hecho por Sebastián Poveda y Santiago Romero. 2026
-// Función de Netlify · Mi cuaderno de estudio
+// Función de Netlify · Auren
 // Esta función corre en el servidor de Netlify, nunca en el navegador del usuario.
 // La clave se lee de la variable de entorno APIKEYGEMINIS (Site settings > Environment
 // variables en Netlify) y jamás queda expuesta en el código ni en el sitio publicado.
@@ -72,9 +72,10 @@ const LIMITE_MS = 50000;
 // Texto máximo que se analiza. Antes eran 20 000 caracteres y todo lo que viniera después se ignoraba;
 // ahora entra mucho más (el cupo de Gemini se cuenta por petición, no por tamaño). El navegador avisa si se recortó.
 const LIMITE_TEXTO = 60000;
+const LIMITE_PDF_B64 = 12 * 1024 * 1024; // ~8 MB de PDF en base64
 
 // Hecho por Sebastián Poveda y Santiago Romero. 2026 · llamada a Gemini con tiempo límite y reintentos
-async function llamarGemini(apiKey, prompt, limiteMs = LIMITE_MS) {
+async function llamarGemini(apiKey, prompt, limiteMs = LIMITE_MS, pdfBase64 = null) {
   const inicio = Date.now();
   let ultima;
   for (const modelo of MODELOS) {
@@ -104,7 +105,12 @@ async function llamarGemini(apiKey, prompt, limiteMs = LIMITE_MS) {
               'x-goog-api-key': apiKey
             },
             body: JSON.stringify({
-              contents: [{ role: 'user', parts: [{ text: prompt }] }],
+              contents: [{
+                role: 'user',
+                parts: pdfBase64
+                  ? [{ inline_data: { mime_type: 'application/pdf', data: pdfBase64 } }, { text: prompt }]
+                  : [{ text: prompt }]
+              }],
               generationConfig
             })
           }
@@ -250,16 +256,22 @@ exports.handler = async (event) => {
     return json(500, { error: 'Falta configurar APIKEYGEMINIS en Netlify (Site settings > Environment variables).' });
   }
 
-  let texto, materia;
+  let texto, materia, pdfBase64;
   try {
     const body = JSON.parse(event.body || '{}');
     texto = (body.texto || '').toString();
     materia = (body.materia || '').toString();
+    // PDF escaneado (sin texto): se le pasa a Gemini el archivo para que lo lea directamente
+    pdfBase64 = (body.pdfBase64 || '').toString();
   } catch (e) {
     return json(400, { error: 'Cuerpo de la petición inválido.' });
   }
 
-  if (!texto.trim()) {
+  if (pdfBase64) {
+    if (pdfBase64.length > LIMITE_PDF_B64) {
+      return json(413, { error: 'El PDF es demasiado grande para que la IA lo lea (máximo 8 MB).' });
+    }
+  } else if (!texto.trim()) {
     return json(400, { error: 'No llegó texto para analizar.' });
   }
 
@@ -282,6 +294,9 @@ exports.handler = async (event) => {
   // Tope de seguridad: no mandamos textos gigantes a la IA (cuesta más y no hace falta).
   const textoRecortado = texto.slice(0, LIMITE_TEXTO);
 // Hecho por Sebastián Poveda y Santiago Romero. 2026 · modelos de IA
+  const bloqueDocumento = pdfBase64
+    ? 'DOCUMENTO A ANALIZAR: el archivo PDF adjunto. Puede ser un escaneo o fotos de hojas: léelo completo con cuidado (incluida la letra manuscrita o el texto dentro de imágenes si se entiende). Si una parte es ilegible, no la inventes: déjala fuera.'
+    : 'TEXTO A ANALIZAR:\n"""\n' + textoRecortado + '\n"""';
   // Hecho por Sebastián Poveda y Santiago Romero. 2026 · instrucciones para la IA
   const prompt = `Eres un docente universitario experto en didáctica. Conviertes apuntes de clase (sacados de un PDF o una presentación) en material de estudio claro, para que un estudiante pueda aprender solo, sin ayuda de nadie.
 
@@ -315,15 +330,12 @@ Devuelve EXCLUSIVAMENTE un JSON válido, sin explicación adicional, con esta fo
 
 {"titulo":"título corto para el tema (máx 8 palabras)","resumen":"2 o 3 frases","secciones":[{"titulo":"título de la sección","contenido":"contenido de la sección","relacion":"cómo se conecta con otras ideas, o cadena vacía","ideas":[{"tipo":"definicion","termino":"término clave","texto":"explicación corta"},{"tipo":"caracteristica","termino":"otro término","texto":"explicación corta"},{"tipo":"ejemplo","termino":"nombre del caso","texto":"el ejemplo en pocas palabras"}]}],"tarjetas":[{"frente":"término o pregunta corta","reverso":"respuesta clara y breve"}]}
 
-TEXTO A ANALIZAR:
-"""
-${textoRecortado}
-"""`;
+${bloqueDocumento}`;
 
   // La versión en segundo plano (generar-tema-background.js) pasa un tiempo máximo mayor.
   const limiteMs = event._limiteMs || LIMITE_MS;
   try {
-    const resp = await llamarGemini(apiKey, prompt, limiteMs);
+    const resp = await llamarGemini(apiKey, prompt, limiteMs, pdfBase64 || null);
 
     if (!resp.ok) {
       const errText = await resp.text();

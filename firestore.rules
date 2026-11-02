@@ -217,6 +217,17 @@ service cloud.firestore {
       allow update: if request.auth != null
         && resource.data.uid == request.auth.uid
         && request.resource.data.uid == resource.data.uid;
+
+      // PDF escaneado, troceado en base64, que la función en segundo plano lee y borra al terminar.
+      match /entrada/{n} {
+        allow create, update: if request.auth != null
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.keys().hasOnly(['i', 'uid', 'data'])
+          && request.resource.data.i is int
+          && request.resource.data.data is string
+          && request.resource.data.data.size() <= 700000;
+        allow read, delete: if request.auth != null && resource.data.uid == request.auth.uid;
+      }
     }
   }
 }

@@ -1,6 +1,8 @@
 [build]
   publish = "."
   functions = "netlify/functions"
+  # Minifica el JS y el CSS (assets/). Si falla o no hay esbuild, se usan los archivos que ya vienen en assets/.
+  command = "npm install --no-audit --no-fund && npm run build"
 
 [[headers]]
   for = "/service-worker.js"
@@ -11,6 +13,12 @@
   for = "/manifest.json"
   [headers.values]
     Content-Type = "application/manifest+json"
+
+# Los archivos de assets/ llevan un hash en el nombre: se pueden guardar en caché un año sin riesgo
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
 
 # Cabeceras de seguridad para todo el sitio
 [[headers]]
@@ -25,4 +33,4 @@
     # Política de contenido en modo SOLO REPORTE: no bloquea nada, solo anota en la consola del navegador (F12)
     # lo que bloquearía. Cuando pruebes login con Google, subir un PDF y usar la app sin avisos, cambia el nombre
     # de la cabecera a "Content-Security-Policy" para que se aplique de verdad.
-    Content-Security-Policy-Report-Only = "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com https://cdn.jsdelivr.net; frame-src https://*.firebaseapp.com https://accounts.google.com https://apis.google.com; worker-src 'self' blob: https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    Content-Security-Policy-Report-Only = "default-src 'self'; script-src 'self' https://www.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com https://cdn.jsdelivr.net; frame-src https://*.firebaseapp.com https://accounts.google.com https://apis.google.com; worker-src 'self' blob: https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"

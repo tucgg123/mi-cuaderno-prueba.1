@@ -1,7 +1,7 @@
 {
-  "name": "Mi cuaderno de estudio",
-  "short_name": "Mi cuaderno",
-  "description": "Organiza las materias y temas de tu carrera.",
+  "name": "Auren",
+  "short_name": "Auren",
+  "description": "Auren: organiza tus materias, estudia con ayuda de IA y mantén tu racha.",
   "lang": "es",
   "start_url": "/",
   "scope": "/",
