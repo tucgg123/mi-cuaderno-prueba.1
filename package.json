@@ -1,0 +1,12 @@
+{
+  "name": "auren",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Auren: organiza tus materias y estudia con ayuda de IA",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

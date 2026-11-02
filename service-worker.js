@@ -1,8 +1,8 @@
-/* Mi cuaderno de estudio — service worker (PWA)
+/* Auren — service worker (PWA)
    Sube el número de VERSION cuando quieras forzar que todos reciban cambios. */
-const VERSION = 'v2';
-const CACHE = 'cuaderno-' + VERSION;
-const BASE = ['/', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
+const VERSION = 'v3';
+const CACHE = 'auren-' + VERSION;
+const BASE = ['/', '/firebase-init.js', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 /* Librerías externas que sí conviene guardar para abrir más rápido o sin internet */
 const CDN_OK = [
@@ -22,7 +22,7 @@ self.addEventListener('install', e => {
 
 self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('cuaderno-') && k !== CACHE).map(k => caches.delete(k))))
+    caches.keys().then(ks => Promise.all(ks.filter(k => (k.startsWith('cuaderno-') || k.startsWith('auren-')) && k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -46,6 +46,17 @@ self.addEventListener('fetch', e => {
         }).catch(() => hit);
         return hit || red;
       })
+    );
+    return;
+  }
+
+  /* assets/ lleva un hash en el nombre (nunca cambia su contenido): primero la copia guardada, abre al instante y sin internet */
+  if (url.pathname.startsWith('/assets/')) {
+    e.respondWith(
+      caches.match(req).then(hit => hit || fetch(req).then(r => {
+        if (r && r.ok) { const cp = r.clone(); caches.open(CACHE).then(c => c.put(req, cp)); }
+        return r;
+      }))
     );
     return;
   }

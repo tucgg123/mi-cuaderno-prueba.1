@@ -1,0 +1,31 @@
+rules_version = '2';
+
+// Auren · reglas de Firebase Storage (SOLO si activas USAR_STORAGE en firebase-init.js).
+// Guardan los documentos originales grandes (más de 8 MB) que sube el docente: originales/{sid}/{temaId}/{archivo}
+// Usan los mismos permisos que Firestore: leen los miembros de la materia (y, si es de docente, el estudiante solo si el
+// tema está publicado) y escribe quien puede escribir el tema (en materias de docente, solo el docente).
+service firebase.storage {
+  match /b/{bucket}/o {
+    function materia(sid) {
+      return firestore.get(/databases/(default)/documents/temarios/$(sid)).data;
+    }
+    function esDeDocente(sid) {
+      return materia(sid).get('tipo', 'compartida') == 'docente';
+    }
+
+    match /originales/{sid}/{temaId}/{archivo} {
+      allow read: if request.auth != null
+        && request.auth.uid in materia(sid).members
+        && ( !esDeDocente(sid)
+             || materia(sid).ownerUid == request.auth.uid
+             || firestore.get(/databases/(default)/documents/temarios/$(sid)/temas/$(temaId)).data.publicado == true );
+      allow create, update: if request.auth != null
+        && request.auth.uid in materia(sid).members
+        && ( !esDeDocente(sid) || materia(sid).ownerUid == request.auth.uid )
+        && request.resource.size <= 50 * 1024 * 1024;
+      allow delete: if request.auth != null
+        && request.auth.uid in materia(sid).members
+        && ( !esDeDocente(sid) || materia(sid).ownerUid == request.auth.uid );
+    }
+  }
+}
