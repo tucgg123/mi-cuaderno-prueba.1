@@ -241,6 +241,7 @@ auth.onAuthStateChanged(async user=>{
     document.querySelectorAll('#mainNav button').forEach(x=>x.classList.toggle('on',x.dataset.nav===route.view));
     render();
     startShared();
+    iniciarAvisos();
     escucharMisInvitaciones();
     try{avisarLogros(evaluarLogros())}catch(e){console.error('Logros:',e)}
     (state.profile.rol?Promise.resolve():pedirRol()).then(procesarUnirsePendiente);
@@ -249,10 +250,137 @@ auth.onAuthStateChanged(async user=>{
     stopShared();
     currentUid=null;
     sync.fallo='';sync.falloMateria='';sync.aviso='';sync.tamAlto=false;sync.soloLocal=false;pintarBanner();
+    avisos=null;{const ap=$('avisosPanel');if(ap)ap.hidden=true}
     state=defaultState();
     $('appRoot').hidden=true;
     $('authScreen').hidden=false;
   }
+});
+
+/* ======================= AVISOS: novedades del docente y recordatorios =======================
+   - Cuando el docente publica un tema, un examen o un evento, el estudiante recibe un aviso (campana 🔔).
+     La primera vez que se sincroniza una materia solo se toma nota de lo que ya existía, para no llenarte de avisos viejos.
+   - Los recordatorios avisan de lo que pasa hoy o mañana en el calendario y de los exámenes que cierran en las próximas 24 h.
+   - Si das permiso al navegador, además se muestran como notificaciones del sistema cuando Auren no está a la vista.
+   Límite: los avisos se generan mientras Auren está abierta (o instalada y viva en segundo plano). Avisar con la app
+   totalmente cerrada exige un servidor de notificaciones push, que esta versión no incluye. */
+const AV_MAX=40;
+let avisos=null,avTimer=null;
+const avKey=()=>'auren_avisos_'+currentUid;
+const avisosActivos=()=>!state.profile||state.profile.avisos!==false;
+function avCargar(){
+  if(avisos&&avisos._uid===currentUid)return avisos;
+  let x=null;try{x=JSON.parse(localStorage.getItem(avKey())||'null')}catch(e){}
+  avisos=Object.assign({lista:[],vistos:{},base:{}},x||{},{_uid:currentUid});
+  return avisos;
+}
+function avGuardar(){
+  const a=avCargar();
+  a.lista=a.lista.slice(0,AV_MAX);
+  const ks=Object.keys(a.vistos);if(ks.length>800)ks.slice(0,ks.length-800).forEach(k=>delete a.vistos[k]);
+  try{localStorage.setItem(avKey(),JSON.stringify({lista:a.lista,vistos:a.vistos,base:a.base}))}catch(e){}
+  pintarCampana();
+}
+function notificarSistema(titulo,texto,tag){
+  try{
+    if(!document.hidden){toast(esc(texto));return}                                  // si Auren está a la vista basta el aviso interno
+    if(typeof Notification==='undefined'||Notification.permission!=='granted')return;
+    const opts={body:texto,icon:'/icons/icon-192.png',badge:'/icons/icon-192.png',tag:tag||undefined,data:{url:'/'}};
+    if(navigator.serviceWorker&&navigator.serviceWorker.ready)navigator.serviceWorker.ready.then(r=>r.showNotification(titulo,opts)).catch(()=>{try{new Notification(titulo,opts)}catch(e){}});
+    else new Notification(titulo,opts);
+  }catch(e){}
+}
+function avAgregar(av){
+  const a=avCargar();
+  a.lista.unshift(Object.assign({id:uid(),leido:false,fecha:Date.now()},av));
+  avGuardar();
+  notificarSistema('Auren',av.texto,av.clave);
+}
+function anunciarNuevos(m,tipo,items){
+  if(!currentUid||!m||m.rol!=='estudiante'||!m.sharedId)return;
+  const a=avCargar(),bk=m.sharedId+'|'+tipo,pre=tipo+'|'+m.sharedId+'|';
+  if(!a.base[bk]){items.forEach(x=>{a.vistos[pre+x.id]=1});a.base[bk]=1;avGuardar();return}     // primera lectura: sin avisos
+  const nuevos=items.filter(x=>!a.vistos[pre+x.id]);
+  if(!nuevos.length)return;
+  const ico={tema:'📖',examen:'📝',evento:'🗓️'}[tipo]||'🔔',que={tema:'tema',examen:'examen',evento:'evento'}[tipo]||'aviso';
+  nuevos.forEach(x=>{
+    a.vistos[pre+x.id]=1;
+    if(avisosActivos())avAgregar({tipo,materiaId:m.id,texto:ico+' Nuevo '+que+' en '+m.name+': '+x.titulo,clave:pre+x.id});
+  });
+  avGuardar();
+}
+/* Lo que pasa hoy o mañana, y los exámenes que cierran en las próximas 24 horas */
+function avisablesProximos(){
+  const hoy=hoyStr(),man=sumarDias(hoy,1),out=[];
+  eventosTodos().forEach(e=>{
+    if(e.date!==hoy&&e.date!==man)return;
+    out.push({clave:'ev|'+e.id+'|'+e.date,materiaId:e.materiaId||null,
+      texto:'🔔 '+(e.date===hoy?'Hoy':'Mañana')+': '+(TY[e.type]||tipoEv(e.type)||'📌')+' '+e.title+(e.hora?' a las '+e.hora:'')+(e.materia?' · '+e.materia:'')});
+  });
+  state.materias.filter(m=>m.rol==='estudiante'&&m.sharedId).forEach(m=>{
+    examenesDe(m).forEach(ex=>{
+      if(!ex.cierre||!examAbierto(ex)||miIntento(m,ex.id))return;
+      const falta=ex.cierre-Date.now();
+      if(falta>0&&falta<=24*3600*1000)out.push({clave:'exc|'+ex.id,materiaId:m.id,texto:'⏰ El examen «'+(ex.titulo||'Examen')+'» de '+m.name+' cierra '+fmtFechaHora(ex.cierre)});
+    });
+  });
+  return out;
+}
+function revisarRecordatorios(){
+  if(!currentUid||esProfesor()||!avisosActivos())return;
+  const a=avCargar();let n=0;
+  avisablesProximos().forEach(x=>{
+    if(a.vistos[x.clave])return;
+    a.vistos[x.clave]=1;n++;
+    avAgregar({tipo:'recordatorio',materiaId:x.materiaId,texto:x.texto,clave:x.clave});
+  });
+  if(n)avGuardar();
+}
+function iniciarAvisos(){
+  pintarCampana();
+  if(avTimer)return;
+  setTimeout(revisarRecordatorios,2500);
+  avTimer=setInterval(revisarRecordatorios,15*60*1000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)revisarRecordatorios()});
+}
+function pintarCampana(){
+  const n=$('bellN'),b=$('bellBtn');if(!b)return;
+  b.style.display=(esProfesor()||!currentUid)?'none':'';
+  const k=currentUid?avCargar().lista.filter(x=>!x.leido).length:0;
+  if(n){n.hidden=!k;n.textContent=k>9?'9+':String(k)}
+  b.setAttribute('aria-label',k?'Avisos: '+k+' sin leer':'Avisos');
+}
+function avisosPanelHTML(sinLeer){
+  const a=avCargar();
+  if(!a.lista.length)return `<div class="avHead"><b>🔔 Avisos</b><button class="icon-btn" data-action="avCerrar" aria-label="Cerrar">✕</button></div><p class="meta" style="padding:12px 14px">Aquí verás cuando tu docente publique algo y los recordatorios de lo que viene en el calendario.</p>`;
+  return `<div class="avHead"><b>🔔 Avisos</b><span class="row" style="margin:0"><button class="sec" data-action="avVaciar">Vaciar</button><button class="icon-btn" data-action="avCerrar" aria-label="Cerrar">✕</button></span></div>
+    <div class="avLista">${a.lista.map(x=>`<button class="avItem ${sinLeer.has(x.id)?'nuevo':''}" data-action="avAbrir" data-av="${x.id}"><span>${esc(x.texto)}</span><small class="meta">${relTime(x.fecha)}${sinLeer.has(x.id)?' · nuevo':''}</small></button>`).join('')}</div>`;
+}
+function abrirAvisos(){
+  const p=$('avisosPanel');if(!p)return;
+  if(!p.hidden){p.hidden=true;return}
+  const a=avCargar(),sinLeer=new Set(a.lista.filter(x=>!x.leido).map(x=>x.id));
+  p.innerHTML=avisosPanelHTML(sinLeer);p.hidden=false;
+  a.lista.forEach(x=>{x.leido=true});avGuardar();
+}
+function notificarSistemaPrueba(){
+  try{
+    const opts={body:'Listo: te avisaremos de lo que publique tu docente y de lo que viene en tu calendario.',icon:'/icons/icon-192.png',tag:'auren-prueba'};
+    if(navigator.serviceWorker&&navigator.serviceWorker.ready)navigator.serviceWorker.ready.then(r=>r.showNotification('Auren',opts));else new Notification('Auren',opts);
+  }catch(e){}
+}
+function avisosCardHTML(){
+  const act=avisosActivos(),soporta=typeof Notification!=='undefined',perm=soporta?Notification.permission:'no';
+  return `<div class="card"><h3>🔔 Avisos y recordatorios</h3>
+    <p class="meta" style="margin-top:0">Te avisamos cuando tu docente publica un tema, un examen o un evento, y te recordamos lo que pasa hoy o mañana en tu calendario.</p>
+    <div class="row" style="flex-wrap:wrap"><button class="${act?'pr':'sec'}" data-action="avToggle">${act?'✅ Avisos activados':'Avisos desactivados'}</button>
+    ${soporta?(perm==='granted'?'<span class="chip chipOk">Notificaciones del navegador activadas</span>':perm==='denied'?'<span class="chip">Notificaciones bloqueadas en el navegador</span>':'<button class="sec" data-action="avPermiso">Activar notificaciones del navegador</button>'):'<span class="chip">Este navegador no admite notificaciones</span>'}</div>
+    <p class="meta" style="margin:8px 0 0">Los avisos aparecen mientras Auren está abierta o instalada en tu dispositivo. Con la aplicación totalmente cerrada no se pueden enviar sin un servidor de notificaciones push.${perm==='denied'?' Para recibirlas, permítelas desde el candado de la barra de direcciones.':''}</p></div>`;
+}
+$('bellBtn').onclick=e=>{e.stopPropagation();abrirAvisos()};
+document.addEventListener('click',e=>{
+  const p=$('avisosPanel');
+  if(p&&!p.hidden&&!e.target.closest('#avisosPanel')&&!e.target.closest('#bellBtn'))p.hidden=true;
 });
 
 /* ================= TEMA CLARO/OSCURO ================= */
@@ -351,6 +479,7 @@ function render(keep){
   const _y=window.scrollY;
   guardarRuta();
   if(route.view!=='tool')clearRepasoTimer();
+  if(route.view!=='examenDoc')clearExTimer();
   const view=$('view');
   let html='';
   if(route.view==='materias')html=viewMateriasHTML();
@@ -430,6 +559,7 @@ function viewMateriasHTML(){
     <div class="viewhead"><div><h1>Mis materias</h1><p class="sub">${pluralMv(sems.length,'semestre','semestres')} y ${pluralMv(todas.length,'materia','materias')}</p></div>
       <span class="row" style="margin:0"><button class="sec" data-action="joinSharedPrompt">🔗 Unirme con código</button><button class="pr" data-action="addSemester">+ Semestre</button></span></div>
     ${invitacionesHTML()}
+    ${repasoHoyHTML()}
     ${sems.length?'':'<div class="empty">Aún no tienes semestres. Agrega uno para empezar a organizar tus materias.</div>'}
     ${bloques}
   </div><aside class="mv-stats" aria-label="Resumen del estudiante">${matStatsHTML(sems.length,todas)}</aside></div>`;
@@ -522,6 +652,8 @@ function viewMateriaDetailHTML(materiaId){
         <button class="sec" data-action="openTool" data-tool="quiz" data-mat="${materiaId}">❓ Quiz</button>
         <button class="sec" data-action="openTool" data-tool="examen" data-mat="${materiaId}">📝 Modo examen</button>
         <button class="sec" data-action="openTool" data-tool="concepto" data-mat="${materiaId}">💡 ¿Qué concepto?</button>
+        <button class="sec" data-action="openTool" data-tool="hoy" data-mat="${materiaId}">📅 Repaso de hoy${sesionHoy(materiaId).length?' ('+sesionHoy(materiaId).length+')':''}</button>
+        <button class="sec" data-action="openTool" data-tool="falle" data-mat="${materiaId}">🎯 Repasar lo que fallé${tarjetasFalladas(materiaId).length?' ('+tarjetasFalladas(materiaId).length+')':''}</button>
         <button class="sec" data-action="openTool" data-tool="repaso" data-mat="${materiaId}">⏱️ Repaso 5 min</button>
         <button class="sec" data-action="openTool" data-tool="comparar" data-mat="${materiaId}">⚖️ Comparar</button>
         <button class="sec" data-action="openTool" data-tool="progreso" data-mat="${materiaId}">📊 Mi progreso</button>
@@ -824,17 +956,54 @@ function tarjetasDelCorte(materiaId,corteId){
   const tids=new Set(state.temas.filter(x=>x.materiaId===materiaId&&x.corteId===corteId).map(x=>x.id));
   return state.cards.filter(c=>c.materiaId===materiaId&&tids.has(c.temaId)&&String(c.front||'').trim()&&String(c.back||'').trim());
 }
-function armarPreguntas(cards,n){
-  const limpio=s=>String(s==null?'':s).trim();
-  const validas=cards.filter(c=>limpio(c.front)&&limpio(c.back));
-  if(new Set(validas.map(c=>limpio(c.back))).size<MIN_MATERIAL)return null;
-  const total=n>0?Math.min(n,validas.length):validas.length;
-  return shuffle(validas).slice(0,total).map(c=>{
-    const correcta=limpio(c.back);
-    const pool=[...new Map(validas.filter(x=>limpio(x.back)!==correcta).map(x=>[limpio(x.back),x.back])).values()];
-    return{card:c,options:shuffle([c.back,...shuffle(pool).slice(0,3)]),selected:null};
-  });
+/* ---------- Preguntas: opción múltiple, verdadero/falso y completar ---------- */
+const limpioT=s=>String(s==null?'':s).trim();
+/* 3 opciones incorrectas: primero las que escribió la IA para esa tarjeta; si faltan, respuestas de otras tarjetas del mismo grupo (corte) */
+function distractoresDe(c,pool){
+  const correcta=limpioT(c.back);
+  const ia=[...new Set((c.dist||[]).map(limpioT).filter(x=>x&&x!==correcta))];
+  if(ia.length>=3)return shuffle(ia).slice(0,3);
+  const otros=[...new Map((pool||[]).filter(x=>limpioT(x.back)&&limpioT(x.back)!==correcta).map(x=>[limpioT(x.back),limpioT(x.back)])).values()].filter(x=>!ia.includes(x));
+  const todos=ia.concat(shuffle(otros));
+  return todos.length>=3?todos.slice(0,3):null;
 }
+function tipoPara(c,tipos){
+  if(tipos==='mc')return 'mc';
+  const op=['mc','mc'];                                                                     // la opción múltiple pesa más
+  if(limpioT(c.falsa)&&limpioT(c.falsa)!==limpioT(c.back))op.push('vf');
+  if(c.hueco&&limpioT(c.hueco.r)&&String(c.hueco.o||'').includes('____'))op.push('hueco');
+  return op[Math.floor(Math.random()*op.length)];
+}
+function preguntaDe(c,d,tipos){
+  const tipo=tipoPara(c,tipos);
+  if(tipo==='vf'){const v=Math.random()<0.5;return{card:c,tipo,enun:c.front,afirm:v?c.back:c.falsa,correcta:v?'Verdadero':'Falso',options:['Verdadero','Falso'],selected:null}}
+  if(tipo==='hueco')return{card:c,tipo,enun:c.hueco.o,correcta:c.hueco.r,options:[],selected:null};
+  return{card:c,tipo:'mc',enun:c.front,correcta:c.back,options:shuffle([c.back,...d]),selected:null};
+}
+function armarPreguntas(cards,n,opts){
+  opts=opts||{};
+  const validas=cards.filter(c=>limpioT(c.front)&&limpioT(c.back));
+  const poolDe=opts.poolDe||(()=>validas);
+  const lista=[];
+  shuffle(validas).forEach(c=>{const d=distractoresDe(c,poolDe(c));if(d)lista.push(preguntaDe(c,d,opts.tipos))});
+  if(!lista.length)return null;
+  return n>0?lista.slice(0,n):lista;
+}
+/* Completar: se acepta sin tildes, mayúsculas ni signos, y con un error de tipeo en palabras largas */
+const normTxt=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+function distLev(a,b){
+  const m=a.length,n=b.length;if(!m)return n;if(!n)return m;
+  let prev=Array.from({length:n+1},(_,j)=>j);
+  for(let i=1;i<=m;i++){const cur=[i];for(let j=1;j<=n;j++)cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));prev=cur}
+  return prev[n];
+}
+function respuestaHuecoOk(dada,correcta){
+  const a=normTxt(dada),b=normTxt(correcta);
+  if(!a||!b)return false;
+  if(a===b)return true;
+  return distLev(a,b)<=(b.length>=9?2:b.length>=5?1:0);
+}
+const esAcierto=q=>q.tipo==='hueco'?respuestaHuecoOk(q.selected,q.correcta):q.selected===q.correcta;
 function quizCfgDe(materiaId,tool){
   ui.quizCfg=ui.quizCfg||{};
   const cortes=state.cortes.filter(c=>c.materiaId===materiaId);
@@ -845,13 +1014,14 @@ function quizCfgDe(materiaId,tool){
   }
   cfg.n=cfg.n||{};
   if(cfg.n[tool]==null)cfg.n[tool]=tool==='quiz'?10:0;   // 0 = todas las tarjetas del corte
-  return{corteId:cfg.corteId,n:cfg.n[tool]};
+  if(!cfg.tipos)cfg.tipos='mixto';                       // mixto = opción múltiple + verdadero/falso + completar
+  return{corteId:cfg.corteId,n:cfg.n[tool],tipos:cfg.tipos};
 }
 function comenzarQuiz(){
   if(!toolState||!toolState.setup)return;
   const materiaId=route.materiaId,corteId=toolState.corteId;
   const cards=tarjetasDelCorte(materiaId,corteId);
-  const questions=armarPreguntas(cards,toolState.n);
+  const questions=armarPreguntas(cards,toolState.n,{tipos:toolState.tipos});
   if(!questions){toolState.error='No hay suficiente material en este corte para armar el examen.';render(true);return}
   ui.quizCfg[materiaId].corteId=corteId;
   toolState={questions,idx:0,score:0,corteId};
@@ -876,11 +1046,91 @@ function quizSetupHTML(isExam){
     ${toolState.error&&hay?`<div class="fb fbNo" role="alert">${esc(toolState.error)}</div>`:''}
     <label class="lbl" for="quizN">Número de preguntas</label>
     <select class="fld" id="quizN" data-action="quizN">${opcionesN.map(x=>`<option value="${x}" ${toolState.n===x?'selected':''}>${x}</option>`).join('')}<option value="0" ${toolState.n===0||toolState.n>=cards.length?'selected':''}>Todas (${cards.length})</option></select>
+    <label class="lbl" for="quizTipos">Tipos de pregunta</label>
+    <select class="fld" id="quizTipos" data-action="quizTipos"><option value="mixto" ${toolState.tipos!=='mc'?'selected':''}>Variadas: opción múltiple, verdadero/falso y completar</option><option value="mc" ${toolState.tipos==='mc'?'selected':''}>Solo opción múltiple</option></select>
     <div class="premio" style="margin-top:14px"><b>🔥 Racha de hoy: ${hoyN}/${META_RACHA} preguntas</b>
       <div class="bar"><i style="width:${Math.min(100,Math.round(hoyN/META_RACHA*100))}%"></i></div>
       <p class="meta" style="margin:6px 0 0">Las primeras ${META_RACHA} preguntas del día aseguran tu racha. Las demás cuentan como práctica extra: puedes hacer todas las que quieras y quedan en tu historial.</p></div>
     <button class="pr nextBtn" data-action="quizStart" ${hay?'':'disabled'} style="margin-top:14px">Comenzar</button>
   </div>`;
+}
+
+/* ---------- Repaso espaciado (Leitner) ----------
+   Cada tarjeta vive en una caja del 1 al 5. Si la aciertas cuando te tocaba, sube de caja y tarda más en volver
+   (1, 2, 4, 8 y 16 días). Si la fallas, vuelve a la caja 1 y regresa mañana. Practicar fuera de turno no sube de caja. */
+const LEITNER=[0,1,2,4,8,16];
+const hoyStr=()=>fechaLocal(new Date());
+function sumarDias(f,n){const d=new Date(f+'T00:00');d.setDate(d.getDate()+n);return fechaLocal(d)}
+function tarjetaPendiente(c,hoy){return !c.due||c.due<=(hoy||hoyStr())}
+function repasarTarjeta(c,acierto){
+  const hoy=hoyStr(),pendiente=tarjetaPendiente(c,hoy);
+  c.lastOk=!!acierto;c.last=hoy;
+  if(!acierto){c.box=1;c.due=sumarDias(hoy,1);c.fails=(c.fails||0)+1;return}
+  if(pendiente){c.box=Math.min(5,(c.box||0)+1);c.due=sumarDias(hoy,LEITNER[c.box])}
+}
+/* Sesión de hoy: primero las vencidas (las más atrasadas antes) y luego unas pocas nuevas, hasta 20 en total */
+function sesionHoy(materiaId,max){
+  max=max||20;
+  const hoy=hoyStr(),cs=getCards(materiaId);
+  const vencidas=cs.filter(c=>c.due&&c.due<=hoy).sort((a,b)=>a.due.localeCompare(b.due)||(a.box||0)-(b.box||0));
+  const nuevas=cs.filter(c=>!c.due);
+  return vencidas.concat(nuevas.slice(0,Math.max(0,Math.min(10,max-vencidas.length)))).slice(0,max);
+}
+function proximoRepasoTexto(materiaId){
+  const hoy=hoyStr(),f=getCards(materiaId).filter(c=>c.due&&c.due>hoy).map(c=>c.due).sort();
+  if(!f.length)return 'Practica con flashcards o quiz y Auren programará tus repasos.';
+  const n=f.filter(x=>x===f[0]).length;
+  return 'El próximo repaso es '+relDate(f[0])+' ('+n+' tarjeta'+(n==1?'':'s')+').';
+}
+function hoyVacioHTML(){return `<div class="empty"><h2>🎉 Nada pendiente por hoy</h2><p>${esc(proximoRepasoTexto(route.materiaId))}</p></div>`}
+function repasoHoyHTML(){
+  if(esProfesor())return '';
+  const filas=state.materias.filter(m=>m.rol!=='docente').map(m=>({m,n:sesionHoy(m.id).length})).filter(x=>x.n>0);
+  if(!filas.length)return '';
+  const total=filas.reduce((s,x)=>s+x.n,0);
+  return `<div class="card shareBox repasoHoy"><b>📅 Para repasar hoy: ${total} tarjeta${total==1?'':'s'}</b><p class="meta" style="margin:4px 0 8px">Según tus repasos anteriores, hoy te toca ver estas para que no se te olviden.</p>${filas.map(x=>`<div class="li"><span>${esc(x.m.icon)} ${esc(x.m.name)} <small class="meta">· ${x.n}</small></span><button class="sec" data-action="openTool" data-tool="hoy" data-mat="${x.m.id}">Repasar</button></div>`).join('')}</div>`;
+}
+/* ---------- Repasar lo que fallé ---------- */
+const tarjetasFalladas=materiaId=>getCards(materiaId).filter(c=>c.lastOk===false);
+async function fallosDeExamenes(m){
+  const sid=m.sharedId;if(!sid)return[];
+  const porTema={};
+  for(const ex of examenesDe(m).filter(x=>miIntento(m,x.id))){
+    await asegurarClave(m,ex.id);
+    const cl=(clMap[sid]||{})[ex.id];if(!cl)continue;
+    calificar(ex,cl,(miIntento(m,ex.id)||{}).respuestas||{}).det.forEach(d=>{
+      const k=d.q.temaId;if(!k||!state.temas.some(t=>t.id===k))return;
+      const t=porTema[k]=porTema[k]||{temaId:k,titulo:d.q.temaTitulo||'',n:0,mal:0};
+      t.n++;if(!d.acierto)t.mal++;
+    });
+  }
+  return Object.values(porTema).filter(t=>t.mal>0).sort((x,y)=>y.mal/y.n-x.mal/x.n||y.mal-x.mal);
+}
+async function cargarFallosExamenes(materiaId){
+  const m=state.materias.find(x=>x.id===materiaId);
+  let lista=[];
+  if(m&&m.rol==='estudiante'){try{lista=await fallosDeExamenes(m)}catch(e){console.warn('Fallos de exámenes:',e)}}
+  if(toolState&&toolState.setup&&route.tool==='falle'&&route.materiaId===materiaId){toolState.temasEx=lista;render(true)}
+}
+function falleSetupHTML(m){
+  const falladas=tarjetasFalladas(m.id),ex=toolState.temasEx;
+  return `<div class="viewhead"><h1>🎯 Repasar lo que fallé</h1></div>
+  <div class="card"><b>Tarjetas que fallaste</b>
+    <p class="meta">${falladas.length?'Tienes <b>'+falladas.length+'</b> tarjeta'+(falladas.length==1?'':'s')+' que fallaste la última vez. Cuando las aciertes salen de esta lista.':'No tienes tarjetas falladas ahora mismo. Cuando falles alguna en un quiz o en flashcards aparecerá aquí.'}</p>
+    <button class="pr" data-action="falleStart" data-modo="tarjetas" ${falladas.length?'':'disabled'}>Practicar las que fallé</button></div>
+  ${m.rol==='estudiante'?`<div class="card" style="margin-top:12px"><b>Temas donde más fallaste en los exámenes de tu profesor</b>
+    ${ex===null||ex===undefined?'<p class="meta">Calculando…</p>':ex.length?ex.map(t=>`<div class="li"><span>${esc(t.titulo||'Tema')}<br><small class="meta">Fallaste ${t.mal} de ${t.n} (${Math.round(t.mal/t.n*100)} %)</small></span><button class="sec" data-action="falleStart" data-modo="tema" data-tema="${t.temaId}">Practicar</button></div>`).join(''):'<p class="meta">Todavía no hay fallos en exámenes que hayas entregado.</p>'}</div>`:''}
+  ${toolState.error?`<div class="fb fbNo" role="alert">${esc(toolState.error)}</div>`:''}`;
+}
+function comenzarFalle(modo,temaId){
+  if(!toolState||!toolState.setup||route.tool!=='falle')return;
+  const mid=route.materiaId;
+  const objetivos=modo==='tema'?state.cards.filter(c=>c.materiaId===mid&&c.temaId===temaId):tarjetasFalladas(mid);
+  const poolDe=c=>{const t=state.temas.find(x=>x.id===c.temaId);return t?tarjetasDelCorte(mid,t.corteId):[c]};   // opciones solo del mismo corte
+  const qs=armarPreguntas(objetivos,20,{poolDe,tipos:'mixto'});
+  if(!qs){toolState.error='No hay suficiente material en el corte de esas tarjetas para armar preguntas (hacen falta respuestas de otras tarjetas del mismo corte).';render();return}
+  toolState={questions:qs,idx:0,score:0,corteId:null};
+  render();
 }
 
 function startTool(tool,materiaId){
@@ -891,7 +1141,11 @@ function startTool(tool,materiaId){
   }else if(tool==='quiz'||tool==='examen'){
     /* El examen se arma con UN corte elegido (ver comenzarQuiz): nunca mezcla cortes ni materias */
     const cfg=quizCfgDe(materiaId,tool);
-    toolState={setup:true,corteId:cfg.corteId,n:cfg.n,error:''};
+    toolState={setup:true,corteId:cfg.corteId,n:cfg.n,tipos:cfg.tipos,error:''};
+  }else if(tool==='hoy'){
+    toolState={cards:sesionHoy(materiaId),idx:0,flipped:false,known:0,seen:0};
+  }else if(tool==='falle'){
+    toolState={setup:true,error:'',temasEx:null};
   }else if(tool==='comparar'){
     const other=state.materias.find(m=>m.id!==materiaId);
     toolState={materiaId2:other?other.id:null};
@@ -900,6 +1154,7 @@ function startTool(tool,materiaId){
   }
   route={view:'tool',tool,materiaId};
   render();
+  if(tool==='falle')cargarFallosExamenes(materiaId);
   if(tool==='repaso'){
     toolState.secondsLeft=300;
     repasoTimer=setInterval(()=>{
@@ -918,6 +1173,8 @@ function viewToolHTML(){
   const head=`<button class="sec" data-action="backMateria" data-id="${materiaId}">← ${esc(m.icon)} ${esc(m.name)}</button><div style="margin-top:14px"></div>`;
   let body='';
   if(tool==='flashcards')body=toolFlashcardsHTML();
+  else if(tool==='hoy')body=toolFlashcardsHTML('📅 Repaso de hoy');
+  else if(tool==='falle')body=toolState.setup?falleSetupHTML(m):toolQuizHTML(false);
   else if(tool==='memorizar')body=toolMemorizarHTML(m);
   else if(tool==='quiz')body=toolQuizHTML(false);
   else if(tool==='examen')body=toolQuizHTML(true);
@@ -929,13 +1186,15 @@ function viewToolHTML(){
   return head+body;
 }
 
-function toolFlashcardsHTML(){
+function toolFlashcardsHTML(titulo){
+  const esHoy=route.tool==='hoy';
   const{cards,idx,flipped,known,seen}=toolState;
-  if(!cards.length)return noCardsMsg();
-  if(idx>=cards.length)return `<div class="empty"><h2>🎉 ¡Terminaste!</h2><p>Sabías ${known} de ${seen} tarjetas.</p><button class="pr" data-action="redoTool">Repetir</button></div>`;
+  if(!cards.length)return esHoy?hoyVacioHTML():noCardsMsg();
+  if(idx>=cards.length)return `<div class="empty"><h2>🎉 ¡Terminaste!</h2><p>Sabías ${known} de ${seen} tarjetas.</p>${esHoy?`<p class="meta">${esc(proximoRepasoTexto(route.materiaId))}</p>`:''}<button class="pr" data-action="redoTool">${esHoy?'Ver si queda algo por hoy':'Repetir'}</button></div>`;
   const c=cards[idx];
   return `
-  <div class="viewhead"><h1>🔄 Flashcards</h1><span class="meta">${idx+1} / ${cards.length}</span></div>
+  <div class="viewhead"><h1>${titulo||'🔄 Flashcards'}</h1><span class="meta">${idx+1} / ${cards.length}</span></div>
+  ${esHoy?`<div class="chips" style="margin:-4px 0 8px"><span class="chip">${c.box?'Caja '+c.box+' de 5':'Nueva'}</span></div>`:''}
   <div class="flashcard ${flipped?'flip':''}" data-action="flipCard">
     <div class="fcInner"><div class="fcFace fcFront">${esc(c.front)}</div><div class="fcFace fcBack">${esc(c.back)}</div></div>
   </div>
@@ -986,6 +1245,15 @@ function toolRepasoHTML(){
   </div>`;
 }
 
+function enunciadoHTML(q){
+  if(q.tipo==='vf')return `${esc(q.enun)}<br><span class="vfAfirm">«${esc(q.afirm)}»</span><br><small class="meta">¿Verdadero o falso?</small>`;
+  if(q.tipo==='hueco')return 'Completa:<br>'+esc(q.enun).replace('____','<span class="hueco">____</span>');
+  return esc(q.enun);
+}
+function huecoHTML(q,instante,contesto,acierto){
+  if(!contesto)return `<input class="fld" id="huecoInput" autocomplete="off" autocapitalize="off" placeholder="Escribe la palabra o frase que falta" maxlength="80"><button class="pr" data-action="answerHueco" style="margin-top:8px">Comprobar</button>`;
+  return `<div class="sec optBtn ${instante?(acierto?'ok pop':'no shake'):'chosen'}" style="cursor:default">${esc(q.selected)}</div>${instante&&!acierto?`<p class="meta" style="margin:6px 0 0">Respuesta esperada: <b>${esc(q.correcta)}</b></p>`:''}`;
+}
 function corteChipHTML(){
   const c=state.cortes.find(x=>x.id===toolState.corteId);
   return c?`<div class="chips" style="margin:-4px 0 8px"><span class="chip">📁 ${esc(c.name)||'(corte sin nombre)'}</span></div>`:'';
@@ -1006,11 +1274,11 @@ function toolQuizHTML(isExam){
     <p class="resMsg">${msg}</p>
     <p class="meta">Resultado: <b>${score} / ${questions.length}</b> · ${pct}%${(state.cortes.find(x=>x.id===toolState.corteId)||{}).name?' · '+esc(state.cortes.find(x=>x.id===toolState.corteId).name):''}</p>
     ${premiosHTML()}
-    ${isExam?`<div class="resList">${questions.map((q,i)=>`<p class="meta resRow ${q.selected===q.card.back?'bien':'mal'}" style="--i:${Math.min(i,14)}">${i+1}. ${esc(q.card.front)} — ${q.selected===q.card.back?'✅':'❌ correcta: '+esc(q.card.back)}</p>`).join('')}</div>`:''}
+    ${isExam?`<div class="resList">${questions.map((q,i)=>`<p class="meta resRow ${esAcierto(q)?'bien':'mal'}" style="--i:${Math.min(i,14)}">${i+1}. ${esc(q.enun)}${q.tipo==='vf'?' «'+esc(q.afirm)+'»':''} — ${esAcierto(q)?'✅':'❌ correcta: '+esc(q.correcta)}</p>`).join('')}</div>`:''}
     <button class="pr" data-action="redoTool">Repetir</button></div>`;
   }
   const q=questions[idx];
-  const contesto=!!q.selected,acierto=contesto&&q.selected===q.card.back;
+  const contesto=!!q.selected,acierto=contesto&&esAcierto(q);
   const prog0=Math.round(idx/questions.length*100),prog1=Math.round((idx+(contesto?1:0))/questions.length*100);
   const combo=toolState.combo||0;
   return `
@@ -1019,11 +1287,11 @@ function toolQuizHTML(isExam){
   <div class="bar qbar"><i style="width:${prog1}%;--from:${prog0}%"></i></div>
   ${isExam?`<button type="button" class="toggleChip ${examInstantaneo?'on':''}" data-action="toggleInstante" ${contesto?'disabled':''}>⚡ Ver si acerté al instante: ${examInstantaneo?'Sí':'No'}</button>`:''}
   ${instante&&combo>=2?`<div class="comboChip">🔥 ${combo} seguidas</div>`:''}
-  <div class="card qCard ${contesto?'answered':''}"><h3 style="margin-top:0">${esc(q.card.front)}</h3>
-    ${q.options.map(o=>{
+  <div class="card qCard ${contesto?'answered':''}"><h3 style="margin-top:0">${enunciadoHTML(q)}</h3>
+    ${q.tipo==='hueco'?huecoHTML(q,instante,contesto,acierto):q.options.map(o=>{
       let cls='sec optBtn';
       if(instante&&contesto){
-        if(o===q.card.back)cls+=' ok '+(acierto?'pop':'reveal');
+        if(o===q.correcta)cls+=' ok '+(acierto?'pop':'reveal');
         else if(o===q.selected)cls+=' no shake';
       }else if(!instante&&o===q.selected){
         cls+=' chosen picked';
@@ -1129,6 +1397,7 @@ function viewPerfilHTML(){
       </div>
     </div>
     <div class="card"><h3>Avatar</h3><div class="avatarPicker">${AV.map(a=>`<button class="avBtn ${a===p.avatar?'on':''}" data-action="setAvatar" data-a="${a}">${a}</button>`).join('')}</div></div>
+    ${avisosCardHTML()}
     <div class="card">
       <h3>Editar perfil</h3>
       <label class="lbl">Nombre</label><input class="fld" data-action="profileField" data-f="name" value="${esc(p.name)}" maxlength="40">
@@ -1278,6 +1547,17 @@ document.addEventListener('click',e=>{
     if(confirm('¿Eliminar esta sección?'))mutate(s=>{const t=s.temas.find(x=>x.id===b.dataset.id);if(t&&t.secciones)t.secciones=t.secciones.filter(x=>x.id!==b.dataset.sid)});
   }
   else if(a==='descargarOriginal'){descargarOriginal(b.dataset.id)}
+  else if(a==='avCerrar'){$('avisosPanel').hidden=true}
+  else if(a==='avVaciar'){avCargar().lista=[];avGuardar();$('avisosPanel').innerHTML=avisosPanelHTML(new Set())}
+  else if(a==='avAbrir'){
+    const x=avCargar().lista.find(v=>v.id===b.dataset.av);$('avisosPanel').hidden=true;
+    const mm=x&&x.materiaId&&state.materias.find(v=>v.id===x.materiaId);
+    if(mm){route={view:'materiaDetail',materiaId:mm.id};document.querySelectorAll('#mainNav button').forEach(v=>v.classList.toggle('on',v.dataset.nav==='materias'));render()}
+  }
+  else if(a==='avToggle'){mutate(s=>{s.profile.avisos=s.profile.avisos===false});if(avisosActivos())revisarRecordatorios()}
+  else if(a==='avPermiso'){
+    try{Promise.resolve(Notification.requestPermission()).then(()=>{render(true);if(Notification.permission==='granted')notificarSistemaPrueba()})}catch(err){console.warn(err)}
+  }
   else if(a==='syncReintentar'){reintentarSync()}
   else if(a==='liberarEspacio'){liberarEspacio()}
   else if(a==='delTema'){
@@ -1337,21 +1617,25 @@ document.addEventListener('click',e=>{
     if(b.classList.contains('flashcard'))b.classList.toggle('flip',toolState.flipped);   // sin repintar: así el giro se anima
     else render();
   }
+  else if(a==='falleStart'){comenzarFalle(b.dataset.modo,b.dataset.tema)}
   else if(a==='cardAnswer'){
     const know=b.dataset.know==='1';
     const c=toolState.cards[toolState.idx];
     const real=state.cards.find(x=>x.id===c.id);
-    if(real){real.known=know;persist();avisarLogros(evaluarLogros());}
+    if(real){real.known=know;repasarTarjeta(real,know);persist();avisarLogros(evaluarLogros());}
     toolState.seen++;if(know)toolState.known++;
     toolState.idx++;toolState.flipped=false;
     render();
   }
-  else if(a==='answerQuiz'){
+  else if(a==='answerQuiz'||a==='answerHueco'){
     const q=toolState.questions[toolState.idx];
     if(q.selected)return;
-    q.selected=b.dataset.opt;
-    const acierto=q.selected===q.card.back;
+    if(a==='answerHueco')q.selected=limpioT(($('huecoInput')||{}).value)||'(sin respuesta)';
+    else q.selected=b.dataset.opt;
+    const acierto=esAcierto(q);
     if(acierto)toolState.score++;
+    const realQ=state.cards.find(x=>x.id===q.card.id);
+    if(realQ){repasarTarjeta(realQ,acierto);persist()}      // el repaso espaciado también aprende de los quiz
     if(route.tool!=='examen'||examInstantaneo){
       toolState.combo=acierto?(toolState.combo||0)+1:0;
       toolState.fx={tipo:acierto?'ok':'no'};
@@ -1391,6 +1675,9 @@ document.addEventListener('click',e=>{
 });
 
 /* ================= ACCIONES (edición en vivo, sin repintar) ================= */
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&e.target&&e.target.id==='huecoInput'){e.preventDefault();const b=document.querySelector('[data-action="answerHueco"]');if(b)b.click()}
+});
 document.addEventListener('input',e=>{
   const a=e.target.dataset.action;if(!a)return;
   const id=e.target.dataset.id;
@@ -1407,6 +1694,7 @@ document.addEventListener('input',e=>{
   }
   else if(a==='iaCorteSel'){ui.iaCorte=e.target.value}
   else if(a==='quizCorte'&&toolState&&toolState.setup){toolState.corteId=e.target.value;toolState.error='';ui.quizCfg[route.materiaId].corteId=e.target.value;render(true)}
+  else if(a==='quizTipos'&&toolState&&toolState.setup){toolState.tipos=e.target.value;ui.quizCfg[route.materiaId].tipos=toolState.tipos}
   else if(a==='quizN'&&toolState&&toolState.setup){toolState.n=+e.target.value||0;ui.quizCfg[route.materiaId].n[route.tool]=toolState.n}
   else if(a==='editSecPuntos'){
     const t=state.temas.find(x=>x.id===id);
@@ -1514,7 +1802,7 @@ document.addEventListener('input',e=>{if(e.target.matches&&e.target.matches('.se
 /* ================= IA: SUBIR PDF/PPTX Y GENERAR TEMA + TARJETAS ================= */
 /* Caché de resultados de IA: si subes otra vez el mismo archivo, se reutiliza el resultado
    y NO se gasta una petición del límite diario de Gemini (que cuenta peticiones, no tokens). */
-const IA_CACHE_VER='v5';   // súbela cada vez que cambies las instrucciones de la IA, para no reutilizar resultados viejos
+const IA_CACHE_VER='v6';   // súbela cada vez que cambies las instrucciones de la IA, para no reutilizar resultados viejos
 const IA_LIMITE_DIARIO=20;   // archivos (PDF o PPTX) por persona y por día. Debe coincidir con LIMITE_DIARIO en netlify/functions/generar-tema.js
 const IA_MAX_CHARS=60000;   // texto máximo que se manda a la IA (antes 20 000: el resto se ignoraba en silencio)
 const IA_CACHE_MAX=15;     // cuántos resultados se recuerdan en este navegador
@@ -1796,7 +2084,14 @@ document.addEventListener('change',async e=>{
       if(secs.length)tema.secciones=secs;
       s.temas.unshift(tema);
       (data.tarjetas||[]).forEach(t=>{
-        if(t.frente&&t.reverso) s.cards.push({id:uid(),materiaId,temaId,front:t.frente,back:t.reverso,known:null});
+        if(t.frente&&t.reverso){
+          const c={id:uid(),materiaId,temaId,front:t.frente,back:t.reverso,known:null};
+          const dist=(Array.isArray(t.distractores)?t.distractores:[]).map(x=>String(x||'').trim()).filter(Boolean).slice(0,3);
+          if(dist.length>=3)c.dist=dist;                                   // opciones incorrectas hechas por la IA
+          if(String(t.falsa||'').trim())c.falsa=String(t.falsa).trim();    // afirmación falsa (verdadero/falso)
+          if(String(t.hueco_oracion||'').includes('____')&&String(t.hueco_respuesta||'').trim())c.hueco={o:String(t.hueco_oracion).trim(),r:String(t.hueco_respuesta).trim()};
+          s.cards.push(c);
+        }
       });
     });
     const avisoRecorte=pdfEscaneado?' 🔍 Era un PDF escaneado: revisa el contenido por si alguna parte no se leyó bien.':texto.length>IA_MAX_CHARS?` ⚠️ El archivo es muy largo: la IA analizó solo los primeros ${IA_MAX_CHARS.toLocaleString('es')} caracteres.`:'';
@@ -2006,6 +2301,7 @@ function escucharCompartida(m){
       });
     }
     if(cambio){ensureCortes();saveLocal();renderSeguro()}
+    if(mat.rol==='estudiante')anunciarNuevos(mat,'tema',snap.docs.map(d=>({id:d.id,titulo:d.data().title||'Sin título'})));
   },fallo);
   sharedUnsub[sid]=[u1,u2];
   if(m.rol==='docente')sharedUnsub[sid].push(escucharInvitaciones(sid));
@@ -2274,14 +2570,17 @@ async function borrarInvitaciones(sid){
 }
 
 /* ---------- Publicar / borrador ---------- */
+function avisoPublicado(){toast('📣 Publicado. Tus estudiantes verán un aviso 🔔 cuando abran Auren.')}
 function publicarTema(id){
   mutate(s=>{const t=s.temas.find(x=>x.id===id);if(t)t.publicado=!t.publicado});
+  const t=state.temas.find(x=>x.id===id);if(t&&t.publicado&&esDocenteMat(t.materiaId))avisoPublicado();
 }
 function publicarTodos(m){
   const borradores=state.temas.filter(t=>t.materiaId===m.id&&!t.publicado);
   if(!borradores.length)return;
   if(!confirm('¿Publicar '+borradores.length+' tema'+(borradores.length==1?'':'s')+' a todos tus estudiantes?'))return;
   mutate(s=>s.temas.forEach(t=>{if(t.materiaId===m.id)t.publicado=true}));
+  avisoPublicado();
 }
 
 /* ---------- Invitaciones recibidas (estudiante) ---------- */
@@ -2413,19 +2712,33 @@ function numDia(s){const[y,m,d]=s.split('-').map(Number);return Math.round(Date.
 function progresoHoy(){const p=state.progress||{},f=fechaLocal(new Date());return(p.dia&&p.dia.f===f)?p.dia:{f,racha:0,extra:0}}
 function esValida(a){return !!(a&&a.type==='examen'&&a.total>=MIN_PREGUNTAS)}
 
-/* Racha actual: días seguidos que terminan hoy, o ayer si hoy todavía no estudiaste (sigue viva hasta que acabe el día) */
-function rachaActual(days){
+/* Día de gracia: 1 por semana (lunes a domingo). Si te saltas UN día y estudiaste el anterior, ese hueco se cubre solo
+   y la racha sigue. El día cubierto no suma a la racha, solo evita que se rompa. */
+function semanaDe(n){return Math.floor((n+3)/7)}       // n = numDia; el día 0 (1-ene-1970) fue jueves
+function rachaInfo(days){
   const set=new Set((days||[]).map(numDia));
-  let d=numDia(fechaLocal(new Date()));
-  if(!set.has(d))d--;
-  let n=0;
-  while(set.has(d)){n++;d--}
-  return n;
+  const hoy=numDia(fechaLocal(new Date()));
+  let d=hoy,n=0;
+  const usadas=new Set(),congelados=[];
+  if(!set.has(d))d--;                               // si hoy todavía no estudias, la racha sigue viva hasta que acabe el día
+  for(;;){
+    if(set.has(d)){n++;d--;continue}
+    if(set.has(d-1)&&!usadas.has(semanaDe(d))){usadas.add(semanaDe(d));congelados.push(d);d--;continue}
+    break;
+  }
+  return{racha:n,congelados,graciaDisponible:!usadas.has(semanaDe(hoy)),hoy};
 }
+function rachaActual(days){return rachaInfo(days).racha}
 function mejorRacha(days){
   const ds=[...new Set((days||[]).map(numDia))].sort((a,b)=>a-b);
-  let mejor=0,run=0,prev=null;
-  ds.forEach(d=>{run=(prev!==null&&d===prev+1)?run+1:1;prev=d;if(run>mejor)mejor=run});
+  let mejor=0,run=0,prev=null,usadas=new Set();
+  ds.forEach(d=>{
+    if(prev===null){run=1;usadas=new Set()}
+    else if(d===prev+1)run++;
+    else if(d===prev+2&&!usadas.has(semanaDe(prev+1))){usadas.add(semanaDe(prev+1));run++}
+    else{run=1;usadas=new Set()}
+    prev=d;if(run>mejor)mejor=run;
+  });
   return mejor;
 }
 
@@ -2520,7 +2833,7 @@ function porCorteDe(questions){
     const t=state.temas.find(x=>x.id===card.temaId);
     if(!t||!t.corteId)return;
     const o=out[t.corteId]=out[t.corteId]||{ok:0,total:0};
-    o.total++;if(q.selected===q.card.back)o.ok++;
+    o.total++;if(esAcierto(q))o.ok++;
   });
   return out;
 }
@@ -2573,7 +2886,7 @@ function premiosHTML(){
 function fmtFecha(ts){return new Date(ts).toLocaleDateString('es',{day:'numeric',month:'short'})}
 
 function rachaTabHTML(){
-  const p=state.progress,racha=rachaActual(p.days),mejor=mejorRacha(p.days),nv=nivelDe();
+  const p=state.progress,rInfo=rachaInfo(p.days),racha=rInfo.racha,mejor=Math.max(mejorRacha(p.days),racha),nv=nivelDe();
   const hoy=fechaLocal(new Date()),hoyHecho=p.days.includes(hoy),dh=progresoHoy(),hoyN=hoyHecho?Math.max(dh.racha,META_RACHA):dh.racha;
   const sig=HITOS_RACHA.find(h=>h>racha);
   const sigB=sig?BADGES.find(b=>b.id==='racha_'+sig):null;
@@ -2590,6 +2903,7 @@ function rachaTabHTML(){
     <div class="bar"><i style="width:${Math.min(100,Math.round(hoyN/META_RACHA*100))}%"></i></div>
     <p class="meta" style="margin:0 0 6px">Preguntas de racha hoy: <b>${hoyN}/${META_RACHA}</b>${dh.extra?' · práctica extra: <b>'+dh.extra+'</b>':''}. Después de las ${META_RACHA} puedes seguir practicando sin límite: se guardan como práctica extra y no cambian tu racha.</p>
     <div class="strip">${tira.map(d=>`<span class="dot ${d.on?'on':''} ${d.hoy?'hoy':''}" title="${d.s}">${d.dia}</span>`).join('')}</div>
+    <p class="meta" style="margin:8px 0 0">🧊 ${rInfo.congelados.includes(rInfo.hoy-1)?'Ayer usaste tu <b>día de gracia</b>: tu racha sigue viva.':rInfo.graciaDisponible?'Tienes <b>1 día de gracia</b> esta semana: si un día no alcanzas, tu racha no se rompe.':'Ya usaste tu día de gracia de esta semana.'}</p>
     ${sigB?`<div class="bar"><i style="width:${Math.round(racha/sig*100)}%"></i></div><p class="meta" style="margin:0">Te faltan ${sig-racha} día${sig-racha==1?'':'s'} para ${sigB.icon} <b>${esc(sigB.nombre)}</b>.</p>`:'<p class="meta" style="margin:10px 0 0">🎉 ¡Completaste todos los hitos de racha!</p>'}
   </div>
   <div class="card" style="margin-top:12px">
@@ -2679,7 +2993,7 @@ function reducido(){
 function feedbackHTML(acierto,q,idx){
   return acierto
     ?`<div class="fb fbOk" role="status">🎉 ${FRASES_OK[idx%FRASES_OK.length]}</div>`
-    :`<div class="fb fbNo" role="status">😕 ${FRASES_NO[idx%FRASES_NO.length]}<span>La correcta: <b>${esc(q.card.back)}</b></span></div>`;
+    :`<div class="fb fbNo" role="status">😕 ${FRASES_NO[idx%FRASES_NO.length]}<span>La correcta: <b>${esc(q.correcta)}</b></span></div>`;
 }
 
 /* Cada pantalla distinta (o cada pregunta nueva) entra con una animación suave */
@@ -2960,17 +3274,22 @@ function escucharExamenes(m){
   const colEx=base.collection('examenes');
   u.push((prof?colEx:colEx.where('estado','in',['publicado','cerrado'])).onSnapshot(snap=>{
     exMap[sid]={};snap.docs.forEach(d=>{exMap[sid][d.id]={id:d.id,...d.data()}});renderSeguro();
+    if(!prof)anunciarNuevos(m,'examen',snap.docs.filter(d=>d.data().estado==='publicado').map(d=>({id:d.id,titulo:d.data().titulo||'Examen'})));
   },aviso('examenes')));
   const colIn=base.collection('intentos');
   u.push((prof?colIn:colIn.where('uid','==',currentUid)).onSnapshot(snap=>{
     inMap[sid]={};snap.docs.forEach(d=>{inMap[sid][d.id]={id:d.id,...d.data()}});renderSeguro();
   },aviso('intentos')));
+  const colIni=base.collection('inicios');
+  u.push((prof?colIni:colIni.where('uid','==',currentUid)).onSnapshot(snap=>{
+    iniMap[sid]={};snap.docs.forEach(d=>{iniMap[sid][d.id]={id:d.id,...d.data()}});renderSeguro();
+  },aviso('inicios')));
   if(prof)u.push(base.collection('claves').onSnapshot(snap=>{
     clMap[sid]={};snap.docs.forEach(d=>{clMap[sid][d.id]={id:d.id,...d.data()}});renderSeguro();
   },aviso('claves')));
   return u;
 }
-function limpiarExamenes(sid){delete exMap[sid];delete clMap[sid];delete inMap[sid];delete evMap[sid]}
+function limpiarExamenes(sid){delete exMap[sid];delete clMap[sid];delete inMap[sid];delete iniMap[sid];delete evMap[sid]}
 
 /* ======================= EVENTOS DEL DOCENTE EN EL CALENDARIO ======================= */
 /* Viven en temarios/{sid}/eventos. El docente (dueño) escribe; los estudiantes de la materia solo leen. */
@@ -2980,6 +3299,7 @@ function escucharEventos(m){
   const sid=m.sharedId;
   return refTemario(sid).collection('eventos').onSnapshot(snap=>{
     evMap[sid]={};snap.docs.forEach(d=>{evMap[sid][d.id]={id:d.id,...d.data()}});renderSeguro();
+    if(m.rol==='estudiante')anunciarNuevos(m,'evento',snap.docs.map(d=>({id:d.id,titulo:(d.data().title||'Evento')+(d.data().date?' ('+fmtFecha(new Date(d.data().date+'T00:00').getTime())+')':'')})));
   },err=>console.warn('Eventos:',err));
 }
 function eventosDocentes(){
@@ -3159,11 +3479,11 @@ function docenteExamenesHTML(m){
         ${ex.estado==='cerrado'?`<button class="sec" data-action="exEstado" data-id="${m.id}" data-ex="${ex.id}" data-to="publicado">🔓 Reabrir</button>`:`<button class="sec" data-action="exEstado" data-id="${m.id}" data-ex="${ex.id}" data-to="cerrado">🔒 Cerrar</button>`}`;
     return `<div class="card exCard">
       <div class="stHead"><b>${esc(ex.titulo||'Sin título')}</b>${chipEstado(ex)}</div>
-      <p class="meta" style="margin:6px 0 0">${(ex.preguntas||[]).length} pregunta${(ex.preguntas||[]).length==1?'':'s'}${ex.cierre?' · cierra '+fmtFechaHora(ex.cierre):''}${ex.estado==='borrador'?'':' · entregas '+ints.length+'/'+nEst+prom}</p>
+      <p class="meta" style="margin:6px 0 0">${(ex.preguntas||[]).length} pregunta${(ex.preguntas||[]).length==1?'':'s'}${ex.cierre?' · cierra '+fmtFechaHora(ex.cierre):''}${ex.duracion?' · ⏱️ '+ex.duracion+' min':''}${ex.estado==='borrador'?'':' · entregas '+ints.length+'/'+nEst+prom}</p>
       <div class="row" style="flex-wrap:wrap">${acciones}<button class="icon-btn" data-action="exEliminarLista" data-id="${m.id}" data-ex="${ex.id}" title="Eliminar examen">🗑️</button></div>
     </div>`;
   }).join('');
-  return `<div class="viewhead"><h2>📝 Exámenes</h2><button class="pr" data-action="newExam" data-id="${m.id}">+ Nuevo examen</button></div>
+  return `<div class="viewhead"><h2>📝 Exámenes</h2><span class="row" style="margin:0;flex-wrap:wrap">${exs.some(e=>e.estado!=='borrador')?`<button class="sec" data-action="libroNotas" data-id="${m.id}">⬇️ Libro de notas (Excel)</button>`:''}<button class="pr" data-action="newExam" data-id="${m.id}">+ Nuevo examen</button></span></div>
     ${exs.length?cards:'<div class="empty">Aún no hay exámenes. Crea uno a partir de los temas de tu materia: generas las preguntas, las revisas y las publicas. Después verás las notas de cada estudiante y en qué preguntas fallaron.</div>'}`;
 }
 
@@ -3171,7 +3491,7 @@ function docenteExamenesHTML(m){
 function cierreLocal(t){if(!t)return'';const d=new Date(t-new Date(t).getTimezoneOffset()*60000);return d.toISOString().slice(0,16)}
 function exDividir(buf){
   return{
-    examen:{titulo:buf.titulo||'',estado:buf.estado,cierre:buf.cierre||0,escala:buf.escala,creado:buf.creado,publicadoEn:buf.publicadoEn||0,
+    examen:{titulo:buf.titulo||'',estado:buf.estado,cierre:buf.cierre||0,escala:buf.escala,creado:buf.creado,publicadoEn:buf.publicadoEn||0,duracion:buf.duracion||0,mezclar:buf.mezclar!==false,
       preguntas:buf.preguntas.map(q=>({id:q.id,enunciado:q.enunciado||'',opciones:[0,1,2,3].map(i=>q.opciones[i]||''),temaId:q.temaId||'',temaTitulo:q.temaTitulo||''}))},
     clave:{correctas:Object.fromEntries(buf.preguntas.map(q=>[q.id,Number(q.correcta)||0]))}
   };
@@ -3193,7 +3513,7 @@ function exGuardarLuego(){clearTimeout(exGuardarT);setGuardado('Cambios sin guar
 
 async function crearExamen(m){
   const n=examenesDe(m).length+1;
-  exBuf={id:uid(),titulo:'Examen '+n,estado:'borrador',cierre:0,escala:scaleMax(),creado:Date.now(),publicadoEn:0,preguntas:[]};
+  exBuf={id:uid(),titulo:'Examen '+n,estado:'borrador',cierre:0,duracion:0,mezclar:true,escala:scaleMax(),creado:Date.now(),publicadoEn:0,preguntas:[]};
   route={view:'docExamen',materiaId:m.id,examId:exBuf.id};
   render();
   await exGuardarYa();
@@ -3201,7 +3521,7 @@ async function crearExamen(m){
 function abrirEditor(m,exId){
   const ex=(exMap[m.sharedId]||{})[exId];if(!ex)return;
   const cl=((clMap[m.sharedId]||{})[exId]||{}).correctas||{};
-  exBuf={id:exId,titulo:ex.titulo||'',estado:ex.estado||'borrador',cierre:ex.cierre||0,escala:ex.escala||scaleMax(),creado:ms(ex.creado)||Date.now(),publicadoEn:ex.publicadoEn||0,
+  exBuf={id:exId,titulo:ex.titulo||'',estado:ex.estado||'borrador',cierre:ex.cierre||0,escala:ex.escala||scaleMax(),creado:ms(ex.creado)||Date.now(),publicadoEn:ex.publicadoEn||0,duracion:ex.duracion||0,mezclar:ex.mezclar!==false,
     preguntas:(ex.preguntas||[]).map(q=>({id:q.id,enunciado:q.enunciado||'',opciones:[0,1,2,3].map(i=>(q.opciones||[])[i]||''),
       correcta:cl[q.id]!==undefined?Number(cl[q.id]):0,temaId:q.temaId||'',temaTitulo:q.temaTitulo||''}))};
   route={view:'docExamen',materiaId:m.id,examId:exId};
@@ -3213,11 +3533,13 @@ function generarPreguntas(m,temaIds,n){
   const fuente=state.cards.filter(k=>temaIds.includes(k.temaId)&&limpia(k)&&!usadas.has(k.id));
   const cortesSel=new Set(temaIds.map(id=>(state.temas.find(x=>x.id===id)||{}).corteId));
   const enCorte=k=>{const tm=state.temas.find(x=>x.id===k.temaId);return !!tm&&cortesSel.has(tm.corteId)};
-  const pool=[...new Set(state.cards.filter(k=>k.materiaId===m.id&&limpia(k)&&enCorte(k)).map(k=>String(k.back).trim()))];   // las opciones incorrectas salen solo de los cortes de los temas elegidos
+  const cardsCorte=state.cards.filter(k=>k.materiaId===m.id&&limpia(k)&&enCorte(k));      // las opciones incorrectas salen solo de los cortes de los temas elegidos
+  const pool=[...new Set(cardsCorte.map(k=>String(k.back).trim()))];
   const out=[];
   mezclar(fuente).slice(0,n).forEach(k=>{
     const correcta=String(k.back).trim();
-    const otras=mezclar(pool.filter(b=>b!==correcta)).slice(0,3);
+    let otras=distractoresDe(k,cardsCorte);                  // primero las opciones incorrectas que hizo la IA
+    if(!otras)otras=mezclar(pool.filter(b=>b!==correcta)).slice(0,3);
     if(!otras.length)return;                       // sin otras respuestas no se puede armar opción múltiple
     const ops=mezclar([correcta,...otras]);
     const t=state.temas.find(x=>x.id===k.temaId)||{};
@@ -3256,6 +3578,11 @@ function viewDocExamenHTML(){
       <div><label class="lbl">Fecha límite (opcional)</label><input class="fld" type="datetime-local" data-ex="cierre" value="${cierreLocal(exBuf.cierre)}" ${dis}></div>
       <div><label class="lbl">Escala de notas</label><p class="meta" style="margin:8px 0 0">0 a ${exBuf.escala} (la de tu perfil)</p></div>
     </div>
+    <div class="two">
+      <div><label class="lbl">Tiempo límite en minutos (0 = sin límite)</label><input class="fld" type="number" min="0" max="600" data-ex="duracion" value="${exBuf.duracion||0}" ${dis}></div>
+      <div><label class="lbl">Orden</label><label class="exTemaLbl"><input type="checkbox" data-ex="mezclar" ${exBuf.mezclar!==false?'checked':''} ${dis}> Mezclar preguntas y opciones para cada estudiante</label></div>
+    </div>
+    <p class="meta" style="margin:6px 0 0">${exBuf.duracion>0?'El reloj de cada estudiante empieza cuando pulsa "Comenzar"; queda registrada su hora de inicio y, si se acaba el tiempo, se entrega lo que lleve.':'Sin tiempo límite, el estudiante lo presenta cuando quiera mientras esté abierto.'}</p>
   </div>
   ${lock?'':`<div class="card shareBox" style="margin-top:12px">
     <b style="font-size:.9em">✨ Generar preguntas desde tus temas</b>
@@ -3263,6 +3590,7 @@ function viewDocExamenHTML(){
     ${temas.length?temas.map(t=>`<label class="exTemaLbl"><input type="checkbox" class="exTema" value="${t.id}" ${nCards(t)?'':'disabled'}> ${esc(t.title||'Sin título')} <span class="meta">(${nCards(t)} tarjeta${nCards(t)==1?'':'s'})</span></label>`).join(''):'<p class="meta">Todavía no hay temas. Crea uno en la pestaña Contenido.</p>'}
     <div class="row"><label class="meta" for="exN">Cantidad</label><input class="fld" id="exN" type="number" min="1" max="40" value="10" style="width:90px"><button class="pr" data-action="exGenerar">✨ Generar</button></div>
   </div>`}
+  ${lock?'':bancoPanelHTML()}
   <div class="viewhead" style="margin-top:18px"><h2>Preguntas (${exBuf.preguntas.length})</h2></div>
   ${exBuf.preguntas.length?exBuf.preguntas.map((q,i)=>`<div class="card exQ" style="margin-bottom:12px">
     <div class="row" style="justify-content:space-between;margin-top:0"><b>Pregunta ${i+1}</b>${q.temaTitulo?`<span class="chip">${esc(q.temaTitulo)}</span>`:''}${lock?'':`<button class="icon-btn" data-action="exDelQ" data-q="${q.id}" title="Eliminar pregunta">🗑️</button>`}</div>
@@ -3276,11 +3604,60 @@ function viewDocExamenHTML(){
     <button class="sec" data-action="exEliminar">🗑️ Eliminar examen</button>
   </div>`;
 }
+/* ======================= DOCENTE: banco de preguntas =======================
+   Vive en bancoPreguntas/{uid}/items (solo del docente) y no depende de la materia: sirve para el siguiente semestre. */
+let bancoCache=null,bancoAbierto=false,bancoCargando=false,bancoFiltro={corte:'',texto:''};const bancoSel=new Set();
+const bancoRef=()=>db.collection('bancoPreguntas').doc(currentUid).collection('items');
+function hashPregunta(q){
+  const s=[q.enunciado,...(q.opciones||[])].map(x=>normTxt(x)).join('|')+'|'+(Number(q.correcta)||0);
+  return 'p'+semillaTxt(s).toString(36)+semillaTxt(s.split('').reverse().join('')).toString(36);
+}
+async function cargarBanco(){
+  if(bancoCargando)return;
+  bancoCargando=true;
+  try{const snap=await bancoRef().get();bancoCache=snap.docs.map(d=>({id:d.id,...d.data()}))}
+  catch(e){console.warn('Banco de preguntas:',e);bancoCache=[];toast('⚠️ No se pudo leer tu banco de preguntas'+esc(detalleError(e)))}
+  bancoCargando=false;
+  if(route.view==='docExamen')render(true);
+}
+async function guardarEnBanco(m,qs){
+  const b=db.batch();let n=0;
+  qs.forEach(q=>{
+    const ops=[0,1,2,3].map(i=>limpioT((q.opciones||[])[i]));
+    if(!limpioT(q.enunciado)||ops.filter(Boolean).length<2||!ops[Number(q.correcta)])return;
+    const t=state.temas.find(x=>x.id===q.temaId),c=t&&state.cortes.find(x=>x.id===t.corteId);
+    const item={enunciado:limpioT(q.enunciado),opciones:ops,correcta:Number(q.correcta)||0,temaTitulo:limpioT(q.temaTitulo),corte:c?limpioT(c.name):'',materia:limpioT(m.name),creado:Date.now()};
+    b.set(bancoRef().doc(hashPregunta(item)),item);n++;
+  });
+  if(!n)return 0;
+  await b.commit();
+  bancoCache=null;cargarBanco();
+  return n;
+}
+function bancoPanelHTML(){
+  if(!bancoAbierto)return `<div class="card shareBox" style="margin-top:12px"><b style="font-size:.9em">📚 Banco de preguntas</b>
+    <p class="meta" style="margin:4px 0 8px">Guarda tus mejores preguntas y reutilízalas en otros exámenes y en otros semestres. Es solo tuyo.</p>
+    <div class="row" style="flex-wrap:wrap"><button class="sec" data-action="exBancoGuardar">💾 Guardar estas preguntas en mi banco</button><button class="sec" data-action="exBancoAbrir">📥 Traer del banco</button></div></div>`;
+  if(bancoCache===null){if(!bancoCargando)cargarBanco();return `<div class="card shareBox" style="margin-top:12px"><b>📚 Banco de preguntas</b><p class="meta">Cargando…</p></div>`}
+  const cortes=[...new Set(bancoCache.map(x=>x.corte||''))].sort();
+  const q=normTxt(bancoFiltro.texto);
+  const lista=bancoCache.filter(x=>(!bancoFiltro.corte||(bancoFiltro.corte==='__sin'?!x.corte:x.corte===bancoFiltro.corte))&&(!q||normTxt(x.enunciado+' '+x.materia+' '+x.temaTitulo).includes(q)))
+    .sort((x,y)=>(x.corte||'').localeCompare(y.corte||'')||(y.creado||0)-(x.creado||0));
+  const enExamen=new Set(exBuf.preguntas.map(p=>normTxt(p.enunciado)));
+  return `<div class="card shareBox" style="margin-top:12px"><b style="font-size:.9em">📚 Banco de preguntas (${bancoCache.length})</b>
+    <div class="two" style="margin-top:8px">
+      <div><label class="lbl" style="margin-top:0">Corte</label><select class="fld" data-action="bancoCorte"><option value="">Todos los cortes</option>${cortes.map(c=>`<option value="${c||'__sin'}" ${bancoFiltro.corte===(c||'__sin')?'selected':''}>${esc(c)||'(sin corte)'}</option>`).join('')}</select></div>
+      <div><label class="lbl" style="margin-top:0">Buscar</label><input class="fld" data-action="bancoTexto" value="${esc(bancoFiltro.texto)}" placeholder="Palabra, tema o materia" maxlength="60"></div>
+    </div>
+    ${lista.length?lista.map(x=>{const ya=enExamen.has(normTxt(x.enunciado));return `<div class="li bancoFila"><label class="exTemaLbl" style="flex:1"><input type="checkbox" data-action="bancoSel" data-bid="${x.id}" ${bancoSel.has(x.id)?'checked':''} ${ya?'disabled':''}> ${esc(x.enunciado)}<br><small class="meta">${esc(x.corte||'sin corte')} · ${esc(x.materia||'')}${x.temaTitulo?' · '+esc(x.temaTitulo):''}${ya?' · ya está en este examen':''}</small></label><button class="icon-btn" data-action="bancoDel" data-bid="${x.id}" title="Quitar del banco" aria-label="Quitar del banco">🗑️</button></div>`}).join(''):'<p class="meta">No hay preguntas con ese filtro. Guarda las de un examen con "Guardar estas preguntas en mi banco".</p>'}
+    <div class="row" style="flex-wrap:wrap;margin-top:10px"><button class="pr" data-action="exBancoAgregar" ${bancoSel.size?'':'disabled'}>Agregar seleccionadas (${bancoSel.size})</button><button class="sec" data-action="exBancoGuardar">💾 Guardar las de este examen</button><button class="sec" data-action="exBancoCerrar">Cerrar</button></div></div>`;
+}
 async function exEliminarExamen(m,exId){
   const base=baseDe(m),b=db.batch();
   b.delete(base.collection('examenes').doc(exId));
   b.delete(base.collection('claves').doc(exId));
   Object.values(inMap[m.sharedId]||{}).filter(i=>i.examId===exId).forEach(i=>b.delete(base.collection('intentos').doc(i.id)));
+  Object.values(iniMap[m.sharedId]||{}).filter(i=>i.examId===exId).forEach(i=>b.delete(base.collection('inicios').doc(i.id)));
   try{await b.commit()}catch(e){console.error(e);alert('No se pudo eliminar el examen'+detalleError(e)+'.')}
 }
 
@@ -3293,7 +3670,7 @@ function resultadosDe(m,ex){
   const filas=uids.map(u=>{
     const it=intentos.find(i=>i.uid===u),inf=inv.find(i=>i.uid===u)||{};
     return{uid:u,nombre:(meta.memberNames||{})[u]||(it&&it.nombre)||inf.nombre||'Estudiante',email:inf.email||(it&&it.email)||'',
-      intento:it||null,res:(it&&clave)?calificar(ex,clave,it.respuestas||{}):null};
+      intento:it||null,ini:(iniMap[sid]||{})[ex.id+'_'+u]||null,res:(it&&clave)?calificar(ex,clave,it.respuestas||{}):null};
   });
   const hechas=filas.filter(f=>f.res),pcts=hechas.map(f=>f.res.pct);
   const stats={entregaron:hechas.length,total:filas.length,
@@ -3316,6 +3693,7 @@ function resultadosDe(m,ex){
 const colorPct=p=>p>=70?'var(--ok)':p>=50?'var(--a)':'var(--no)';
 function barraPct(p){return `<div class="bar mini pctBar"><i style="width:${p==null?0:p}%;background:${colorPct(p)}"></i></div>`}
 
+function minutosUsados(f){return(f.ini&&f.intento&&ms(f.ini.inicio)&&ms(f.intento.enviado))?Math.max(0,Math.round((ms(f.intento.enviado)-ms(f.ini.inicio))/60000)):null}
 function detalleEstudianteHTML(f,ex){
   const det=f.res.det,ok=det.filter(d=>d.acierto).length,sin=det.filter(d=>d.elegido===undefined).length,mal=det.length-ok-sin;
   const vis=det.map((d,i)=>({d,i})).filter(x=>docResFiltro==='mal'?!x.d.acierto:docResFiltro==='bien'?x.d.acierto:true);
@@ -3345,6 +3723,7 @@ function viewDocResultadosHTML(){
   <div class="row" style="margin:0 0 12px;flex-wrap:wrap">${chipEstado(ex)}<span class="chip">${(ex.preguntas||[]).length} preguntas</span>${ex.cierre?`<span class="chip">cierra ${fmtFechaHora(ex.cierre)}</span>`:''}
     <button class="sec" data-action="exCsv">⬇️ Descargar notas (CSV)</button>
     <button class="sec" data-action="exCsvDet">⬇️ Respuestas detalladas (CSV)</button>
+    <button class="pr" data-action="exXlsx">⬇️ Excel (.xlsx)</button>
     ${ex.estado==='cerrado'?`<button class="sec" data-action="exEstado" data-id="${m.id}" data-ex="${ex.id}" data-to="publicado">🔓 Reabrir</button>`:`<button class="sec" data-action="exEstado" data-id="${m.id}" data-ex="${ex.id}" data-to="cerrado">🔒 Cerrar examen</button>`}</div>
   ${r.clave?'':'<p class="meta">Cargando las respuestas correctas…</p>'}
   <div class="statGrid">
@@ -3362,9 +3741,9 @@ function viewDocResultadosHTML(){
     const abierto=docResSel===f.uid;
     return `<div class="card resFila" style="margin-bottom:8px">
       <div class="row resCab" style="justify-content:space-between;margin-top:0" data-action="resFila" data-u="${f.uid}">
-        <div><b>${esc(f.nombre)}</b><div class="meta" style="margin:0">${esc(f.email)}${f.intento&&ms(f.intento.enviado)?' · entregó '+esc(fmtFechaHora(ms(f.intento.enviado))):''}</div></div>
+        <div><b>${esc(f.nombre)}</b><div class="meta" style="margin:0">${esc(f.email)}${f.ini&&ms(f.ini.inicio)?' · inició '+esc(fmtFechaHora(ms(f.ini.inicio))):''}${f.intento&&ms(f.intento.enviado)?' · entregó '+esc(fmtFechaHora(ms(f.intento.enviado))):''}${minutosUsados(f)!=null?' · '+minutosUsados(f)+' min':''}</div></div>
         <div style="text-align:right">${f.res?`<b style="color:${colorPct(f.res.pct)}">${f.res.ok}/${f.res.total} · ${f.res.pct}%</b><div class="meta" style="margin:0">nota ${fmtN(f.res.nota)} / ${f.res.escala}</div>`
-          :f.intento?'<span class="chip">Entregó (calculando…)</span>':'<span class="chip">⏳ Sin entregar</span>'}</div>
+          :f.intento?'<span class="chip">Entregó (calculando…)</span>':f.ini?'<span class="chip">⏳ Empezó y no entregó</span>':'<span class="chip">⏳ Sin entregar</span>'}</div>
       </div>
       ${abierto&&f.res?detalleEstudianteHTML(f,ex):''}
     </div>`}).join(''):'<div class="empty">Todavía no hay estudiantes en esta materia.</div>'}
@@ -3380,8 +3759,67 @@ function viewDocResultadosHTML(){
   <h2 style="margin:22px 0 10px">📚 Temas que más cuestan</h2>
   ${r.porTema.map(t=>`<div class="card" style="margin-bottom:8px"><div class="row" style="justify-content:space-between;margin-top:0"><b>${esc(t.titulo)}</b><b style="color:${colorPct(t.pct)}">${t.pct}% de acierto</b></div>${barraPct(t.pct)}<span class="meta">${t.ok} de ${t.n} respuestas correctas</span></div>`).join('')}`:''}`;
 }
+/* ---------- Excel (.xlsx) sin librerías extra: se arma con JSZip, que ya se usa para leer PPTX ---------- */
+const xmlEsc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c])).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'');
+const colLetra=n=>{let s='';n++;while(n>0){const r=(n-1)%26;s=String.fromCharCode(65+r)+s;n=Math.floor((n-1)/26)}return s};
+function hojaXML(h){
+  const filas=h.filas.map((fila,i)=>`<row r="${i+1}">${fila.map((v,j)=>{
+    if(v===null||v===undefined||v==='')return '';
+    const ref=colLetra(j)+(i+1),st=i===0?' s="1"':'';
+    if(typeof v==='number'&&isFinite(v))return `<c r="${ref}"${st}><v>${v}</v></c>`;
+    return `<c r="${ref}"${st} t="inlineStr"><is><t xml:space="preserve">${xmlEsc(v)}</t></is></c>`;
+  }).join('')}</row>`).join('');
+  const cols=h.anchos?`<cols>${h.anchos.map((w,j)=>`<col min="${j+1}" max="${j+1}" width="${w}" customWidth="1"/>`).join('')}</cols>`:'';
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'+cols+'<sheetData>'+filas+'</sheetData></worksheet>';
+}
+async function crearXlsx(hojas){
+  const JSZ=await cargarJSZip(),z=new JSZ();
+  const nombres=hojas.map((h,i)=>xmlEsc(String(h.nombre||'Hoja'+(i+1)).replace(/[\[\]:*?\/\\]/g,' ').slice(0,31)));
+  z.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+hojas.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')+'</Types>');
+  z.file('_rels/.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
+  z.file('xl/workbook.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+hojas.map((_,i)=>`<sheet name="${nombres[i]}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')+'</sheets></workbook>');
+  z.file('xl/_rels/workbook.xml.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+hojas.map((_,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')+`<Relationship Id="rId${hojas.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`);
+  z.file('xl/styles.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs></styleSheet>');
+  hojas.forEach((h,i)=>z.file(`xl/worksheets/sheet${i+1}.xml`,hojaXML(h)));
+  const bytes=await z.generateAsync({type:'uint8array',compression:'DEFLATE'});
+  return new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+function bajarBlob(blob,nombre){
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=nombre;
+  document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);
+}
+const nombreArchivo=(t,suf)=>(t||'examen').replace(/[^\wáéíóúñÁÉÍÓÚÑ -]+/g,'').trim().replace(/\s+/g,'_')+suf;
+async function descargarXlsx(m,ex){
+  const r=resultadosDe(m,ex);
+  const hora=t=>t?fmtFechaHora(t):'';
+  const notas=[['Estudiante','Correo','Estado','Aciertos','Total','Porcentaje','Nota','Escala','Inició','Entregó','Minutos usados']];
+  r.filas.forEach(f=>notas.push([f.nombre,f.email,f.res?'Entregó':f.intento?'Entregó (sin calificar)':f.ini?'Empezó y no entregó':'Sin entregar',
+    f.res?f.res.ok:'',f.res?f.res.total:'',f.res?f.res.pct:'',f.res?f.res.nota:'',f.res?f.res.escala:'',
+    f.ini?hora(ms(f.ini.inicio)):'',f.intento?hora(ms(f.intento.enviado)):'',minutosUsados(f)==null?'':minutosUsados(f)]));
+  const preg=[['N.º','Pregunta','Tema','% de acierto','Respondieron','Acertaron','Opción incorrecta más elegida','Veces']];
+  r.preguntas.forEach((p,i)=>preg.push([i+1,p.q.enunciado,p.q.temaTitulo||'',p.pct==null?'':p.pct,p.n,p.aciertos,p.peor?p.peor.texto:'',p.peor?p.peor.veces:'']));
+  const resp=[['Estudiante','Correo','N.º','Pregunta','Tema','Respuesta elegida','Respuesta correcta','Resultado']];
+  r.filas.forEach(f=>{if(!f.res)return;f.res.det.forEach((d,i)=>resp.push([f.nombre,f.email,i+1,d.q.enunciado,d.q.temaTitulo||'',
+    d.elegido===undefined?'(sin responder)':((d.q.opciones||[])[d.elegido]||''),(d.q.opciones||[])[d.correcta]||'',d.acierto?'Correcta':'Incorrecta']))});
+  const blob=await crearXlsx([{nombre:'Notas',filas:notas,anchos:[28,30,22,10,8,12,8,8,18,18,14]},{nombre:'Por pregunta',filas:preg,anchos:[6,60,24,12,13,10,36,8]},{nombre:'Respuestas',filas:resp,anchos:[28,30,6,60,24,34,34,12]}]);
+  bajarBlob(blob,nombreArchivo(ex.titulo,'_notas.xlsx'));
+}
+/* Libro de notas: una fila por estudiante y una columna por examen, con el promedio */
+async function descargarLibroNotas(m){
+  const exs=examenesDe(m).filter(e=>e.estado!=='borrador').sort((x,y)=>ms(x.creado)-ms(y.creado));
+  if(!exs.length){alert('Todavía no hay exámenes publicados.');return}
+  const res=exs.map(ex=>resultadosDe(m,ex));
+  const filas=[['Estudiante','Correo',...exs.map(e=>e.titulo||'Examen'),'Promedio']];
+  res[0].filas.forEach((f0,k)=>{
+    const notas=res.map(r=>{const f=r.filas.find(x=>x.uid===f0.uid);return f&&f.res?f.res.nota:''});
+    const num=notas.filter(x=>x!=='');
+    filas.push([f0.nombre,f0.email,...notas,num.length?Math.round(num.reduce((s,x)=>s+x,0)/num.length*100)/100:'']);
+  });
+  const blob=await crearXlsx([{nombre:'Libro de notas',filas,anchos:[28,30,...exs.map(()=>14),12]}]);
+  bajarBlob(blob,nombreArchivo(m.name,'_libro_de_notas.xlsx'));
+}
 function bajarCsv(titulo,sufijo,filas){
-  const celda=v=>{v=String(v==null?'':v);return /[",\n;]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+  const celda=v=>{v=String(v==null?'':v);if(/^[=+\-@]/.test(v)&&isNaN(Number(v)))v="'"+v;return /[",\n;]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
   const csv='\ufeff'+filas.map(f=>f.map(celda).join(',')).join('\n');
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
@@ -3407,6 +3845,55 @@ function descargarCsvDetalle(m,ex){
 }
 
 /* ======================= ESTUDIANTE: exámenes de su profesor ======================= */
+/* ---------- Orden distinto para cada estudiante ----------
+   La mezcla sale de (examen + estudiante), así es la misma si recarga la página. Las respuestas se guardan con el
+   número de opción ORIGINAL, por eso la calificación y los resultados del docente no cambian. */
+function semillaTxt(str){let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function prng(seed){return()=>{seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function barajarCon(arr,rnd){const x=arr.slice();for(let i=x.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[x[i],x[j]]=[x[j],x[i]]}return x}
+function ordenExamen(ex,uidEst){
+  const qs=ex.preguntas||[],llenas=q=>[0,1,2,3].filter(j=>String((q.opciones||[])[j]||'').trim());
+  if(ex.mezclar===false)return qs.map(q=>({q,ops:llenas(q)}));
+  const rnd=prng(semillaTxt(ex.id+'|'+uidEst));
+  return barajarCon(qs,rnd).map(q=>({q,ops:barajarCon(llenas(q),rnd)}));
+}
+/* ---------- Tiempo límite: hora de inicio y reloj ---------- */
+const iniMap={};      // sid -> {exId_uid: {inicio,...}}
+let exTimer=null;
+function clearExTimer(){if(exTimer){clearInterval(exTimer);exTimer=null}}
+const exKeyLocal=exId=>'auren_ex_'+currentUid+'_'+exId;
+function cargarRespLocal(exId){try{return JSON.parse(localStorage.getItem(exKeyLocal(exId))||'{}')||{}}catch(e){return{}}}
+function guardarRespLocal(){try{if(exTom&&route.examId)localStorage.setItem(exKeyLocal(route.examId),JSON.stringify(exTom.respuestas))}catch(e){}}
+function borrarRespLocal(exId){try{localStorage.removeItem(exKeyLocal(exId))}catch(e){}}
+function miInicio(m,exId){const d=(iniMap[m.sharedId]||{})[exId+'_'+currentUid];return d?ms(d.inicio):0}
+function exRestanteMs(ex){return exTom&&exTom.inicio?exTom.inicio+(ex.duracion||0)*60000-(Date.now()+(exTom.skew||0)):Infinity}
+function fmtRestante(r){const s=Math.max(0,Math.ceil(r/1000)),h=Math.floor(s/3600),mi=Math.floor(s%3600/60),se=s%60;return(h?h+':'+String(mi).padStart(2,'0'):String(mi))+':'+String(se).padStart(2,'0')}
+function iniciarRelojExamen(m){
+  clearExTimer();
+  const ex=(exMap[m.sharedId]||{})[route.examId];
+  if(!ex||!(ex.duracion>0)||!exTom||!exTom.inicio)return;
+  const tic=()=>{
+    const r=exRestanteMs(ex),el=$('exReloj');
+    if(el){el.textContent='⏱️ '+fmtRestante(r);el.classList.toggle('urgente',r<=60000)}
+    if(r<=0){clearExTimer();entregarExamenEst(m,true)}
+  };
+  tic();exTimer=setInterval(tic,1000);
+}
+async function comenzarExamenEst(m){
+  const ex=(exMap[m.sharedId]||{})[route.examId];if(!ex||!exTom||exTom.comenzando)return;
+  exTom.comenzando=true;exTom.error='';render(true);
+  const id=ex.id+'_'+currentUid,ref=baseDe(m).collection('inicios').doc(id);
+  try{
+    try{await ref.set({examId:ex.id,uid:currentUid,nombre:miNombre(),inicio:firebase.firestore.FieldValue.serverTimestamp()})}
+    catch(e){if(!(e&&e.code==='permission-denied'))throw e}      // si ya había empezado antes, se lee su hora de inicio
+    const d=await ref.get({source:'server'});
+    if(!d.exists)throw new Error('No se pudo registrar la hora de inicio');
+    const t=ms(d.data().inicio);
+    (iniMap[m.sharedId]=iniMap[m.sharedId]||{})[id]={id,...d.data()};
+    exTom.inicio=t;exTom.skew=t-Date.now();
+  }catch(e){console.error(e);exTom.error='No se pudo comenzar el examen'+detalleError(e)+'. Si eres tú quien administra la página, revisa que las reglas de Firestore estén publicadas.'}
+  exTom.comenzando=false;render(true);iniciarRelojExamen(m);
+}
 function miIntento(m,exId){return (inMap[m.sharedId]||{})[exId+'_'+currentUid]}
 function examenesEstudianteHTML(m){
   const exs=examenesDe(m);
@@ -3433,10 +3920,13 @@ function examenesEstudianteHTML(m){
 async function abrirExamenEst(m,exId){
   const exx=(exMap[m.sharedId]||{})[exId];
   if(!miIntento(m,exId)&&(!exx||!examAbierto(exx))){alert('Este examen ya no está disponible.');return}
-  exTom={respuestas:{},resultado:null,cargando:false,error:''};
+  clearExTimer();
+  exTom={respuestas:miIntento(m,exId)?{}:cargarRespLocal(exId),resultado:null,cargando:false,error:'',inicio:0,skew:0};
+  const ini=miInicio(m,exId);if(ini&&!miIntento(m,exId))exTom.inicio=ini;       // retoma un examen que ya había empezado
   route={view:'examenDoc',materiaId:m.id,examId:exId};
   render();
   if(miIntento(m,exId))await cargarResultadoEst(m,exId);
+  else iniciarRelojExamen(m);
 }
 async function cargarResultadoEst(m,exId){
   exTom.cargando=true;render(true);
@@ -3450,23 +3940,27 @@ async function cargarResultadoEst(m,exId){
   }catch(e){console.error(e);exTom.error='No se pudieron cargar tus resultados'+detalleError(e)+'.'}
   exTom.cargando=false;render(true);
 }
-async function entregarExamenEst(m){
+async function entregarExamenEst(m,forzado){
   const ex=(exMap[m.sharedId]||{})[route.examId];if(!ex||!exTom||exTom.enviando)return;
   const faltan=(ex.preguntas||[]).filter(q=>exTom.respuestas[q.id]===undefined).length;
-  if(faltan){alert('Te faltan '+faltan+' pregunta'+(faltan==1?'':'s')+' por responder.');return}
-  if(!confirm('¿Entregar el examen? No podrás cambiar tus respuestas.'))return;
+  if(!forzado){
+    if(faltan&&!(ex.duracion>0)){alert('Te faltan '+faltan+' pregunta'+(faltan==1?'':'s')+' por responder.');return}
+    if(faltan){if(!confirm('Te faltan '+faltan+' pregunta'+(faltan==1?'':'s')+' sin responder. ¿Entregar de todos modos?'))return}
+    else if(!confirm('¿Entregar el examen? No podrás cambiar tus respuestas.'))return;
+  }
+  clearExTimer();
   exTom.enviando=true;exTom.error='';render(true);
   try{
     const u=auth.currentUser;
     await baseDe(m).collection('intentos').doc(ex.id+'_'+currentUid).set({
       examId:ex.id,uid:currentUid,nombre:miNombre(),email:(u&&u.email)||'',
       respuestas:exTom.respuestas,enviado:firebase.firestore.FieldValue.serverTimestamp()});
-    exTom.enviando=false;
+    exTom.enviando=false;borrarRespLocal(ex.id);
     (inMap[m.sharedId]=inMap[m.sharedId]||{})[ex.id+'_'+currentUid]={id:ex.id+'_'+currentUid,examId:ex.id,uid:currentUid,respuestas:{...exTom.respuestas}};
     await cargarResultadoEst(m,ex.id);
   }catch(e){
     console.error(e);exTom.enviando=false;
-    exTom.error=(e&&e.code==='permission-denied')?'No se pudo entregar: el examen ya cerró o no tienes permiso. Avisa a tu profesor.':'No se pudo entregar'+detalleError(e)+'. Inténtalo de nuevo.';
+    exTom.error=(e&&e.code==='permission-denied')?'No se pudo entregar: el examen ya cerró, se acabó tu tiempo o no tienes permiso. Avisa a tu profesor.':'No se pudo entregar'+detalleError(e)+'. Inténtalo de nuevo.';
     render(true);
   }
 }
@@ -3489,16 +3983,24 @@ function viewExamenDocHTML(){
     </div>`;
   }
   if(exTom.cargando||miIntento(m,ex.id))return `${volver}<div class="empty" style="margin-top:14px">${err||'Cargando tus resultados…'}</div>`;
+  if(ex.duracion>0&&!exTom.inicio)return `${volver}
+  <div class="card" style="margin-top:14px"><h2 style="margin-top:0">📝 ${esc(ex.titulo||'Examen')}</h2>
+    <p>Este examen tiene <b>${ex.duracion} minuto${ex.duracion==1?'':'s'}</b> de tiempo límite y <b>${(ex.preguntas||[]).length} pregunta${(ex.preguntas||[]).length==1?'':'s'}</b>.</p>
+    <p class="meta">El reloj empieza cuando pulses <b>Comenzar</b> y no se detiene aunque salgas de la página. Tu hora de inicio queda registrada. Si se acaba el tiempo, se entrega lo que lleves respondido.</p>
+    ${err}
+    <button class="pr" data-action="exComenzar" ${exTom.comenzando?'disabled':''}>${exTom.comenzando?'Comenzando…':'▶️ Comenzar'}</button></div>`;
   const total=(ex.preguntas||[]).length,hechas=(ex.preguntas||[]).filter(q=>exTom.respuestas[q.id]!==undefined).length;
+  const orden=ordenExamen(ex,currentUid),conTiempo=ex.duracion>0;
   return `${volver}
   <div class="viewhead" style="margin-top:14px"><h1>📝 ${esc(ex.titulo||'Examen')}</h1><span class="meta">${hechas} / ${total}</span></div>
+  ${conTiempo?`<div class="exRelojWrap"><span id="exReloj" class="chip exReloj">⏱️ ${fmtRestante(exRestanteMs(ex))}</span><small class="meta">Tiempo límite: ${ex.duracion} min. Al acabarse se entrega lo que lleves.</small></div>`:''}
   <div class="bar qbar"><i style="width:${total?Math.round(hechas/total*100):0}%;--from:${total?Math.round(hechas/total*100):0}%"></i></div>
   ${ex.cierre?`<p class="meta">Cierra ${fmtFechaHora(ex.cierre)}</p>`:''}
-  ${(ex.preguntas||[]).map((q,i)=>`<div class="card qCard" style="margin-bottom:12px"><h3 style="margin-top:0">${i+1}. ${esc(q.enunciado)}</h3>
-    ${(q.opciones||[]).map((o,j)=>String(o||'').trim()?`<button class="sec optBtn ${exTom.respuestas[q.id]===j?'chosen':''}" data-action="exResp" data-q="${q.id}" data-i="${j}">${esc(o)}</button>`:'').join('')}</div>`).join('')}
+  ${orden.map(({q,ops},i)=>`<div class="card qCard" style="margin-bottom:12px"><h3 style="margin-top:0">${i+1}. ${esc(q.enunciado)}</h3>
+    ${ops.map(j=>`<button class="sec optBtn ${exTom.respuestas[q.id]===j?'chosen':''}" data-action="exResp" data-q="${q.id}" data-i="${j}">${esc(q.opciones[j])}</button>`).join('')}</div>`).join('')}
   ${err}
-  <button class="pr nextBtn" data-action="exEntregar" ${hechas<total||exTom.enviando?'disabled':''}>${exTom.enviando?'Entregando…':'Entregar examen'}</button>
-  ${hechas<total?'<p class="meta">Responde todas las preguntas para poder entregar.</p>':''}`;
+  <button class="pr nextBtn" data-action="exEntregar" ${(hechas<total&&!conTiempo)||exTom.enviando?'disabled':''}>${exTom.enviando?'Entregando…':'Entregar examen'}</button>
+  ${hechas<total&&!conTiempo?'<p class="meta">Responde todas las preguntas para poder entregar.</p>':''}`;
 }
 
 /* ======================= Menús y pantallas por rol ======================= */
@@ -3510,6 +4012,7 @@ function aplicarRolMenu(){
   const d=document.querySelector('#mainNav [data-nav="docente"]');if(d)d.textContent='🏫 Mis materias';
   const ct=$('ct');if(ct)ct.textContent=prof?'🏫 Auren · Docente':'📚 Auren';
   const sw=$('searchWrap');if(sw)sw.style.display=prof?'none':'';
+  pintarCampana();
 }
 /* Cada rol solo entra a sus propias pantallas */
 function guardarRuta(){
@@ -3553,10 +4056,16 @@ function viewPerfilDocenteHTML(){
 
 /* ======================= Acciones ======================= */
 document.addEventListener('input',e=>{
+  const ea=e.target.dataset&&e.target.dataset.action;
+  if(ea==='bancoCorte'){bancoFiltro.corte=e.target.value;render(true);return}
+  if(ea==='bancoTexto'){bancoFiltro.texto=e.target.value;render(true);return}
+  if(ea==='bancoSel'){const id=e.target.dataset.bid;if(e.target.checked)bancoSel.add(id);else bancoSel.delete(id);render(true);return}
   const el=e.target,k=el.dataset&&el.dataset.ex;
   if(!k||!exBuf||exBuf.estado!=='borrador')return;
   if(k==='titulo')exBuf.titulo=el.value;
   else if(k==='cierre')exBuf.cierre=el.value?new Date(el.value).getTime():0;
+  else if(k==='duracion')exBuf.duracion=Math.max(0,Math.min(600,parseInt(el.value)||0));
+  else if(k==='mezclar')exBuf.mezclar=!!el.checked;
   else{
     const q=exBuf.preguntas.find(x=>x.id===el.dataset.q);if(!q)return;
     if(k==='enun')q.enunciado=el.value;
@@ -3584,6 +4093,27 @@ document.addEventListener('click',async e=>{
     const mm=materiaRuta();
     if(mm){docTab='examenes';docTabMat=mm.id;route={view:'materiaDetail',materiaId:mm.id};render()}
   }
+  else if(a==='exBancoAbrir'){bancoAbierto=true;render(true)}
+  else if(a==='exBancoCerrar'){bancoAbierto=false;bancoSel.clear();render(true)}
+  else if(a==='exBancoGuardar'&&exBuf){
+    const mm=materiaRuta();if(!mm)return;
+    try{const n=await guardarEnBanco(mm,exBuf.preguntas);toast(n?'📚 '+n+' pregunta'+(n==1?'':'s')+' guardada'+(n==1?'':'s')+' en tu banco':'No hay preguntas completas para guardar')}
+    catch(err){console.error(err);alert('No se pudo guardar en el banco'+detalleError(err)+'. ¿Publicaste las reglas nuevas de Firestore?')}
+  }
+  else if(a==='exBancoAgregar'&&exBuf&&exBuf.estado==='borrador'){
+    const ya=new Set(exBuf.preguntas.map(p=>normTxt(p.enunciado)));let n=0;
+    (bancoCache||[]).filter(x=>bancoSel.has(x.id)&&!ya.has(normTxt(x.enunciado))).forEach(x=>{
+      exBuf.preguntas.push({id:uid(),enunciado:x.enunciado,opciones:[0,1,2,3].map(i=>(x.opciones||[])[i]||''),correcta:Number(x.correcta)||0,temaId:'',temaTitulo:x.temaTitulo||''});n++;
+    });
+    bancoSel.clear();if(n){exGuardarLuego();toast('📥 '+n+' pregunta'+(n==1?'':'s')+' agregada'+(n==1?'':'s'))}
+    render(true);
+  }
+  else if(a==='bancoDel'){
+    if(confirm('¿Quitar esta pregunta de tu banco? (No se borra de los exámenes donde ya la usaste.)')){
+      try{await bancoRef().doc(b.dataset.bid).delete();bancoCache=(bancoCache||[]).filter(x=>x.id!==b.dataset.bid);bancoSel.delete(b.dataset.bid);render(true)}
+      catch(err){console.error(err);alert('No se pudo quitar'+detalleError(err)+'.')}
+    }
+  }
   else if(a==='exAddQ'&&exBuf){
     exBuf.preguntas.push({id:uid(),enunciado:'',opciones:['','','',''],correcta:0,temaId:'',temaTitulo:''});
     exGuardarLuego();render(true);
@@ -3607,7 +4137,7 @@ document.addEventListener('click',async e=>{
     const err=validarExamen(exBuf);if(err){alert(err);return}
     if(!confirm('¿Publicar el examen? Tus estudiantes lo verán de inmediato y ya no podrás editarlo.'))return;
     exBuf.estado='publicado';exBuf.publicadoEn=Date.now();
-    await exGuardarYa();render(true);
+    await exGuardarYa();render(true);avisoPublicado();
   }
   else if(a==='exABorrador'&&exBuf){
     const mm=materiaRuta();
@@ -3626,15 +4156,21 @@ document.addEventListener('click',async e=>{
   else if(a==='exRepetir'){
     const mm=materiaRuta();
     if(mm&&confirm('¿Permitir que este estudiante vuelva a presentar el examen? Se borra su entrega actual.')){
-      try{await baseDe(mm).collection('intentos').doc(route.examId+'_'+b.dataset.u).delete()}
+      try{
+        await baseDe(mm).collection('intentos').doc(route.examId+'_'+b.dataset.u).delete();
+        try{await baseDe(mm).collection('inicios').doc(route.examId+'_'+b.dataset.u).delete()}catch(e2){}      // también su hora de inicio, para que empiece de cero
+      }
       catch(err){console.error(err);alert('No se pudo borrar la entrega'+detalleError(err)+'.')}
     }
   }
   else if(a==='exCsv'){const mm=materiaRuta(),ex=mm&&(exMap[mm.sharedId]||{})[route.examId];if(ex&&mm.rol==='docente')descargarCsv(mm,ex)}
   else if(a==='exCsvDet'){const mm=materiaRuta(),ex=mm&&(exMap[mm.sharedId]||{})[route.examId];if(ex&&mm.rol==='docente')descargarCsvDetalle(mm,ex)}
   else if(a==='resFiltro'){docResFiltro=b.dataset.f;render(true)}
+  else if(a==='exXlsx'){const mm=materiaRuta(),ex=mm&&(exMap[mm.sharedId]||{})[route.examId];if(ex&&mm.rol==='docente')descargarXlsx(mm,ex).catch(err=>alert('No se pudo crear el Excel'+detalleError(err)+'.'))}
+  else if(a==='libroNotas'&&m&&m.rol==='docente'){descargarLibroNotas(m).catch(err=>alert('No se pudo crear el Excel'+detalleError(err)+'.'))}
   else if(a==='exPresentar'&&m)abrirExamenEst(m,b.dataset.ex);
-  else if(a==='exResp'&&exTom){exTom.respuestas[b.dataset.q]=+b.dataset.i;render(true)}
+  else if(a==='exResp'&&exTom){exTom.respuestas[b.dataset.q]=+b.dataset.i;guardarRespLocal();render(true)}
+  else if(a==='exComenzar'){const mm=materiaRuta();if(mm)comenzarExamenEst(mm)}
   else if(a==='exEntregar'){const mm=materiaRuta();if(mm)entregarExamenEst(mm)}
 });
 

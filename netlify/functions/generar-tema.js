@@ -48,9 +48,16 @@ const ESQUEMA_RESPUESTA = {
       type: 'ARRAY',
       items: {
         type: 'OBJECT',
-        properties: { frente: { type: 'STRING' }, reverso: { type: 'STRING' } },
-        required: ['frente', 'reverso'],
-        propertyOrdering: ['frente', 'reverso']
+        properties: {
+          frente: { type: 'STRING' },
+          reverso: { type: 'STRING' },
+          distractores: { type: 'ARRAY', items: { type: 'STRING' } },
+          falsa: { type: 'STRING' },
+          hueco_oracion: { type: 'STRING' },
+          hueco_respuesta: { type: 'STRING' }
+        },
+        required: ['frente', 'reverso', 'distractores', 'falsa', 'hueco_oracion', 'hueco_respuesta'],
+        propertyOrdering: ['frente', 'reverso', 'distractores', 'falsa', 'hueco_oracion', 'hueco_respuesta']
       }
     }
   },
@@ -325,10 +332,13 @@ REGLAS DE LAS TARJETAS:
 - Mezcla tipos: definiciones de conceptos, preguntas de comprensión ("¿por qué…?", "¿cómo…?", "¿en qué se diferencia X de Y?"), ejemplos y relaciones entre ideas.
 - El "frente" debe ser corto y entenderse sin haber visto el documento (un término o una pregunta clara).
 - El "reverso" es una respuesta precisa, autónoma y breve (máximo 25 palabras). Se usa como opción en exámenes de opción múltiple, así que cada reverso debe ser DISTINTO de los demás y de longitud y estilo parecidos entre sí.
+- "distractores": EXACTAMENTE 3 respuestas INCORRECTAS pero verosímiles para esa tarjeta: parecidas al reverso en longitud, tono y vocabulario, y de preferencia tomadas de conceptos cercanos del mismo texto. Ninguna puede ser correcta, ni igual al reverso, ni una variación trivial de él. Así la respuesta correcta no se nota por ser la más larga o la más específica.
+- "falsa": una afirmación FALSA sobre ese mismo concepto, con la misma forma que el reverso y creíble (por ejemplo, cambiando un dato, un autor o una causa). Se usa en preguntas de verdadero o falso, así que jamás debe ser verdadera según el texto.
+- "hueco_oracion" y "hueco_respuesta": cuando la tarjeta se preste (definiciones, términos, autores, fechas, nombres), una oración tomada del texto con UN solo hueco marcado con ____ (cuatro guiones bajos) y, en "hueco_respuesta", la palabra o frase corta (1 a 3 palabras) que lo completa. Si la tarjeta no se presta, deja ambos como cadena vacía "".
 
 Devuelve EXCLUSIVAMENTE un JSON válido, sin explicación adicional, con esta forma exacta:
 
-{"titulo":"título corto para el tema (máx 8 palabras)","resumen":"2 o 3 frases","secciones":[{"titulo":"título de la sección","contenido":"contenido de la sección","relacion":"cómo se conecta con otras ideas, o cadena vacía","ideas":[{"tipo":"definicion","termino":"término clave","texto":"explicación corta"},{"tipo":"caracteristica","termino":"otro término","texto":"explicación corta"},{"tipo":"ejemplo","termino":"nombre del caso","texto":"el ejemplo en pocas palabras"}]}],"tarjetas":[{"frente":"término o pregunta corta","reverso":"respuesta clara y breve"}]}
+{"titulo":"título corto para el tema (máx 8 palabras)","resumen":"2 o 3 frases","secciones":[{"titulo":"título de la sección","contenido":"contenido de la sección","relacion":"cómo se conecta con otras ideas, o cadena vacía","ideas":[{"tipo":"definicion","termino":"término clave","texto":"explicación corta"},{"tipo":"caracteristica","termino":"otro término","texto":"explicación corta"},{"tipo":"ejemplo","termino":"nombre del caso","texto":"el ejemplo en pocas palabras"}]}],"tarjetas":[{"frente":"término o pregunta corta","reverso":"respuesta clara y breve","distractores":["incorrecta 1","incorrecta 2","incorrecta 3"],"falsa":"afirmación falsa creíble","hueco_oracion":"oración con ____ o cadena vacía","hueco_respuesta":"palabra que falta o cadena vacía"}]}
 
 ${bloqueDocumento}`;
 
@@ -400,6 +410,18 @@ ${bloqueDocumento}`;
       });
     }
     if (!Array.isArray(parsed.tarjetas)) parsed.tarjetas = [];
+    // Datos extra de cada tarjeta (opciones incorrectas, afirmación falsa, hueco): limpios y sin repetir el reverso
+    const txt = v => (typeof v === 'string' ? v.trim() : '');
+    parsed.tarjetas.forEach(t => {
+      if (!t || typeof t !== 'object') return;
+      const rev = txt(t.reverso).toLowerCase();
+      t.distractores = (Array.isArray(t.distractores) ? t.distractores : [])
+        .map(txt).filter((x, i, a) => x && x.toLowerCase() !== rev && a.indexOf(x) === i).slice(0, 3);
+      t.falsa = txt(t.falsa).toLowerCase() === rev ? '' : txt(t.falsa);
+      t.hueco_oracion = txt(t.hueco_oracion);
+      t.hueco_respuesta = txt(t.hueco_respuesta);
+      if (!t.hueco_oracion.includes('____') || !t.hueco_respuesta) { t.hueco_oracion = ''; t.hueco_respuesta = ''; }
+    });
     if (!Array.isArray(parsed.secciones) || !parsed.secciones.length) {
       if (!parsed.tarjetas.length) return json(502, { error: 'La IA devolvió una respuesta incompleta. Prueba de nuevo.' });
     }

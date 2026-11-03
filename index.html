@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/styles.477eee16.css">
+<link rel="stylesheet" href="assets/styles.665432ef.css">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#B9472A">
 <meta name="mobile-web-app-capable" content="yes">
@@ -57,9 +57,11 @@
       <input id="searchBox" placeholder="Buscar materia o tema…">
       <div id="searchResults"></div>
     </div>
+    <button id="bellBtn" class="icon-btn bellBtn" title="Avisos" aria-label="Avisos" aria-haspopup="dialog">🔔<span id="bellN" class="bellN" hidden></span></button>
     <button id="themeBtn" class="icon-btn" title="Cambiar tema"></button>
     <button id="logoutBtn" class="icon-btn" title="Cerrar sesión">🚪</button>
   </header>
+  <div id="avisosPanel" class="avisosPanel" role="dialog" aria-label="Avisos" hidden></div>
   <nav id="mainNav">
     <button data-nav="materias" class="on">📚 Materias</button>
     <button data-nav="docente">👩‍🏫 Docente</button>
@@ -75,7 +77,7 @@
 <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore-compat.js"></script>
 <script src="firebase-init.js"></script>
-<script src="assets/app.6f56b4f0.js" defer></script>
+<script src="assets/app.94040838.js" defer></script>
 
 </body>
 </html>

@@ -1,6 +1,6 @@
 /* Auren — service worker (PWA)
    Sube el número de VERSION cuando quieras forzar que todos reciban cambios. */
-const VERSION = 'v3';
+const VERSION = 'v4';
 const CACHE = 'auren-' + VERSION;
 const BASE = ['/', '/firebase-init.js', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
 
@@ -70,4 +70,25 @@ self.addEventListener('fetch', e => {
       caches.match(req).then(hit => hit || (req.mode === 'navigate' ? caches.match('/') : undefined))
     )
   );
+});
+
+/* Avisos: al tocar una notificación se abre (o se trae al frente) Auren */
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const destino = (e.notification.data && e.notification.data.url) || '/';
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => {
+      for (const c of cs) { if ('focus' in c) return c.focus(); }
+      return self.clients.openWindow(destino);
+    })
+  );
+});
+
+/* Base para notificaciones push desde un servidor (hoy la app no envía ninguna): muestra lo que llegue como {titulo, texto, url} */
+self.addEventListener('push', e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (x) { /* sin datos */ }
+  e.waitUntil(self.registration.showNotification(d.titulo || 'Auren', {
+    body: d.texto || '', icon: '/icons/icon-192.png', badge: '/icons/icon-192.png', data: { url: d.url || '/' }
+  }));
 });

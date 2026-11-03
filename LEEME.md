@@ -15,7 +15,7 @@ Edita `src/app.src.js` o `src/styles.src.css` y ejecuta `npm install` (una vez) 
 En Netlify con Git el build corre solo (`netlify.toml`). Si subes la carpeta a mano, ejecuta el build antes de subirla.
 
 ## Publicar en Firebase
-1. **Firestore → Rules:** pega `firestore.rules` y Publish (incluye `iaUso`, el PDF original y el PDF escaneado).
+1. **Firestore → Rules:** pega `firestore.rules` y Publish. Incluye: cupo diario (`iaUso`), PDF original, PDF escaneado, hora de inicio de exámenes (`inicios`), tiempo límite al entregar y banco de preguntas (`bancoPreguntas`).
 2. Solo si activas Storage: **Storage → Rules:** pega `storage.rules` y Publish.
 
 ## Valores que puedes ajustar
@@ -37,3 +37,22 @@ Está en modo solo reporte (`Content-Security-Policy-Report-Only` en `netlify.to
 
 ## Nota técnica
 La clave local del navegador sigue siendo `cuaderno_<uid>` y el proyecto de Firebase `mi-cuaderno-904fa`: no se cambiaron para no perder datos ni sesiones. Los íconos de `icons/` no se modificaron.
+
+## Funciones de estudio y de docente (resumen)
+**Estudiante**
+- 📅 *Repaso de hoy*: repaso espaciado tipo Leitner (cajas 1 a 5; vuelve en 1, 2, 4, 8 y 16 días). Aprende de flashcards, quiz y examen. Aparece también como panel en *Mis materias*.
+- 🎯 *Repasar lo que fallé*: quiz con las tarjetas falladas o con los temas donde más falló en los exámenes de su profesor.
+- 🧊 *Día de gracia*: 1 por semana (lunes a domingo); cubre un día suelto sin romper la racha.
+- Preguntas variadas: opción múltiple (con opciones incorrectas hechas por la IA), verdadero/falso y completar. Las tarjetas **nuevas** traen esos datos; las anteriores siguen como opción múltiple.
+- 🔔 Avisos: campana con lo que publica el docente (temas, exámenes, eventos) y recordatorios de hoy/mañana y de exámenes que cierran en 24 h. Notificaciones del navegador opcionales.
+
+**Docente**
+- Orden de preguntas y opciones distinto por estudiante (la calificación no cambia).
+- Tiempo límite por examen, con hora de inicio registrada por el servidor y entrega automática al acabarse el tiempo.
+- Banco de preguntas por corte, tuyo y reutilizable entre semestres.
+- Exportar a Excel (.xlsx): notas, resultados por pregunta, respuestas y libro de notas de la materia.
+
+## Límites conocidos
+- **Avisos con la app totalmente cerrada** (push real) no están incluidos: necesitan un servidor que envíe notificaciones (Firebase Cloud Messaging con credenciales). El `service-worker.js` ya tiene el receptor `push` listo.
+- El reloj del examen se calcula en el navegador a partir de la hora de inicio del servidor; las reglas de Firestore rechazan entregas pasado el tiempo (+60 s de margen).
+- Cambiar la versión de la caché de la IA (`IA_CACHE_VER`) hace que los archivos analizados antes se vuelvan a analizar (y gasten cupo) la próxima vez que se suban.

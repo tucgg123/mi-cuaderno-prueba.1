@@ -612,3 +612,24 @@ main#view:has(.mv){max-width:1180px;padding:28px 24px 72px}
 .cupoIA.cupoBajo{border-color:var(--a)}
 .cupoIA.cupo0{border-color:var(--no)}
 .cupoIA.cupo0 b{color:var(--no)}
+
+/* ===== Tipos de pregunta, repaso de hoy ===== */
+.vfAfirm{display:inline-block;margin-top:6px;font-weight:600;color:var(--a)}
+.hueco{display:inline-block;min-width:3.2em;border-bottom:2px solid var(--a);text-align:center;color:var(--a)}
+.repasoHoy{margin:0 0 14px}
+
+/* ===== Examen con tiempo, banco de preguntas ===== */
+.exRelojWrap{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 10px}
+.exReloj{font-weight:700;font-variant-numeric:tabular-nums}
+.exReloj.urgente{background:color-mix(in srgb,var(--no) 18%,var(--c));border-color:var(--no);color:var(--no)}
+.bancoFila{align-items:flex-start;gap:8px}
+
+/* ===== Campana de avisos ===== */
+.bellBtn{position:relative}
+.bellN{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--no);color:#fff;font:700 11px/18px var(--sans);text-align:center}
+.avisosPanel{position:fixed;right:12px;top:calc(60px + env(safe-area-inset-top,0px));width:min(380px,calc(100vw - 24px));max-height:70vh;overflow:auto;background:var(--c);border:1px solid var(--b);border-radius:14px;box-shadow:0 18px 40px -16px rgba(0,0,0,.4);z-index:50}
+.avisosPanel[hidden]{display:none}
+.avHead{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--b);position:sticky;top:0;background:var(--c)}
+.avItem{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--b);padding:10px 14px;color:var(--t);font:inherit;cursor:pointer}
+.avItem:hover{background:var(--al)}
+.avItem.nuevo{background:color-mix(in srgb,var(--a) 8%,var(--c));border-left:3px solid var(--a)}

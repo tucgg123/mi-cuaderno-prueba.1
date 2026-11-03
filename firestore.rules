@@ -141,6 +141,23 @@ service cloud.firestore {
         allow write: if request.auth != null && esDuenoMateria();
       }
 
+      // Hora de inicio de cada estudiante en un examen con tiempo límite. Se crea una sola vez (la hora la pone el servidor)
+      // y el estudiante no puede borrarla ni cambiarla; solo el docente (por ejemplo, para permitir repetir).
+      match /inicios/{inId} {
+        allow read: if request.auth != null
+          && ( esDuenoMateria() || resource.data.uid == request.auth.uid );
+        allow create: if request.auth != null
+          && esMiembroMateria() && !esDuenoMateria()
+          && request.resource.data.keys().hasOnly(['examId', 'uid', 'nombre', 'inicio'])
+          && request.resource.data.uid == request.auth.uid
+          && inId == request.resource.data.examId + '_' + request.auth.uid
+          && request.resource.data.inicio == request.time
+          && get(/databases/$(database)/documents/temarios/$(id)/examenes/$(request.resource.data.examId)).data.estado == 'publicado'
+          && ( get(/databases/$(database)/documents/temarios/$(id)/examenes/$(request.resource.data.examId)).data.get('cierre', 0) == 0
+               || request.time.toMillis() <= get(/databases/$(database)/documents/temarios/$(id)/examenes/$(request.resource.data.examId)).data.cierre );
+        allow update, delete: if request.auth != null && esDuenoMateria();
+      }
+
       // Entregas: una por estudiante y examen (el id lo fuerza). Se crean una vez y no se modifican,
       // así la nota la calcula el docente sobre respuestas que el estudiante no puede alterar.
       match /intentos/{inId} {
@@ -154,7 +171,12 @@ service cloud.firestore {
           && request.resource.data.enviado == request.time
           && get(/databases/$(database)/documents/temarios/$(id)/examenes/$(request.resource.data.examId)).data.estado == 'publicado'
           && ( get(/databases/$(database)/documents/temarios/$(id)/examenes/$(request.resource.data.examId)).data.get('cierre', 0) == 0
-               || request.time.toMillis() <= get(/databases/$(database)/documents/temarios/$(id)/examenes/$(request.resource.data.examId)).data.cierre );
+               || request.time.toMillis() <= get(/databases/$(database)/documents/temarios/$(id)/examenes/$(request.resource.data.examId)).data.cierre )
+          // Con tiempo límite: hace falta haber comenzado y entregar dentro del tiempo (con 60 s de margen por la red)
+          && ( get(/databases/$(database)/documents/temarios/$(id)/examenes/$(request.resource.data.examId)).data.get('duracion', 0) == 0
+               || ( exists(/databases/$(database)/documents/temarios/$(id)/inicios/$(request.resource.data.examId + '_' + request.auth.uid))
+                    && request.time.toMillis() <= get(/databases/$(database)/documents/temarios/$(id)/inicios/$(request.resource.data.examId + '_' + request.auth.uid)).data.inicio.toMillis()
+                         + get(/databases/$(database)/documents/temarios/$(id)/examenes/$(request.resource.data.examId)).data.duracion * 60000 + 60000 ) );
         allow update: if false;
         allow delete: if request.auth != null && esDuenoMateria();
       }
@@ -188,6 +210,16 @@ service cloud.firestore {
       );
 
       allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+    }
+
+    // Banco de preguntas del docente: solo lo ve y lo edita él. Sirve para reutilizar preguntas entre exámenes y semestres.
+    match /bancoPreguntas/{u}/items/{pid} {
+      allow read, delete: if request.auth != null && request.auth.uid == u;
+      allow create, update: if request.auth != null && request.auth.uid == u
+        && request.resource.data.keys().hasOnly(['enunciado', 'opciones', 'correcta', 'temaTitulo', 'corte', 'materia', 'creado'])
+        && request.resource.data.enunciado is string && request.resource.data.enunciado.size() <= 1000
+        && request.resource.data.opciones is list && request.resource.data.opciones.size() == 4
+        && request.resource.data.correcta is int && request.resource.data.correcta >= 0 && request.resource.data.correcta < 4;
     }
 
     // Cupo diario de archivos para la IA (día en hora de Colombia, UTC-5). La función de Netlify lo lee y lo sube de 1 en 1
