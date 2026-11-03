@@ -12,7 +12,7 @@ Organiza tus materias, estudia con ayuda de IA y mantén tu racha.
 
 ## Después de cambiar el código
 Edita `src/app.src.js` o `src/styles.src.css` y ejecuta `npm install` (una vez) y `npm run build`.
-En Netlify con Git el build corre solo (`netlify.toml`). Si subes la carpeta a mano, ejecuta el build antes de subirla.
+El build se hace en tu computador (Netlify ya no lo ejecuta): después de `npm run build`, sube también la carpeta `assets/` y `index.html` (cambia el nombre con hash).
 
 ## Publicar en Firebase
 1. **Firestore → Rules:** pega `firestore.rules` y Publish. Incluye: cupo diario (`iaUso`), PDF original, PDF escaneado, hora de inicio de exámenes (`inicios`), tiempo límite al entregar y banco de preguntas (`bancoPreguntas`).

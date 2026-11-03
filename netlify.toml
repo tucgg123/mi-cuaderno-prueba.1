@@ -1,8 +1,7 @@
 [build]
   publish = "."
   functions = "netlify/functions"
-  # Minifica el JS y el CSS (assets/). Si falla o no hay esbuild, se usan los archivos que ya vienen en assets/.
-  command = "npm install --no-audit --no-fund && npm run build"
+  # Sin paso de build en Netlify: assets/ ya viene construido en el repositorio (para regenerarlo: npm install && npm run build).
 
 [[headers]]
   for = "/service-worker.js"
