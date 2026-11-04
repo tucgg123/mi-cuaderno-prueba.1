@@ -369,7 +369,7 @@ function avisablesProximos(){
   eventosTodos().forEach(e=>{
     if(e.date!==hoy&&e.date!==man)return;
     out.push({clave:'ev|'+e.id+'|'+e.date,materiaId:e.materiaId||null,
-      texto:'🔔 '+(e.date===hoy?'Hoy':'Mañana')+': '+(TY[e.type]||tipoEv(e.type)||'📌')+' '+e.title+(e.hora?' a las '+e.hora:'')+(e.materia?' · '+e.materia:'')});
+      texto:'🔔 '+(e.date===hoy?'Hoy':'Mañana')+': '+String(TY[e.type]||tipoEv(e.type)||'📌').split(' ')[0]+' '+e.title+(e.hora?' a las '+e.hora:'')+(e.materia?' · '+e.materia:'')});
   });
   state.materias.filter(m=>m.rol==='estudiante'&&m.sharedId).forEach(m=>{
     examenesDe(m).forEach(ex=>{
@@ -451,7 +451,17 @@ function fxAuto(){
   const flojo=(navigator.deviceMemory&&navigator.deviceMemory<=4)||(navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=4)||window.innerWidth<=760;
   return flojo?'lite':'full';
 }
-function applyFx(){document.documentElement.setAttribute('data-fx',['full','lite','off'].includes(state.fx)?state.fx:fxAuto())}
+/* Elección de efectos: la del perfil → la guardada en este dispositivo (sirve en la pantalla de acceso) → ?fx=off|lite|full|auto en la dirección → automática */
+function fxGuardado(){
+  try{
+    const q=new URLSearchParams(location.search).get('fx');
+    if(['full','lite','off'].includes(q))localStorage.setItem('auren_fx',q);
+    else if(q==='auto')localStorage.removeItem('auren_fx');
+    const v=localStorage.getItem('auren_fx');return ['full','lite','off'].includes(v)?v:null;
+  }catch(e){return null}
+}
+function applyFx(){document.documentElement.setAttribute('data-fx',['full','lite','off'].includes(state.fx)?state.fx:(fxGuardado()||fxAuto()))}
+applyFx();      // también en la pantalla de acceso, antes de iniciar sesión
 document.addEventListener('visibilitychange',()=>document.documentElement.classList.toggle('fxPause',document.hidden));
 function datosCardHTML(){
   return `<div class="card"><h3>💾 Tus datos</h3>
@@ -528,7 +538,7 @@ let reemplazarHash=false;
 function sincronizarHash(){
   if(!currentUid||typeof history==='undefined'||!history.pushState)return;
   const h=rutaAHash(route),actual=location.hash||'#/';
-  if(actual===h||(h==='#/'&&(location.hash===''||location.hash==='#')))return;
+  if(actual===h||(h==='#/'&&(location.hash===''||location.hash==='#'))){reemplazarHash=false;return}     // la pantalla inicial ya coincide: el siguiente cambio sí agrega una entrada al historial
   try{if(reemplazarHash){history.replaceState(null,'',h);reemplazarHash=false}else history.pushState(null,'',h)}catch(e){}
 }
 function marcarNavSegunRuta(){
@@ -4331,7 +4341,7 @@ function viewPerfilDocenteHTML(){
 /* ======================= Acciones ======================= */
 document.addEventListener('input',e=>{
   const ea=e.target.dataset&&e.target.dataset.action;
-  if(ea==='fxSel'){state.fx=e.target.value||null;applyFx();persist();return}
+  if(ea==='fxSel'){state.fx=e.target.value||null;try{if(state.fx)localStorage.setItem('auren_fx',state.fx);else localStorage.removeItem('auren_fx')}catch(err){}applyFx();persist();return}
   if(ea==='alcanceSel'){
     const v=String(e.target.value||'all'),mid=route.materiaId;ui.alcance=ui.alcance||{};
     ui.alcance[mid]=v.startsWith('t:')?{temaId:v.slice(2)}:v.startsWith('c:')?{corteId:v.slice(2)}:{};

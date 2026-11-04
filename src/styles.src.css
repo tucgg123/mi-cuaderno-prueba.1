@@ -799,3 +799,21 @@ details.s[open]{border-color:var(--a)}
 .toolGrid .sec:hover{border-color:var(--a);color:var(--a)}
 .practice{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 8px}
 .practice select{flex:1;min-width:200px}
+
+/* ---- Ajustes visuales tras revisar en un navegador real ---- */
+.dform input,.dform select,.dform textarea{color:var(--t)}
+.mnx{flex-direction:column;gap:0;white-space:normal}
+.mnx b{white-space:nowrap}
+.mnx span{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mfoot{align-items:flex-end}
+
+/* ---- Celular: orden de la cabecera y botones que se desbordaban ---- */
+@media(max-width:760px){
+  header#topbar #ct,header#topbar .icon-btn,.menuwrap .icon-btn{order:0}
+  header#topbar #ct{margin-right:auto}
+  .menuwrap{order:1}
+  .mv .viewhead .row,.viewhead .row{flex-wrap:wrap}
+  .mv .sec,.mv .pr{white-space:normal;height:auto;min-height:44px;padding-top:8px;padding-bottom:8px}
+  main#view,main#view:has(.mv){padding-left:14px;padding-right:14px}
+  .menu{max-width:calc(100vw - 28px)}
+}
