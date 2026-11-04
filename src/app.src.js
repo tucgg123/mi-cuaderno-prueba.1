@@ -15,6 +15,7 @@ const AV=['🎓','📚','🦉','🐱','🦊','🐼','🌸','⭐','🔥','🌙'];
 function defaultState(){return{
   profile:{name:'',career:'',avatar:'🎓',examDate:'',scale:5,goal:4,notes:'',rol:''},
   theme:null,
+  fx:null,
   semesters:[{id:uid(),name:'Semestre 1'}],
   materias:[],
   temas:[],
@@ -65,6 +66,58 @@ function localKey(){return 'cuaderno_'+(currentUid||'anon')}
 function saveLocal(){try{localStorage.setItem(localKey(),JSON.stringify(state))}catch(e){}}
 function loadLocal(){try{const raw=localStorage.getItem(localKey());return raw?JSON.parse(raw):null}catch(e){return null}}
 
+/* ======================= Diálogos propios =======================
+   Reemplazan alert/confirm/prompt del navegador (que en la app instalada muestran la dirección del sitio y se ven fuera de lugar).
+   Se encolan: si salen varios seguidos, se muestran de a uno. Funcionan con teclado (Enter acepta, Esc cancela). */
+const dlgCola=[];let dlgActivo=false;
+function dialogo(op){return new Promise(res=>{dlgCola.push({op,res});if(!dlgActivo)dlgSiguiente()})}
+function dlgSiguiente(){
+  const it=dlgCola.shift();
+  if(!it){dlgActivo=false;return}
+  dlgActivo=true;
+  const op=it.op,res=it.res,conCampos=!!(op.campos&&op.campos.length);
+  let d=document.getElementById('dlg');
+  if(!d){d=document.createElement('dialog');d.id='dlg';document.body.appendChild(d)}
+  const campo=f=>{
+    const lab=f.l?esc(f.l):'';
+    if(f.t==='select')return `<label>${lab}<select name="${esc(f.k)}">${(f.o||[]).map(o=>`<option value="${esc(o[0])}" ${String(o[0])===String(f.v)?'selected':''}>${esc(o[1])}</option>`).join('')}</select></label>`;
+    if(f.area)return `<label>${lab}<textarea name="${esc(f.k)}" placeholder="${esc(f.ph||'')}">${esc(f.v==null?'':f.v)}</textarea></label>`;
+    return `<label>${lab}<input name="${esc(f.k)}" type="${esc(f.t||'text')}" value="${esc(f.v==null?'':f.v)}" placeholder="${esc(f.ph||'')}" ${f.max?'maxlength="'+f.max+'"':''} ${f.step?'step="'+f.step+'"':''} autocomplete="off"></label>`;
+  };
+  d.innerHTML=`<form class="dform" novalidate><h3 id="dlgT">${esc(op.titulo||'')}</h3>${op.mensaje?`<p class="dmsg">${esc(op.mensaje).replace(/\n/g,'<br>')}</p>`:''}${op.html||''}${(op.campos||[]).map(campo).join('')}
+    <div class="dbtns">${op.sinCancelar?'':`<button type="button" class="sec" data-x>${esc(op.cancelar||'Cancelar')}</button>`}<button type="submit" class="pr ${op.peligro?'peligro':''}">${esc(op.ok||'Aceptar')}</button></div></form>`;
+  d.setAttribute('aria-labelledby','dlgT');
+  let hecho=false;
+  const cerrar=v=>{
+    if(hecho)return;hecho=true;
+    d.onclose=null;d.onclick=null;
+    try{d.close()}catch(e){}
+    d.removeAttribute('open');
+    res(v);dlgSiguiente();
+  };
+  const cancelado=conCampos?null:false;
+  const form=d.querySelector('form');
+  form.onsubmit=e=>{e.preventDefault();cerrar(conCampos?Object.fromEntries(new FormData(form)):true)};
+  const x=d.querySelector('[data-x]');if(x)x.onclick=()=>cerrar(cancelado);
+  d.onclose=()=>cerrar(op.sinCancelar?true:cancelado);                      // Esc
+  d.onclick=e=>{if(e.target===d)cerrar(op.sinCancelar?true:cancelado)};   // clic fuera
+  if(typeof d.showModal==='function'){try{d.showModal()}catch(e){d.setAttribute('open','')}}else d.setAttribute('open','');
+  const primero=d.querySelector('input,textarea,select')||d.querySelector('.pr');
+  if(primero)primero.focus();
+}
+const VERBOS_PELIGRO=['Eliminar','Quitar','Salir','Rechazar','Cerrar','Borrar'];
+const UI={
+  alerta:m=>dialogo({titulo:'Aviso',mensaje:String(m),ok:'Entendido',sinCancelar:true}),
+  confirmar:(m,ok)=>{
+    const v=((String(m).match(/^¿\s*([A-Za-zÁÉÍÓÚáéíóúñ]+)/)||[])[1]||'');
+    const verbo=v?v.charAt(0).toUpperCase()+v.slice(1):'';
+    const etiqueta=ok||(verbo&&/^(Eliminar|Quitar|Salir|Rechazar|Cerrar|Borrar|Publicar|Entregar|Permitir|Unirte|Cambiar)$/i.test(verbo)?(verbo==='Cerrar'?'Cerrar sesión':verbo):'Aceptar');
+    return dialogo({titulo:'¿Seguro?',mensaje:String(m).replace(/^¿\s*/,'¿'),ok:etiqueta,peligro:VERBOS_PELIGRO.includes(verbo)}).then(r=>!!r);
+  },
+  prompt:(m,def)=>dialogo({titulo:String(m),campos:[{k:'v',l:'',v:def==null?'':def}],ok:'Aceptar'}).then(r=>r?String(r.v):null),
+  preguntar:(titulo,campos,opts)=>dialogo(Object.assign({titulo,campos},opts||{}))
+};
+
 /* ---------- Estado de la sincronización: avisa si algo falla (antes solo quedaba en la consola) ---------- */
 const FIRESTORE_MAX=1048576;           // límite de Firestore por documento (1 MiB)
 const sync={fallo:'',falloMateria:'',aviso:'',tamAlto:false,offline:typeof navigator!=='undefined'&&navigator.onLine===false,soloLocal:false};
@@ -93,10 +146,10 @@ function revisarTamano(bytes){
   sync.tamAlto=pct>=80;
   sync.aviso=sync.tamAlto?'💾 Tu cuaderno ocupa el '+pct+' % del espacio que permite la nube. Si se llena dejará de sincronizarse: libera espacio.':'';
 }
-function liberarEspacio(){
+async function liberarEspacio(){
   const lim=Date.now()-120*864e5,viejos=(state.attempts||[]).filter(a=>a.date<lim).length;
-  if(!viejos){alert('No hay intentos antiguos que borrar. Para liberar más espacio elimina materias o temas que ya no uses.');return}
-  if(confirm('Se borrarán '+viejos+' intentos de quiz y examen de hace más de 4 meses. Tu racha, tus insignias y las etapas ya completadas se conservan; las etapas sin completar podrían perder avance de exámenes antiguos. ¿Continuar?'))mutate(s=>{s.attempts=s.attempts.filter(a=>a.date>=lim)});
+  if(!viejos){UI.alerta('No hay intentos antiguos que borrar. Para liberar más espacio elimina materias o temas que ya no uses.');return}
+  if(await UI.confirmar('Se borrarán '+viejos+' intentos de quiz y examen de hace más de 4 meses. Tu racha, tus insignias y las etapas ya completadas se conservan; las etapas sin completar podrían perder avance de exámenes antiguos. ¿Continuar?'))mutate(s=>{s.attempts=s.attempts.filter(a=>a.date>=lim)});
 }
 async function reintentarSync(){
   if(!currentUid)return;
@@ -104,7 +157,7 @@ async function reintentarSync(){
     try{
       const doc=await db.collection('users').doc(currentUid).get();
       if(doc.exists&&doc.data().data){
-        if(confirm('Se encontró tu cuaderno guardado en la nube.\n\nAceptar = cargar la versión de la nube (se descartan los cambios hechos sin conexión en este dispositivo).\nCancelar = conservar lo de este dispositivo y reemplazar la nube.')){
+        if(await UI.confirmar('Se encontró tu cuaderno guardado en la nube.\n\nAceptar = cargar la versión de la nube (se descartan los cambios hechos sin conexión en este dispositivo).\nCancelar = conservar lo de este dispositivo y reemplazar la nube.')){
           state=JSON.parse(doc.data().data);normalizeState();saveLocal();applyTheme();updateThemeBtn();render();startShared();
         }
       }
@@ -201,7 +254,7 @@ $('authForm').addEventListener('submit',async e=>{
   }
 });
 $('logoutBtn').onclick=async()=>{
-  if(!confirm('¿Cerrar sesión?'))return;
+  if(!await UI.confirmar('¿Cerrar sesión?'))return;
   await auth.signOut();
   /* La caché offline de Firestore guarda tus datos en este equipo: al salir se borra para que no queden en computadores compartidos */
   try{await db.terminate();await db.clearPersistence()}catch(e){console.warn('No se pudo limpiar la caché local:',e)}
@@ -238,7 +291,8 @@ auth.onAuthStateChanged(async user=>{
     $('appRoot').hidden=false;
     applyTheme();updateThemeBtn();
     route={view:esProfesor()?'docente':'materias',materiaId:null};
-    document.querySelectorAll('#mainNav button').forEach(x=>x.classList.toggle('on',x.dataset.nav===route.view));
+    rutaInicialDesdeHash();
+    marcarNavSegunRuta();
     render();
     startShared();
     iniciarAvisos();
@@ -387,8 +441,52 @@ document.addEventListener('click',e=>{
 function applyTheme(){
   if(state.theme)document.documentElement.setAttribute('data-theme',state.theme);
   else document.documentElement.removeAttribute('data-theme');
+  applyFx();
 }
-function updateThemeBtn(){$('themeBtn').textContent=state.theme==='dark'?'🌙':state.theme==='light'?'☀️':'🌗'}
+function updateThemeBtn(){$('themeBtn').textContent=state.theme==='dark'?'🌙 Tema oscuro':state.theme==='light'?'☀️ Tema claro':'🌗 Tema automático'}
+/* Efectos visuales (fondo animado y desenfoques). Automático: ligeros en pantallas pequeñas o equipos con poca memoria/procesador, sin efectos si pides reducir movimiento */
+function fxAuto(){
+  const reduce=typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion:reduce)').matches;
+  if(reduce)return 'off';
+  const flojo=(navigator.deviceMemory&&navigator.deviceMemory<=4)||(navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=4)||window.innerWidth<=760;
+  return flojo?'lite':'full';
+}
+function applyFx(){document.documentElement.setAttribute('data-fx',['full','lite','off'].includes(state.fx)?state.fx:fxAuto())}
+document.addEventListener('visibilitychange',()=>document.documentElement.classList.toggle('fxPause',document.hidden));
+function datosCardHTML(){
+  return `<div class="card"><h3>💾 Tus datos</h3>
+    <p class="meta" style="margin-top:0">Descarga una copia de tus materias, temas, tarjetas, notas e historial en un archivo. Sirve como respaldo o para llevártelos. No incluye lo que vive solo en la nube del docente (exámenes y entregas de sus estudiantes).</p>
+    <button class="sec" data-action="descargarCopia">⬇️ Descargar copia de mis datos</button></div>`;
+}
+function descargarCopia(){
+  const copia={app:'Auren',formato:1,fecha:new Date().toISOString(),datos:JSON.parse(JSON.stringify(state))};
+  bajarBlob(new Blob([JSON.stringify(copia,null,2)],{type:'application/json'}),'auren_copia_'+fechaLocal(new Date())+'.json');
+  toast('💾 Copia descargada');
+}
+function fxCardHTML(){
+  const v=['full','lite','off'].includes(state.fx)?state.fx:'';
+  return `<div class="card"><h3>✨ Efectos visuales</h3>
+    <p class="meta" style="margin-top:0">El fondo animado y los desenfoques se ven muy bien, pero gastan batería. En teléfonos y equipos modestos conviene "Ligeros".</p>
+    <select class="fld" data-action="fxSel" aria-label="Efectos visuales">
+      <option value="" ${v===''?'selected':''}>Automático (según tu dispositivo)</option>
+      <option value="full" ${v==='full'?'selected':''}>Completos: fondo animado y cristal</option>
+      <option value="lite" ${v==='lite'?'selected':''}>Ligeros: circuito quieto, sin desenfoque</option>
+      <option value="off" ${v==='off'?'selected':''}>Sin efectos</option>
+    </select></div>`;
+}
+/* Menú de esquina */
+(function(){
+  const b=$('menuBtn'),m=$('menu');
+  const set=o=>{m.classList.toggle('open',o);b.setAttribute('aria-expanded',String(o));b.setAttribute('aria-label',o?'Cerrar menú':'Abrir menú')};
+  b.onclick=e=>{e.stopPropagation();set(!m.classList.contains('open'))};
+  m.addEventListener('click',e=>{if(e.target.closest('#mainNav button,#logoutBtn'))set(false)});
+  document.addEventListener('click',e=>{if(!e.target.closest('.menuwrap'))set(false)});
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&m.classList.contains('open')){set(false);b.focus()}
+    if(e.key==='/'&&!/INPUT|TEXTAREA|SELECT/.test((document.activeElement||{}).tagName||'')&&$('searchWrap')&&$('searchWrap').style.display!=='none'&&!$('appRoot').hidden){e.preventDefault();$('searchBox').focus()}
+  });
+  window.addEventListener('hashchange',()=>set(false));
+})();
 $('themeBtn').onclick=()=>{
   state.theme=state.theme==='dark'?'light':state.theme==='light'?null:'dark';
   applyTheme();updateThemeBtn();persist();
@@ -400,6 +498,68 @@ document.querySelectorAll('#mainNav [data-nav]').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('#mainNav button').forEach(x=>x.classList.toggle('on',x===b));
   render();
 });
+/* ======================= Navegación con URL =======================
+   Cada pantalla tiene su dirección (#/materia/ID, #/estudio/quiz/ID …). Así el botón "atrás" del celular o del navegador
+   vuelve a la pantalla anterior en vez de cerrar la app, y se puede recargar o compartir el enlace de una materia. */
+const HERRAMIENTAS=['flashcards','memorizar','quiz','examen','escrito','concepto','hoy','falle','repaso','comparar','progreso','referencias'];
+function rutaAHash(r){
+  const v=r.view;
+  if(v==='materiaDetail'&&r.materiaId)return '#/materia/'+r.materiaId;
+  if(v==='tool'&&r.materiaId&&r.tool)return '#/estudio/'+r.tool+'/'+r.materiaId;
+  if(v==='docExamen'&&r.materiaId&&r.examId)return '#/examen/'+r.materiaId+'/'+r.examId;
+  if(v==='docResultados'&&r.materiaId&&r.examId)return '#/resultados/'+r.materiaId+'/'+r.examId;
+  if(v==='examenDoc'&&r.materiaId&&r.examId)return '#/presentar/'+r.materiaId+'/'+r.examId;
+  if(['calendario','logros','perfil','docente'].includes(v))return '#/'+v;
+  return '#/';
+}
+function hashARuta(h){
+  const p=String(h||'').replace(/^#\/?/,'').split('/');
+  const a=p[0]||'',b=p[1],c=p[2];
+  if(a==='')return{view:'materias',materiaId:null};
+  if(['calendario','logros','perfil','docente'].includes(a))return{view:a,materiaId:null};
+  if(a==='materia'&&b)return{view:'materiaDetail',materiaId:b};
+  if(a==='estudio'&&b&&c&&HERRAMIENTAS.includes(b))return{view:'tool',tool:b,materiaId:c};
+  if(a==='examen'&&b&&c)return{view:'docExamen',materiaId:b,examId:c};
+  if(a==='resultados'&&b&&c)return{view:'docResultados',materiaId:b,examId:c};
+  if(a==='presentar'&&b&&c)return{view:'examenDoc',materiaId:b,examId:c};
+  return null;
+}
+let reemplazarHash=false;
+function sincronizarHash(){
+  if(!currentUid||typeof history==='undefined'||!history.pushState)return;
+  const h=rutaAHash(route),actual=location.hash||'#/';
+  if(actual===h||(h==='#/'&&(location.hash===''||location.hash==='#')))return;
+  try{if(reemplazarHash){history.replaceState(null,'',h);reemplazarHash=false}else history.pushState(null,'',h)}catch(e){}
+}
+function marcarNavSegunRuta(){
+  const top=['materias','docente','calendario','logros','perfil'].includes(route.view)?route.view:(esProfesor()?'docente':'materias');
+  document.querySelectorAll('#mainNav button').forEach(x=>x.classList.toggle('on',x.dataset.nav===top));
+}
+/* Al abrir la app con un enlace (por ejemplo #/materia/ID) se entra directo a esa pantalla, si existe y puedes verla */
+function rutaInicialDesdeHash(){
+  reemplazarHash=true;
+  const r=hashARuta(location.hash);
+  if(!r||r.view==='materias')return;
+  if(['calendario','logros','perfil','docente'].includes(r.view)){route={view:r.view,materiaId:null};return}
+  const m=r.materiaId&&state.materias.find(x=>x.id===r.materiaId);
+  if(m)route={view:'materiaDetail',materiaId:m.id};
+}
+/* Botón "atrás" / "adelante" o cambio manual de la dirección */
+async function aplicarHash(){
+  if(!currentUid||$('appRoot').hidden)return;
+  let r=hashARuta(location.hash);
+  if(!r){reemplazarHash=true;r={view:'materias',materiaId:null}}
+  const m=r.materiaId?state.materias.find(x=>x.id===r.materiaId):null;
+  if(r.materiaId&&!m){reemplazarHash=true;r={view:esProfesor()?'docente':'materias',materiaId:null}}
+  if(r.view==='tool'){route={view:'tool',tool:r.tool,materiaId:r.materiaId};marcarNavSegunRuta();startTool(r.tool,r.materiaId);return}
+  const ex=m&&r.examId?(exMap[m.sharedId]||{})[r.examId]:null;
+  if(r.examId&&!ex){reemplazarHash=true;r={view:'materiaDetail',materiaId:r.materiaId}}
+  if(r.view==='docExamen'){abrirEditor(m,r.examId);marcarNavSegunRuta();render();return}
+  if(r.view==='examenDoc'){marcarNavSegunRuta();await abrirExamenEst(m,r.examId);return}
+  if(r.view==='docResultados'){docResSel=null;docResFiltro='todas'}
+  route=r;marcarNavSegunRuta();render();
+}
+window.addEventListener('popstate',aplicarHash);
 function goToView(v){
   route.view=v;route.materiaId=null;
   document.querySelectorAll('#mainNav button').forEach(x=>x.classList.toggle('on',x.dataset.nav===v));
@@ -478,6 +638,7 @@ const VISTAS_MORPH=['materias','materiaDetail','perfil','docente','logros','docR
 function render(keep){
   const _y=window.scrollY;
   guardarRuta();
+  sincronizarHash();
   if(route.view!=='tool')clearRepasoTimer();
   if(route.view!=='examenDoc')clearExTimer();
   const view=$('view');
@@ -496,6 +657,7 @@ function render(keep){
   /* Misma pantalla → repintado incremental. Pantalla nueva o cuestionario/tarjetas (que dependen de sus animaciones) → completo. */
   if(VISTAS_MORPH.includes(route.view)&&claveVista()===ultimaVista&&view.firstElementChild)morph(view,html);
   else view.innerHTML=html;
+  document.querySelectorAll('#mainNav button').forEach(x=>{if(x.classList.contains('on'))x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});
   aplicarSoloLectura();
   aplicarRolMenu();
   animarVista();
@@ -529,7 +691,9 @@ function weightedAvg(cortes){
 /* ================= VISTA: MIS MATERIAS ================= */
 /* ===== Rediseño: colores por materia, iconos y panel de estadísticas ===== */
 const MAT_COLORS=['#7FB3E6','#A99BE8','#8ED1A4','#E8C27A','#E58FA8','#E9A58C'];
-function matColor(m){let h=0;const k=String(m.id||m.name||'');for(let i=0;i<k.length;i++)h=(h*31+k.charCodeAt(i))>>>0;return MAT_COLORS[h%MAT_COLORS.length]}
+function matColor(m){
+  if(m.color&&/^#[0-9a-f]{6}$/i.test(m.color))return m.color;       // color elegido por la persona
+  let h=0;const k=String(m.id||m.name||'');for(let i=0;i<k.length;i++)h=(h*31+k.charCodeAt(i))>>>0;return MAT_COLORS[h%MAT_COLORS.length]}
 const SVG_A='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
 const IC_EDIT=SVG_A+'<path d="M4.5 19.5l.8-3.8L16.4 4.6a1.6 1.6 0 012.3 0l.7.7a1.6 1.6 0 010 2.3L8.3 18.7z"/></svg>';
 const IC_DEL=SVG_A+'<path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12M10 11v5M14 11v5"/></svg>';
@@ -546,6 +710,7 @@ function viewMateriasHTML(){
     return `<details class="sem" open>
       <summary>
         <span class="semT"><h2>🎓 ${esc(sem.name)}</h2><p>${pluralMv(mats.length,'materia','materias')}</p></span>
+        <span class="semAvg" title="Promedio del semestre">${(()=>{const p=promSemestre(mats);return p==null?'':'⌀ '+fmtN(p)})()}</span>
         <span class="mpair">
           <button class="icon-btn" data-action="renameSemester" data-id="${sem.id}" title="Renombrar semestre" aria-label="Renombrar semestre">${IC_EDIT}</button><i></i>
           <button class="icon-btn del" data-action="delSemester" data-id="${sem.id}" title="Eliminar semestre" aria-label="Eliminar semestre">${IC_DEL}</button>
@@ -557,7 +722,7 @@ function viewMateriasHTML(){
   }).join('');
   return `<div class="mv"><div class="mv-col">
     <div class="viewhead"><div><h1>Mis materias</h1><p class="sub">${pluralMv(sems.length,'semestre','semestres')} y ${pluralMv(todas.length,'materia','materias')}</p></div>
-      <span class="row" style="margin:0"><button class="sec" data-action="joinSharedPrompt">🔗 Unirme con código</button><button class="pr" data-action="addSemester">+ Semestre</button></span></div>
+      <span class="row" style="margin:0"><button class="sec" data-action="semDlg">📈 Promedio por semestre</button><button class="sec" data-action="joinSharedPrompt">🔗 Unirme con código</button><button class="pr" data-action="addSemester">+ Semestre</button></span></div>
     ${invitacionesHTML()}
     ${repasoHoyHTML()}
     ${sems.length?'':'<div class="empty">Aún no tienes semestres. Agrega uno para empezar a organizar tus materias.</div>'}
@@ -585,12 +750,40 @@ function materiaCard(m){
     </div>
   </div>`;
 }
+const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const promMateria=m=>weightedAvg(state.cortes.filter(c=>c.materiaId===m.id));
+function promSemestre(mats){const v=mats.map(promMateria).filter(x=>x!=null);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null}
+const semsVisibles=()=>state.semesters.filter(x=>!x.oculto).map(s=>({s,mats:state.materias.filter(m=>m.semesterId===s.id&&m.rol!=='docente')}));
+function filasSemHTML(mats){
+  const mx=scaleMax()||5;
+  const rows=mats.map(m=>({m,a:promMateria(m)})).filter(x=>x.a!=null).sort((x,y)=>y.a-x.a);
+  if(!rows.length)return '<p class="dm">Aún sin notas en este semestre.</p>';
+  return `<div class="stRows">${rows.map(x=>`<div class="stRow" style="--mc:${matColor(x.m)}"><span>${esc(x.m.name)}</span><b>${fmtN(x.a)}</b><div class="mbar"><i style="width:${Math.max(0,Math.min(100,x.a/mx*100))}%"></i></div></div>`).join('')}</div>`;
+}
+function semestresDialogoHTML(){
+  const bl=semsVisibles().map(({s,mats})=>{const p=promSemestre(mats);return `<div class="sdl"><div class="sdh"><span>${esc(s.name)}</span><b>${p==null?'–':fmtN(p)}</b></div>${filasSemHTML(mats)}</div>`}).join('');
+  return `<div class="sdlWrap">${bl||'<p class="dm">Aún no hay semestres.</p>'}</div>`;
+}
+function abrirPromediosSemestre(){dialogo({titulo:'Promedio por semestre',html:semestresDialogoHTML(),ok:'Cerrar',sinCancelar:true})}
+function miniCalHTML(){
+  const ahora=new Date(),off=ui.calM||0,base=new Date(ahora.getFullYear(),ahora.getMonth()+off,1);
+  const y=base.getFullYear(),mo=base.getMonth(),pad=n=>String(n).padStart(2,'0');
+  const todos=eventosTodos(),evs=new Set(todos.map(e=>e.date)),hoy=ymd(new Date());
+  const lead=(base.getDay()+6)%7,dias=new Date(y,mo+1,0).getDate();
+  const celdas=['L','M','X','J','V','S','D'].map(w=>`<span class="wd">${w}</span>`).join('')+'<span class="dy out"></span>'.repeat(lead)
+    +Array.from({length:dias},(_,i)=>{const d=i+1,k=`${y}-${pad(mo+1)}-${pad(d)}`;return `<span class="dy${k===hoy?' hoy':''}${evs.has(k)?' ev':''}">${d}</span>`}).join('');
+  const prox=todos.filter(e=>e.date>=hoy).sort(sortEv)[0];
+  const nx=prox?`<b>${esc(prox.title)}</b><span>${esc(fmtDateLong(prox.date))}</span>`:'<span>Sin eventos próximos</span>';
+  return `<div class="mcal"><div class="mch"><button class="icon-btn mnav" data-action="miniCalNav" data-d="-1" aria-label="Mes anterior">‹</button><span>${MESES[mo].charAt(0).toUpperCase()+MESES[mo].slice(1)} ${y}</span><button class="icon-btn mnav" data-action="miniCalNav" data-d="1" aria-label="Mes siguiente">›</button></div>
+    <div class="mg">${celdas}</div><div class="mfoot"><div class="mnx">${nx}</div><button class="sec sm" data-action="addEvent" data-date="${hoy}">+ Evento</button></div></div>`;
+}
 function matStatsHTML(nSem,mats){
   const mx=scaleMax()||5;
   const rows=mats.map(m=>({m,a:weightedAvg(state.cortes.filter(c=>c.materiaId===m.id))})).filter(x=>x.a!=null);
   const avg=rows.length?rows.reduce((t,x)=>t+x.a,0)/rows.length:null;
   const temas=mats.reduce((t,m)=>t+state.temas.filter(x=>x.materiaId===m.id).length,0);
   const comp=mats.filter(m=>m.sharedId).length;
+  const idsM=new Set(mats.map(m=>m.id)),nTarj=state.cards.filter(c=>idsM.has(c.materiaId)).length;
   const srt=rows.slice().sort((x,y)=>y.a-x.a);
   const best=srt[0],low=srt.length>1?srt[srt.length-1]:null;
   const C=314.16,d=avg==null?0:Math.max(0,Math.min(avg/mx,1))*C;
@@ -602,10 +795,12 @@ function matStatsHTML(nSem,mats){
       <div class="stRc"><b>${avg==null?'—':fmtN(avg)}</b><span>/ ${fmtN(mx)}</span></div></div>
       <p class="stNote">${avg==null?'Aún no hay notas registradas':'Promedio de '+pluralMv(rows.length,'materia con notas','materias con notas')}</p>
       <div class="stHl">${resaltes}</div></section>
-    <section class="stPn"><div class="stK">En resumen</div><div class="stKp">
+    <details class="drawer cal" open><summary class="dh"><span>📅 Calendario</span><span class="da">${MESES[new Date(new Date().getFullYear(),new Date().getMonth()+(ui.calM||0),1).getMonth()].slice(0,3)}<span class="chev">▾</span></span></summary>${miniCalHTML()}</details>
+    <section class="stPn"><div class="stK">Mi carrera</div><div class="stKp">
       <div><b>${nSem}</b><span>${nSem==1?'semestre':'semestres'}</span></div><div><b>${mats.length}</b><span>${mats.length==1?'materia':'materias'}</span></div>
-      <div><b>${temas}</b><span>${temas==1?'tema':'temas'}</span></div><div><b>${comp}</b><span>${comp==1?'compartida':'compartidas'}</span></div></div></section>
-    ${filas?`<section class="stPn"><div class="stK">Promedio por materia</div><div class="stRows">${filas}</div></section>`:''}`;
+      <div><b>${temas}</b><span>${temas==1?'tema':'temas'}</span></div><div><b>${nTarj}</b><span>${nTarj==1?'tarjeta':'tarjetas'}</span></div></div></section>
+    <section class="stPn"><div class="stK">Promedio por semestre</div>${semsVisibles().map(({s,mats:ms},k,arr)=>{const p=promSemestre(ms);return `<details class="drawer sd" ${k===arr.length-1?'open':''}><summary class="dh"><span>${esc(s.name)}</span><span class="da">${p==null?'–':fmtN(p)}<span class="chev">▾</span></span></summary>${filasSemHTML(ms)}</details>`}).join('')||'<p class="dm">Aún no hay semestres.</p>'}
+      <button class="sec semb" data-action="semDlg">📈 Ver todos los semestres</button></section>`;
 }
 
 /* ================= VISTA: DETALLE DE MATERIA ================= */
@@ -621,7 +816,7 @@ function viewMateriaDetailHTML(materiaId){
   if(m.rol!=='estudiante'&&(!ui.iaUso||(!ui.iaUso.cargando&&Date.now()-(ui.iaUso.t||0)>60000)))setTimeout(cargarUsoIA,0);   // se consulta el cupo al abrir la materia
   return `
     <button class="sec" data-action="${m.rol==='docente'?'backDocente':'backMaterias'}">${m.rol==='docente'?'← Espacio docente':'← Mis materias'}</button>
-    <div class="viewhead" style="margin-top:14px"><h1>${esc(m.icon||'📘')} ${esc(m.name)}</h1></div>
+    <div class="hero" style="--mc:${matColor(m)}"><div class="heroDot"></div><div><h1>${esc(m.icon||'📘')} ${esc(m.name)}</h1><p class="sub">${esc((state.semesters.find(x=>x.id===m.semesterId)||{}).name||'')}${state.semesters.find(x=>x.id===m.semesterId)?' · ':''}${pluralMv(state.temas.filter(x=>x.materiaId===m.id).length,'tema','temas')} · ${pluralMv(getCardsTodas(m.id).length,'tarjeta','tarjetas')}</p></div></div>
     ${m.rol==='docente'?docentePanelHTML(m):m.rol==='estudiante'?estudianteDocenteBoxHTML(m)+docsOriginalesHTML(m)+examenesEstudianteHTML(m):compartidoBoxHTML(m)}
 
     <section class="${m.rol==='estudiante'?'docRO':''}">
@@ -646,11 +841,13 @@ function viewMateriaDetailHTML(materiaId){
     <section style="margin-top:22px">
       <div class="viewhead"><h2>🎯 Estudiar</h2></div>
       <p class="meta">Estas herramientas usan las tarjetas (frente/reverso) que agregues dentro de cada tema.</p>
+      ${alcanceHTML(materiaId)}
       <div class="toolGrid">
         <button class="sec" data-action="openTool" data-tool="flashcards" data-mat="${materiaId}">🔄 Flashcards</button>
         <button class="sec" data-action="openTool" data-tool="memorizar" data-mat="${materiaId}">📖 Memorizar</button>
         <button class="sec" data-action="openTool" data-tool="quiz" data-mat="${materiaId}">❓ Quiz</button>
         <button class="sec" data-action="openTool" data-tool="examen" data-mat="${materiaId}">📝 Modo examen</button>
+        <button class="sec" data-action="openTool" data-tool="escrito" data-mat="${materiaId}">✍️ Examen escrito</button>
         <button class="sec" data-action="openTool" data-tool="concepto" data-mat="${materiaId}">💡 ¿Qué concepto?</button>
         <button class="sec" data-action="openTool" data-tool="hoy" data-mat="${materiaId}">📅 Repaso de hoy${sesionHoy(materiaId).length?' ('+sesionHoy(materiaId).length+')':''}</button>
         <button class="sec" data-action="openTool" data-tool="falle" data-mat="${materiaId}">🎯 Repasar lo que fallé${tarjetasFalladas(materiaId).length?' ('+tarjetasFalladas(materiaId).length+')':''}</button>
@@ -938,7 +1135,29 @@ function cardRow(c){
 }
 /* ================= HERRAMIENTAS DE ESTUDIO ================= */
 function shuffle(arr){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-function getCards(materiaId){return state.cards.filter(c=>c.materiaId===materiaId && c.front.trim() && c.back.trim())}
+function getCardsTodas(materiaId){return state.cards.filter(c=>c.materiaId===materiaId && c.front.trim() && c.back.trim())}
+/* "Practicar con": toda la materia, un corte o un solo tema (se elige en la materia). El repaso de hoy y lo fallado siempre miran todas. */
+function getCards(materiaId){
+  const al=(ui.alcance||{})[materiaId]||{};
+  let cs=getCardsTodas(materiaId);
+  if(al.temaId)cs=cs.filter(c=>c.temaId===al.temaId);
+  else if(al.corteId){const ids=new Set(state.temas.filter(t=>t.materiaId===materiaId&&t.corteId===al.corteId).map(t=>t.id));cs=cs.filter(c=>ids.has(c.temaId))}
+  return cs;
+}
+function alcanceHTML(materiaId){
+  const al=(ui.alcance||{})[materiaId]||{},todas=getCardsTodas(materiaId);
+  const nT=tid=>todas.filter(c=>c.temaId===tid).length;
+  const temasDe=cid=>state.temas.filter(t=>t.materiaId===materiaId&&t.corteId===cid);
+  const val=al.temaId?'t:'+al.temaId:al.corteId?'c:'+al.corteId:'all';
+  const opts=[`<option value="all" ${val==='all'?'selected':''}>Toda la materia (${todas.length})</option>`];
+  state.cortes.filter(c=>c.materiaId===materiaId).forEach(c=>{
+    opts.push(`<option value="c:${c.id}" ${val==='c:'+c.id?'selected':''}>📁 ${esc(c.name)||'(corte sin nombre)'} (${temasDe(c.id).reduce((s,x)=>s+nT(x.id),0)})</option>`);
+    temasDe(c.id).forEach(x=>opts.push(`<option value="t:${x.id}" ${val==='t:'+x.id?'selected':''}>— 📄 ${esc(x.title)||'(tema sin título)'} (${nT(x.id)})</option>`));
+  });
+  return `<div class="practice"><label class="lbl" for="alcanceSel" style="margin:0">Practicar con</label><select class="fld" id="alcanceSel" data-action="alcanceSel" style="max-width:420px">${opts.join('')}</select></div>
+    <p class="meta" style="margin:0 0 10px">Se aplica a flashcards, memorizar, repaso y comparar. El Quiz y el Modo examen se arman por corte (y tema) en su propia pantalla.</p>`;
+}
+
 function fmtSecs(s){s=Math.max(0,s);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
 function relTime(ts){
   const d=Math.round((Date.now()-ts)/864e5);
@@ -952,8 +1171,8 @@ function noCardsMsg(){return'<div class="empty">Esta materia todavía no tiene t
    Las opciones incorrectas salen del mismo corte. Si el corte no tiene material suficiente, se avisa
    y NO se recurre a otros cortes ni a otras materias. */
 const MIN_MATERIAL=4;   // respuestas distintas necesarias para armar preguntas de 4 opciones
-function tarjetasDelCorte(materiaId,corteId){
-  const tids=new Set(state.temas.filter(x=>x.materiaId===materiaId&&x.corteId===corteId).map(x=>x.id));
+function tarjetasDelCorte(materiaId,corteId,temaId){
+  const tids=new Set(state.temas.filter(x=>x.materiaId===materiaId&&x.corteId===corteId&&(!temaId||x.id===temaId)).map(x=>x.id));
   return state.cards.filter(c=>c.materiaId===materiaId&&tids.has(c.temaId)&&String(c.front||'').trim()&&String(c.back||'').trim());
 }
 /* ---------- Preguntas: opción múltiple, verdadero/falso y completar ---------- */
@@ -1003,7 +1222,7 @@ function respuestaHuecoOk(dada,correcta){
   if(a===b)return true;
   return distLev(a,b)<=(b.length>=9?2:b.length>=5?1:0);
 }
-const esAcierto=q=>q.tipo==='hueco'?respuestaHuecoOk(q.selected,q.correcta):q.selected===q.correcta;
+const esAcierto=q=>q.tipo==='escrito'?q.ok===true:q.tipo==='hueco'?respuestaHuecoOk(q.selected,q.correcta):q.selected===q.correcta;
 function quizCfgDe(materiaId,tool){
   ui.quizCfg=ui.quizCfg||{};
   const cortes=state.cortes.filter(c=>c.materiaId===materiaId);
@@ -1013,41 +1232,51 @@ function quizCfgDe(materiaId,tool){
     cfg.corteId=((conMaterial||cortes[0])||{}).id||null;
   }
   cfg.n=cfg.n||{};
-  if(cfg.n[tool]==null)cfg.n[tool]=tool==='quiz'?10:0;   // 0 = todas las tarjetas del corte
+  if(cfg.n[tool]==null)cfg.n[tool]=tool==='examen'?0:10;   // 0 = todas las tarjetas del corte
+  if(cfg.temaId&&!state.temas.some(x=>x.id===cfg.temaId&&x.corteId===cfg.corteId))cfg.temaId='';
   if(!cfg.tipos)cfg.tipos='mixto';                       // mixto = opción múltiple + verdadero/falso + completar
-  return{corteId:cfg.corteId,n:cfg.n[tool],tipos:cfg.tipos};
+  return{corteId:cfg.corteId,n:cfg.n[tool],tipos:cfg.tipos,temaId:cfg.temaId||''};
 }
 function comenzarQuiz(){
   if(!toolState||!toolState.setup)return;
   const materiaId=route.materiaId,corteId=toolState.corteId;
-  const cards=tarjetasDelCorte(materiaId,corteId);
+  const cards=tarjetasDelCorte(materiaId,corteId,toolState.temaId);
+  if(route.tool==='escrito'){
+    if(!cards.length){toolState.error='No hay tarjetas en este corte para armar el examen.';render(true);return}
+    const lista=shuffle(cards).slice(0,toolState.n>0?toolState.n:cards.length).map(c=>({card:c,tipo:'escrito',enun:c.front,correcta:c.back,text:'',rev:false,ok:null,selected:null}));
+    ui.quizCfg[materiaId].corteId=corteId;
+    toolState={questions:lista,idx:0,score:0,corteId,escrito:true};
+    render();return;
+  }
   const questions=armarPreguntas(cards,toolState.n,{tipos:toolState.tipos});
   if(!questions){toolState.error='No hay suficiente material en este corte para armar el examen.';render(true);return}
   ui.quizCfg[materiaId].corteId=corteId;
   toolState={questions,idx:0,score:0,corteId};
   render();
 }
-function quizSetupHTML(isExam){
+function quizSetupHTML(isExam,escrito){
   const m=state.materias.find(x=>x.id===route.materiaId);
   const cortes=state.cortes.filter(c=>c.materiaId===m.id);
-  const cards=tarjetasDelCorte(m.id,toolState.corteId);
+  const cards=tarjetasDelCorte(m.id,toolState.corteId,toolState.temaId);
   const distintas=new Set(cards.map(c=>String(c.back).trim())).size;
   const temas=state.temas.filter(x=>x.materiaId===m.id&&x.corteId===toolState.corteId);
-  const hay=distintas>=MIN_MATERIAL;
+  const hay=escrito?cards.length>0:!!armarPreguntas(cards,1,{tipos:'mc'});     // con opciones incorrectas de la IA basta con menos tarjetas
+  const temasCorte=state.temas.filter(x=>x.materiaId===m.id&&x.corteId===toolState.corteId);
   const dh=progresoHoy(),hoyN=state.progress.days.includes(fechaLocal(new Date()))?Math.max(dh.racha,META_RACHA):dh.racha;
   const opcionesN=[10,20,30,50].filter(x=>x<cards.length);
   const cuenta=c=>tarjetasDelCorte(m.id,c.id).length;
-  return `<div class="viewhead"><h1>${isExam?'📝 Modo examen':'❓ Quiz'}</h1></div>
+  return `<div class="viewhead"><h1>${escrito?'✍️ Examen escrito':isExam?'📝 Modo examen':'❓ Quiz'}</h1></div>
   <div class="card quizSetup">
     <label class="lbl" for="quizCorte" style="margin-top:0">¿De qué corte quieres que sea?</label>
     <select class="fld" id="quizCorte" data-action="quizCorte">${cortes.map(c=>`<option value="${c.id}" ${c.id===toolState.corteId?'selected':''}>${esc(c.name)||'(corte sin nombre)'} · ${cuenta(c)} tarjeta${cuenta(c)==1?'':'s'}</option>`).join('')}</select>
     <p class="meta" style="margin:8px 0 0">${temas.length?`Solo se usan los documentos de este corte (${temas.length}): ${temas.slice(0,4).map(x=>esc(x.title)||'sin título').join(', ')}${temas.length>4?'…':''}. No se mezclan otros cortes ni otras materias.`:'Este corte todavía no tiene documentos.'}</p>
-    ${hay?'':`<div class="fb fbNo" role="alert">No hay suficiente material en este corte: tiene ${distintas} tarjeta${distintas==1?'':'s'} con respuestas distintas y se necesitan al menos ${MIN_MATERIAL}. Sube más documentos a este corte o elige otro; no se usarán documentos de otros cortes.</div>`}
+    ${temasCorte.length>1?`<label class="lbl" for="quizTema">¿Todo el corte o un solo tema?</label><select class="fld" id="quizTema" data-action="quizTema"><option value="">Todos los temas del corte (${tarjetasDelCorte(m.id,toolState.corteId).length})</option>${temasCorte.map(x=>`<option value="${x.id}" ${x.id===toolState.temaId?'selected':''}>${esc(x.title)||'(tema sin título)'} (${tarjetasDelCorte(m.id,toolState.corteId,x.id).length})</option>`).join('')}</select>`:''}
+    ${hay?'':`<div class="fb fbNo" role="alert">No hay suficiente material en este corte: tiene ${distintas} tarjeta${distintas==1?'':'s'} con respuestas distintas y se necesitan al menos ${MIN_MATERIAL} (o tarjetas con opciones incorrectas generadas por la IA). Sube más documentos a este corte o elige otro; no se usarán documentos de otros cortes.</div>`}
     ${toolState.error&&hay?`<div class="fb fbNo" role="alert">${esc(toolState.error)}</div>`:''}
     <label class="lbl" for="quizN">Número de preguntas</label>
     <select class="fld" id="quizN" data-action="quizN">${opcionesN.map(x=>`<option value="${x}" ${toolState.n===x?'selected':''}>${x}</option>`).join('')}<option value="0" ${toolState.n===0||toolState.n>=cards.length?'selected':''}>Todas (${cards.length})</option></select>
-    <label class="lbl" for="quizTipos">Tipos de pregunta</label>
-    <select class="fld" id="quizTipos" data-action="quizTipos"><option value="mixto" ${toolState.tipos!=='mc'?'selected':''}>Variadas: opción múltiple, verdadero/falso y completar</option><option value="mc" ${toolState.tipos==='mc'?'selected':''}>Solo opción múltiple</option></select>
+    ${escrito?'':`<label class="lbl" for="quizTipos">Tipos de pregunta</label>
+    <select class="fld" id="quizTipos" data-action="quizTipos"><option value="mixto" ${toolState.tipos!=='mc'?'selected':''}>Variadas: opción múltiple, verdadero/falso y completar</option><option value="mc" ${toolState.tipos==='mc'?'selected':''}>Solo opción múltiple</option></select>`}
     <div class="premio" style="margin-top:14px"><b>🔥 Racha de hoy: ${hoyN}/${META_RACHA} preguntas</b>
       <div class="bar"><i style="width:${Math.min(100,Math.round(hoyN/META_RACHA*100))}%"></i></div>
       <p class="meta" style="margin:6px 0 0">Las primeras ${META_RACHA} preguntas del día aseguran tu racha. Las demás cuentan como práctica extra: puedes hacer todas las que quieras y quedan en tu historial.</p></div>
@@ -1071,13 +1300,13 @@ function repasarTarjeta(c,acierto){
 /* Sesión de hoy: primero las vencidas (las más atrasadas antes) y luego unas pocas nuevas, hasta 20 en total */
 function sesionHoy(materiaId,max){
   max=max||20;
-  const hoy=hoyStr(),cs=getCards(materiaId);
+  const hoy=hoyStr(),cs=getCardsTodas(materiaId);
   const vencidas=cs.filter(c=>c.due&&c.due<=hoy).sort((a,b)=>a.due.localeCompare(b.due)||(a.box||0)-(b.box||0));
   const nuevas=cs.filter(c=>!c.due);
   return vencidas.concat(nuevas.slice(0,Math.max(0,Math.min(10,max-vencidas.length)))).slice(0,max);
 }
 function proximoRepasoTexto(materiaId){
-  const hoy=hoyStr(),f=getCards(materiaId).filter(c=>c.due&&c.due>hoy).map(c=>c.due).sort();
+  const hoy=hoyStr(),f=getCardsTodas(materiaId).filter(c=>c.due&&c.due>hoy).map(c=>c.due).sort();
   if(!f.length)return 'Practica con flashcards o quiz y Auren programará tus repasos.';
   const n=f.filter(x=>x===f[0]).length;
   return 'El próximo repaso es '+relDate(f[0])+' ('+n+' tarjeta'+(n==1?'':'s')+').';
@@ -1091,7 +1320,7 @@ function repasoHoyHTML(){
   return `<div class="card shareBox repasoHoy"><b>📅 Para repasar hoy: ${total} tarjeta${total==1?'':'s'}</b><p class="meta" style="margin:4px 0 8px">Según tus repasos anteriores, hoy te toca ver estas para que no se te olviden.</p>${filas.map(x=>`<div class="li"><span>${esc(x.m.icon)} ${esc(x.m.name)} <small class="meta">· ${x.n}</small></span><button class="sec" data-action="openTool" data-tool="hoy" data-mat="${x.m.id}">Repasar</button></div>`).join('')}</div>`;
 }
 /* ---------- Repasar lo que fallé ---------- */
-const tarjetasFalladas=materiaId=>getCards(materiaId).filter(c=>c.lastOk===false);
+const tarjetasFalladas=materiaId=>getCardsTodas(materiaId).filter(c=>c.lastOk===false);
 async function fallosDeExamenes(m){
   const sid=m.sharedId;if(!sid)return[];
   const porTema={};
@@ -1122,6 +1351,35 @@ function falleSetupHTML(m){
     ${ex===null||ex===undefined?'<p class="meta">Calculando…</p>':ex.length?ex.map(t=>`<div class="li"><span>${esc(t.titulo||'Tema')}<br><small class="meta">Fallaste ${t.mal} de ${t.n} (${Math.round(t.mal/t.n*100)} %)</small></span><button class="sec" data-action="falleStart" data-modo="tema" data-tema="${t.temaId}">Practicar</button></div>`).join(''):'<p class="meta">Todavía no hay fallos en exámenes que hayas entregado.</p>'}</div>`:''}
   ${toolState.error?`<div class="fb fbNo" role="alert">${esc(toolState.error)}</div>`:''}`;
 }
+/* Fin de una sesión de quiz / examen / examen escrito: se guarda el intento y se actualizan racha, insignias y etapas */
+function cerrarSesionPractica(){
+  toolState.fxFin=true;
+  mutate(s=>{
+    const att={id:uid(),materiaId:route.materiaId,type:route.tool,score:toolState.score,total:toolState.questions.length,date:Date.now(),porCorte:porCorteDe(toolState.questions),corteId:toolState.corteId||null};
+    s.attempts.push(att);
+    toolState.premios=registrarSesion(att);
+  });
+  if(toolState.premios&&toolState.premios.nuevos.length)avisarLogros(toolState.premios.nuevos);
+}
+function escritoHTML(){
+  const{questions,idx,score}=toolState;
+  if(idx>=questions.length){
+    const pct=questions.length?Math.round(score/questions.length*100):0;
+    return `<div class="empty"><h2>✍️ Examen escrito terminado</h2><p class="meta">Te calificaste <b>${score} / ${questions.length}</b> · ${pct}%</p>${premiosHTML()}
+      <div class="resList">${questions.map((q,i)=>`<p class="meta resRow ${q.ok?'bien':'mal'}" style="--i:${Math.min(i,14)}">${i+1}. ${esc(q.enun)} — ${q.ok?'✅':'❌'}</p>`).join('')}</div>
+      <button class="pr" data-action="redoTool">Repetir</button></div>`;
+  }
+  const q=questions[idx];
+  return `<div class="viewhead"><h1>✍️ Examen escrito</h1><span class="meta">${idx+1} / ${questions.length}</span></div>
+  ${corteChipHTML()}
+  <div class="card qCard"><h3 style="margin-top:0">${esc(q.enun)}</h3>
+    <textarea id="escText" class="fld" placeholder="Escribe tu respuesta con tus propias palabras…" ${q.rev?'disabled':''}>${esc(q.text)}</textarea>
+    ${q.rev?`<div class="fb" style="border:1px solid var(--ok)"><b>Respuesta del tema:</b> ${esc(q.correcta)}</div>
+      <p class="meta" style="margin:6px 0 10px">Compárala con la tuya y cuéntale a Auren cómo te fue.</p>
+      <div class="row"><button class="sec" data-action="escNo">❌ Fallé</button><button class="pr" data-action="escOk">✅ Acerté</button></div>`
+      :`<button class="pr" data-action="escRevelar" style="margin-top:8px">Ver respuesta</button>`}
+  </div>`;
+}
 function comenzarFalle(modo,temaId){
   if(!toolState||!toolState.setup||route.tool!=='falle')return;
   const mid=route.materiaId;
@@ -1138,10 +1396,10 @@ function startTool(tool,materiaId){
   const cards=getCards(materiaId);
   if(tool==='flashcards'||tool==='memorizar'||tool==='repaso'||tool==='concepto'){
     toolState={cards:shuffle(cards),idx:0,flipped:false,known:0,seen:0};
-  }else if(tool==='quiz'||tool==='examen'){
+  }else if(tool==='quiz'||tool==='examen'||tool==='escrito'){
     /* El examen se arma con UN corte elegido (ver comenzarQuiz): nunca mezcla cortes ni materias */
     const cfg=quizCfgDe(materiaId,tool);
-    toolState={setup:true,corteId:cfg.corteId,n:cfg.n,tipos:cfg.tipos,error:''};
+    toolState={setup:true,corteId:cfg.corteId,n:cfg.n,tipos:cfg.tipos,temaId:cfg.temaId,error:''};
   }else if(tool==='hoy'){
     toolState={cards:sesionHoy(materiaId),idx:0,flipped:false,known:0,seen:0};
   }else if(tool==='falle'){
@@ -1178,6 +1436,7 @@ function viewToolHTML(){
   else if(tool==='memorizar')body=toolMemorizarHTML(m);
   else if(tool==='quiz')body=toolQuizHTML(false);
   else if(tool==='examen')body=toolQuizHTML(true);
+  else if(tool==='escrito')body=toolState.setup?quizSetupHTML(false,true):escritoHTML();
   else if(tool==='concepto')body=toolConceptoHTML();
   else if(tool==='repaso')body=toolRepasoHTML();
   else if(tool==='comparar')body=toolCompararHTML(m);
@@ -1334,7 +1593,7 @@ function toolProgresoHTML(m){
     <p class="meta">${known} / ${cards.length} (${pct}%)</p>
   </div>
   <h3>Historial de quiz y exámenes</h3>
-  ${attempts.length?attempts.map(a=>`<div class="li"><span>${a.type==='examen'?'📝':'❓'} ${a.score}/${a.total}${(state.cortes.find(c=>c.id===a.corteId)||{}).name?' · '+esc(state.cortes.find(c=>c.id===a.corteId).name):''}${a.extra?` <small class="meta">(${a.extra} de práctica extra)</small>`:''}</span><small>${relTime(a.date)}</small></div>`).join(''):'<p class="meta">Todavía no hiciste ningún quiz o examen en esta materia.</p>'}`;
+  ${attempts.length?attempts.map(a=>`<div class="li"><span>${a.type==='examen'?'📝':a.type==='escrito'?'✍️':'❓'} ${a.score}/${a.total}${(state.cortes.find(c=>c.id===a.corteId)||{}).name?' · '+esc(state.cortes.find(c=>c.id===a.corteId).name):''}${a.extra?` <small class="meta">(${a.extra} de práctica extra)</small>`:''}</span><small>${relTime(a.date)}</small></div>`).join(''):'<p class="meta">Todavía no hiciste ningún quiz o examen en esta materia.</p>'}`;
 }
 
 function toolReferenciasHTML(m){
@@ -1398,6 +1657,8 @@ function viewPerfilHTML(){
     </div>
     <div class="card"><h3>Avatar</h3><div class="avatarPicker">${AV.map(a=>`<button class="avBtn ${a===p.avatar?'on':''}" data-action="setAvatar" data-a="${a}">${a}</button>`).join('')}</div></div>
     ${avisosCardHTML()}
+    ${fxCardHTML()}
+    ${datosCardHTML()}
     <div class="card">
       <h3>Editar perfil</h3>
       <label class="lbl">Nombre</label><input class="fld" data-action="profileField" data-f="name" value="${esc(p.name)}" maxlength="40">
@@ -1449,30 +1710,27 @@ $('searchBox').addEventListener('input',e=>{
 document.addEventListener('click',e=>{if(!e.target.closest('#searchWrap'))$('searchResults').innerHTML=''});
 
 /* ================= ACCIONES (clicks) ================= */
-document.addEventListener('click',e=>{
+document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-action]');if(!b)return;
   e.preventDefault();
   const a=b.dataset.action;
 
   if(a==='addSemester'){
-    const name=prompt('Nombre del semestre (ej. Semestre 1, 2026-1):');
+    const name=await UI.prompt('Nombre del semestre (ej. Semestre 1, 2026-1):');
     if(name&&name.trim())mutate(s=>s.semesters.push({id:uid(),name:name.trim()}));
   }
   else if(a==='renameSemester'){
     const cur=state.semesters.find(x=>x.id===b.dataset.id);
-    const name=prompt('Nuevo nombre del semestre:',cur?cur.name:'');
+    const name=await UI.prompt('Nuevo nombre del semestre:',cur?cur.name:'');
     if(name&&name.trim())mutate(s=>{const x=s.semesters.find(y=>y.id===b.dataset.id);if(x)x.name=name.trim()});
   }
   else if(a==='renameMateria'){
     const cur=state.materias.find(x=>x.id===b.dataset.id);
-    const name=prompt('Nuevo nombre de la materia:',cur?cur.name:'');
-    if(name&&name.trim()){
-      const icon=prompt('Emoji (opcional):',cur?cur.icon:'📘')||(cur?cur.icon:'📘');
-      mutate(s=>{const x=s.materias.find(y=>y.id===b.dataset.id);if(x){x.name=name.trim();x.icon=icon}});
-    }
+    const f=await formMateria('Editar materia',cur);
+    if(f)mutate(s=>{const x=s.materias.find(y=>y.id===b.dataset.id);if(x){x.name=f.name;x.icon=f.icon;if(f.color)x.color=f.color}});
   }
   else if(a==='delSemester'){
-    if(confirm('¿Eliminar este semestre y todas sus materias, temas y cortes? Esta acción no se puede deshacer.')){
+    if(await UI.confirmar('¿Eliminar este semestre y todas sus materias, temas y cortes? Esta acción no se puede deshacer.')){
       state.materias.filter(m=>m.semesterId===b.dataset.id&&m.sharedId).forEach(m=>abandonarCompartida(m,{silent:true}));
       mutate(s=>{
         const matIds=s.materias.filter(m=>m.semesterId===b.dataset.id).map(m=>m.id);
@@ -1486,15 +1744,12 @@ document.addEventListener('click',e=>{
     }
   }
   else if(a==='addMateria'){
-    const name=prompt('Nombre de la materia:');
-    if(name&&name.trim()){
-      const icon=prompt('Emoji para la materia (opcional):','📘')||'📘';
-      mutate(s=>s.materias.push({id:uid(),name:name.trim(),icon,semesterId:b.dataset.sem,refs:''}));
-    }
+    const f=await formMateria('Nueva materia',null,'Ej. Memoria');
+    if(f)mutate(s=>s.materias.push({id:uid(),name:f.name,icon:f.icon,color:f.color||undefined,semesterId:b.dataset.sem,refs:''}));
   }
   else if(a==='delMateria'){
     const msh=state.materias.find(x=>x.id===b.dataset.id);
-    if(confirm(msh&&msh.rol==='docente'?'Vas a eliminar esta materia PARA TODOS: tus estudiantes dejarán de recibirla y se borrará el contenido de la nube (ellos conservan una copia local de lo que ya tenían). ¿Continuar?':msh&&msh.sharedId?'Esta materia es compartida: se eliminará de TU cuaderno y saldrás del grupo. Las demás personas conservan todo. ¿Continuar?':'¿Eliminar esta materia y todo su contenido (temas, tarjetas y cortes)? Esta acción no se puede deshacer.')){
+    if(await UI.confirmar(msh&&msh.rol==='docente'?'Vas a eliminar esta materia PARA TODOS: tus estudiantes dejarán de recibirla y se borrará el contenido de la nube (ellos conservan una copia local de lo que ya tenían). ¿Continuar?':msh&&msh.sharedId?'Esta materia es compartida: se eliminará de TU cuaderno y saldrás del grupo. Las demás personas conservan todo. ¿Continuar?':'¿Eliminar esta materia y todo su contenido (temas, tarjetas y cortes)? Esta acción no se puede deshacer.')){
       if(msh&&msh.sharedId)abandonarCompartida(msh,{silent:true,todos:msh.rol==='docente'});
       mutate(s=>{
         s.cards=s.cards.filter(c=>c.materiaId!==b.dataset.id);
@@ -1544,9 +1799,10 @@ document.addEventListener('click',e=>{
     mutate(s=>{const t=s.temas.find(x=>x.id===b.dataset.id);if(t){t.secciones=t.secciones||[];t.secciones.push({id:uid(),title:'',body:''});t.updatedAt=Date.now()}});
   }
   else if(a==='delSec'){
-    if(confirm('¿Eliminar esta sección?'))mutate(s=>{const t=s.temas.find(x=>x.id===b.dataset.id);if(t&&t.secciones)t.secciones=t.secciones.filter(x=>x.id!==b.dataset.sid)});
+    if(await UI.confirmar('¿Eliminar esta sección?'))mutate(s=>{const t=s.temas.find(x=>x.id===b.dataset.id);if(t&&t.secciones)t.secciones=t.secciones.filter(x=>x.id!==b.dataset.sid)});
   }
   else if(a==='descargarOriginal'){descargarOriginal(b.dataset.id)}
+  else if(a==='descargarCopia'){descargarCopia()}
   else if(a==='avCerrar'){$('avisosPanel').hidden=true}
   else if(a==='avVaciar'){avCargar().lista=[];avGuardar();$('avisosPanel').innerHTML=avisosPanelHTML(new Set())}
   else if(a==='avAbrir'){
@@ -1561,7 +1817,7 @@ document.addEventListener('click',e=>{
   else if(a==='syncReintentar'){reintentarSync()}
   else if(a==='liberarEspacio'){liberarEspacio()}
   else if(a==='delTema'){
-    if(confirm(msgDelTema(b.dataset.id))){
+    if(await UI.confirmar(msgDelTema(b.dataset.id))){
       const t0=state.temas.find(x=>x.id===b.dataset.id);
       if(t0&&t0.archivo){const mm=state.materias.find(x=>x.id===t0.materiaId);if(mm&&mm.sharedId&&mm.rol!=='estudiante')borrarOriginalNube(mm.sharedId,t0.id,t0.archivo.partes,t0.archivo)}
       mutate(s=>{s.cards=s.cards.filter(c=>c.temaId!==b.dataset.id);s.temas=s.temas.filter(t=>t.id!==b.dataset.id)});
@@ -1571,10 +1827,10 @@ document.addEventListener('click',e=>{
     mutate(s=>s.cards.push({id:uid(),temaId:b.dataset.tema,materiaId:b.dataset.mat,front:'',back:'',known:null}));
   }
   else if(a==='delCard'){
-    if(confirm('¿Eliminar esta tarjeta?'))mutate(s=>s.cards=s.cards.filter(c=>c.id!==b.dataset.id));
+    if(await UI.confirmar('¿Eliminar esta tarjeta?'))mutate(s=>s.cards=s.cards.filter(c=>c.id!==b.dataset.id));
   }
   else if(a==='addCorte'){
-    const name=prompt('Nombre del nuevo corte:','Corte '+(state.cortes.filter(c=>c.materiaId===b.dataset.mat).length+1));
+    const name=await UI.prompt('Nombre del nuevo corte:','Corte '+(state.cortes.filter(c=>c.materiaId===b.dataset.mat).length+1));
     if(name&&name.trim())mutate(s=>{
       const mine=s.cortes.filter(c=>c.materiaId===b.dataset.mat);
       const used=mine.reduce((x,c)=>x+(+c.weight||0),0);
@@ -1589,20 +1845,20 @@ document.addEventListener('click',e=>{
   }
   else if(a==='delCorte'){
     const id=b.dataset.id,c=state.cortes.find(x=>x.id===id);if(!c)return;
-    if(state.cortes.filter(x=>x.materiaId===c.materiaId).length<=1){alert('Cada materia necesita al menos un corte. Puedes editar este en lugar de eliminarlo.');return;}
+    if(state.cortes.filter(x=>x.materiaId===c.materiaId).length<=1){UI.alerta('Cada materia necesita al menos un corte. Puedes editar este en lugar de eliminarlo.');return;}
     const n=state.temas.filter(t=>t.corteId===id).length;
     const msg=n?`¿Eliminar "${c.name}" junto con sus ${n} tema${n==1?'':'s'} y sus tarjetas? Esta acción no se puede deshacer.`:`¿Eliminar "${c.name}"?`;
     const matC=state.materias.find(x=>x.id===c.materiaId);
     if(matC&&matC.sharedId){
       /* Los cortes son personales: borrar uno no debe borrar temas que también son de otras personas. */
-      if(confirm(`¿Eliminar "${c.name}"? Los ${n} tema${n==1?'':'s'} de esta materia compartida NO se borran: pasan a otro de tus cortes.`))mutate(s=>{
+      if(await UI.confirmar(`¿Eliminar "${c.name}"? Los ${n} tema${n==1?'':'s'} de esta materia compartida NO se borran: pasan a otro de tus cortes.`))mutate(s=>{
         const otro=s.cortes.find(x=>x.materiaId===c.materiaId&&x.id!==id);
         s.temas.forEach(t=>{if(t.corteId===id)t.corteId=otro.id});
         s.cortes=s.cortes.filter(x=>x.id!==id);
       });
       return;
     }
-    if(confirm(msg))mutate(s=>{
+    if(await UI.confirmar(msg))mutate(s=>{
       const ids=s.temas.filter(t=>t.corteId===id).map(t=>t.id);
       s.cards=s.cards.filter(k=>!ids.includes(k.temaId));
       s.temas=s.temas.filter(t=>t.corteId!==id);
@@ -1644,34 +1900,40 @@ document.addEventListener('click',e=>{
   }
   else if(a==='nextQuestion'){
     toolState.idx++;
-    if(toolState.idx>=toolState.questions.length){
-      toolState.fxFin=true;
-      mutate(s=>{
-        const att={id:uid(),materiaId:route.materiaId,type:route.tool,score:toolState.score,total:toolState.questions.length,date:Date.now(),porCorte:porCorteDe(toolState.questions),corteId:toolState.corteId||null};
-        s.attempts.push(att);
-        toolState.premios=registrarSesion(att);      // racha, insignias y etapas
-      });
-      if(toolState.premios&&toolState.premios.nuevos.length)avisarLogros(toolState.premios.nuevos);
-    }else{
-      render();
-    }
+    if(toolState.idx>=toolState.questions.length)cerrarSesionPractica();
+    else render();
+  }
+  else if(a==='escRevelar'&&toolState&&toolState.escrito){
+    const q=toolState.questions[toolState.idx];
+    q.text=($('escText')||{}).value||'';q.rev=true;render();
+  }
+  else if((a==='escOk'||a==='escNo')&&toolState&&toolState.escrito){
+    const q=toolState.questions[toolState.idx];
+    if(!q.rev)return;
+    q.ok=(a==='escOk');if(q.ok)toolState.score++;
+    const realE=state.cards.find(x=>x.id===q.card.id);if(realE){repasarTarjeta(realE,q.ok);persist()}
+    toolState.idx++;
+    if(toolState.idx>=toolState.questions.length)cerrarSesionPractica();
+    else render();
   }
   else if(a==='calPrev'){calView.m--;if(calView.m<0){calView.m=11;calView.y--}render();}
   else if(a==='calNext'){calView.m++;if(calView.m>11){calView.m=0;calView.y++}render();}
+  else if(a==='miniCalNav'){ui.calM=(ui.calM||0)+(+b.dataset.d||0);render(true)}
+  else if(a==='semDlg'){abrirPromediosSemestre()}
   else if(a==='selDay'){calView.sel=b.dataset.date;render();}
   else if(a==='addEvent'){
-    const title=prompt('Título del evento (ej. Examen final de Ética):');
-    if(title&&title.trim()){
-      const t=(prompt('Tipo: escribe "examen", "entrega" u "otro"','examen')||'otro').toLowerCase();
-      const type=t.startsWith('ex')?'ex':t.startsWith('en')?'en':'ot';
-      mutate(s=>s.events.push({id:uid(),date:b.dataset.date,title:title.trim(),type}));
-    }
+    const r=await UI.preguntar('Nuevo evento',[
+      {k:'t',l:'Título',ph:'Ej. Examen final de Ética',max:100},
+      {k:'ty',l:'Tipo',t:'select',v:'ex',o:[['ex','📝 Examen'],['en','📦 Entrega'],['ot','📌 Otro']]},
+      {k:'d',l:'Fecha',t:'date',v:b.dataset.date}
+    ],{ok:'Agregar'});
+    if(r&&String(r.t).trim()&&/^\d{4}-\d{2}-\d{2}$/.test(r.d))mutate(s=>s.events.push({id:uid(),date:r.d,title:String(r.t).trim(),type:['ex','en','ot'].includes(r.ty)?r.ty:'ot'}));
   }
   else if(a==='delEvent'){
-    if(confirm('¿Eliminar este evento?'))mutate(s=>s.events=s.events.filter(x=>x.id!==b.dataset.id));
+    if(await UI.confirmar('¿Eliminar este evento?'))mutate(s=>s.events=s.events.filter(x=>x.id!==b.dataset.id));
   }
   else if(a==='setAvatar'){mutate(s=>s.profile.avatar=b.dataset.a);}
-  else if(a==='logout'){if(confirm('¿Cerrar sesión?'))auth.signOut();}
+  else if(a==='logout'){if(await UI.confirmar('¿Cerrar sesión?'))auth.signOut();}
 });
 
 /* ================= ACCIONES (edición en vivo, sin repintar) ================= */
@@ -1693,7 +1955,7 @@ document.addEventListener('input',e=>{
     t.body=e.target.value;t.updatedAt=Date.now();persist();
   }
   else if(a==='iaCorteSel'){ui.iaCorte=e.target.value}
-  else if(a==='quizCorte'&&toolState&&toolState.setup){toolState.corteId=e.target.value;toolState.error='';ui.quizCfg[route.materiaId].corteId=e.target.value;render(true)}
+  else if(a==='quizCorte'&&toolState&&toolState.setup){toolState.corteId=e.target.value;toolState.temaId='';toolState.error='';ui.quizCfg[route.materiaId].corteId=e.target.value;ui.quizCfg[route.materiaId].temaId='';render(true)}
   else if(a==='quizTipos'&&toolState&&toolState.setup){toolState.tipos=e.target.value;ui.quizCfg[route.materiaId].tipos=toolState.tipos}
   else if(a==='quizN'&&toolState&&toolState.setup){toolState.n=+e.target.value||0;ui.quizCfg[route.materiaId].n[route.tool]=toolState.n}
   else if(a==='editSecPuntos'){
@@ -1754,11 +2016,11 @@ document.addEventListener('change',e=>{
   }
 });
 
-document.addEventListener('change',e=>{
+document.addEventListener('change',async e=>{
   if(!e.target.dataset||e.target.dataset.action!=='setScale')return;
   const ns=+e.target.value,os=scaleMax();
   if(ns===os)return;
-  if(!confirm('Cambiar la escala convierte tus notas y tu meta proporcionalmente (por ejemplo, 4,5 sobre 5 pasa a 90 sobre 100). ¿Continuar?')){render();return;}
+  if(!await UI.confirmar('Cambiar la escala convierte tus notas y tu meta proporcionalmente (por ejemplo, 4,5 sobre 5 pasa a 90 sobre 100). ¿Continuar?')){render();return;}
   const conv=x=>{const v=x*ns/os;return ns>10?Math.round(v*10)/10:Math.round(v*100)/100};
   mutate(s=>{
     s.profile.scale=ns;s.profile.goal=conv(+s.profile.goal||0);
@@ -1973,7 +2235,7 @@ const descargando=new Set();
 async function descargarOriginal(temaId){
   const t=state.temas.find(x=>x.id===temaId);if(!t||!t.archivo)return;
   const m=state.materias.find(x=>x.id===t.materiaId);
-  if(!m||!m.sharedId){alert('Este documento no está disponible en este dispositivo.');return}
+  if(!m||!m.sharedId){UI.alerta('Este documento no está disponible en este dispositivo.');return}
   if(descargando.has(temaId))return;
   descargando.add(temaId);
   toast('⬇️ Preparando '+esc(t.archivo.nombre||'el documento')+'…');
@@ -1994,7 +2256,7 @@ async function descargarOriginal(temaId){
     document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);
   }catch(e){
     console.error(e);
-    alert('No se pudo descargar el documento original'+(e&&e.code?detalleError(e):': '+(e&&e.message||'error'))+'.');
+    UI.alerta('No se pudo descargar el documento original'+(e&&e.code?detalleError(e):': '+(e&&e.message||'error'))+'.');
   }finally{descargando.delete(temaId)}
 }
 function docOriginalHTML(t){
@@ -2051,7 +2313,7 @@ document.addEventListener('change',async e=>{
     const claveCache=pdfEscaneado?('PDF-ESCANEADO|'+file.name+'|'+file.size+'|'+file.lastModified):texto;
 
     const materia=state.materias.find(m=>m.id===materiaId);
-    if(state.temas.some(t=>t.materiaId===materiaId&&t.fuente===file.name)&&!confirm('Ya hay un tema creado a partir de un archivo llamado "'+file.name+'". ¿Subirlo de todos modos?')){statusEl.textContent='';return}
+    if(state.temas.some(t=>t.materiaId===materiaId&&t.fuente===file.name)&&!await UI.confirmar('Ya hay un tema creado a partir de un archivo llamado "'+file.name+'". ¿Subirlo de todos modos?')){statusEl.textContent='';return}
     let data=await iaCacheGet(claveCache);
     const desdeCache=!!data;
     if(desdeCache){
@@ -2325,20 +2587,30 @@ function desvincularCompartida(sid,aviso){
   detener(sid);olvidarTemas(sid);
   state.materias.forEach(m=>{if(m.sharedId===sid)hacerLocal(m)});
   saveLocal();scheduleCloud();renderSeguro();
-  if(aviso)setTimeout(()=>alert(aviso),50);
+  if(aviso)setTimeout(()=>UI.alerta(aviso),50);
 }
 
 /* ---------- Crear, compartir, unirse, salir ---------- */
+/* Formulario único para crear o editar una materia: nombre, emoji y color */
+async function formMateria(titulo,cur,ph){
+  const r=await UI.preguntar(titulo,[
+    {k:'n',l:'Nombre',v:cur?cur.name:'',ph:ph||'',max:80},
+    {k:'i',l:'Emoji (opcional)',v:cur?cur.icon:'📘',max:4},
+    {k:'c',l:'Color',t:'color',v:cur?matColor(cur):MAT_COLORS[state.materias.length%MAT_COLORS.length]}
+  ],{ok:'Guardar'});
+  if(!r||!String(r.n).trim())return null;
+  return{name:String(r.n).trim(),icon:String(r.i||'').trim()||'📘',color:/^#[0-9a-f]{6}$/i.test(r.c)?r.c:null};
+}
 async function crearCompartida(semId){
-  const name=prompt('Nombre de la materia compartida (ej. Ética con Santiago):');
-  if(!name||!name.trim())return;
-  const icon=prompt('Emoji (opcional):','📘')||'📘';
+  const f=await formMateria('Nueva materia compartida',null,'Ej. Ética con Santiago');
+  if(!f)return;
+  const name=f.name,icon=f.icon;
   const ref=db.collection('temarios').doc();
   try{
     await ref.set({name:name.trim(),icon,ownerUid:currentUid,members:[currentUid],
       memberNames:{[currentUid]:miNombre()},createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-  }catch(e){console.error(e);alert('No se pudo crear la materia compartida. Revisa las reglas de Firestore y tu conexión.');return}
-  mutate(s=>s.materias.push({id:uid(),name:name.trim(),icon,semesterId:semId,refs:'',sharedId:ref.id}));
+  }catch(e){console.error(e);UI.alerta('No se pudo crear la materia compartida. Revisa las reglas de Firestore y tu conexión.');return}
+  mutate(s=>s.materias.push({id:uid(),name:name.trim(),icon,color:f.color||undefined,semesterId:semId,refs:'',sharedId:ref.id}));
   const m=state.materias.find(x=>x.sharedId===ref.id);
   escucharCompartida(m);
   route={view:'materiaDetail',materiaId:m.id};render();
@@ -2353,14 +2625,14 @@ async function compartirMateria(m){
     await pushSharedMateria(m,true);            // sube los temas que ya tenías antes de empezar a escuchar
   }catch(e){
     console.error(e);delete m.sharedId;olvidarTemas(ref.id);
-    alert('No se pudo compartir la materia. Revisa las reglas de Firestore y tu conexión.');return;
+    UI.alerta('No se pudo compartir la materia. Revisa las reglas de Firestore y tu conexión.');return;
   }
   persist();escucharCompartida(m);render(true);
 }
 async function unirseCompartida(codigo){
   codigo=String(codigo||'').trim();
   const enlace=codigo.match(/[?&]unirse=([A-Za-z0-9]+)/);if(enlace)codigo=enlace[1];
-  if(!/^[A-Za-z0-9]{10,40}$/.test(codigo)){alert('Ese código no es válido. Pídele a tu compañero que te lo envíe de nuevo.');return}
+  if(!/^[A-Za-z0-9]{10,40}$/.test(codigo)){UI.alerta('Ese código no es válido. Pídele a tu compañero que te lo envíe de nuevo.');return}
   const ya=state.materias.find(x=>x.sharedId===codigo);
   if(ya){route={view:'materiaDetail',materiaId:ya.id};render();return}
   try{
@@ -2375,7 +2647,7 @@ async function unirseCompartida(codigo){
     route={view:'materiaDetail',materiaId:m.id};render();
   }catch(e){
     console.error(e);
-    alert('No encontré esa materia compartida o no tienes permiso para entrar. Revisa que el código esté completo.');
+    UI.alerta('No encontré esa materia compartida o no tienes permiso para entrar. Revisa que el código esté completo.');
   }
 }
 async function abandonarCompartida(m,opts){
@@ -2407,13 +2679,13 @@ async function abandonarCompartida(m,opts){
     }
   }catch(e){
     console.error(e);
-    if(!opts.silent)alert('Saliste de la materia en tu cuaderno, pero no se pudo avisar a la nube: '+e.message);
+    if(!opts.silent)UI.alerta('Saliste de la materia en tu cuaderno, pero no se pudo avisar a la nube: '+e.message);
   }
 }
-function procesarUnirsePendiente(){
+async function procesarUnirsePendiente(){
   let c=null;
   try{c=sessionStorage.getItem('unirse');sessionStorage.removeItem('unirse')}catch(e){}
-  if(c&&confirm('Te invitaron a una materia compartida. ¿Quieres unirte?'))unirseCompartida(c);
+  if(c&&await UI.confirmar('Te invitaron a una materia compartida. ¿Quieres unirte?'))unirseCompartida(c);
 }
 /* Enlace de invitación: tuapp.netlify.app/?unirse=CODIGO (se guarda hasta que la persona inicie sesión) */
 try{
@@ -2453,24 +2725,24 @@ function compartidoBoxHTML(m){
 async function copiar(texto,btn){
   const viejo=btn.textContent;
   try{await navigator.clipboard.writeText(texto);btn.textContent='✓ Copiado';setTimeout(()=>{btn.textContent=viejo},1500)}
-  catch(e){prompt('Copia esto:',texto)}
+  catch(e){await UI.prompt('Copia esto:',texto)}
 }
 document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-action]');if(!b)return;
   const a=b.dataset.action;
   const m=b.dataset.id?state.materias.find(x=>x.id===b.dataset.id):null;
   if(a==='createShared')crearCompartida(b.dataset.sem);
-  else if(a==='joinSharedPrompt'){const c=prompt('Pega el código o el enlace de invitación:');if(c)unirseCompartida(c)}
+  else if(a==='joinSharedPrompt'){const c=await UI.prompt('Pega el código o el enlace de invitación:');if(c)unirseCompartida(c)}
   else if(a==='shareMateria'&&m)compartirMateria(m);
   else if(a==='copyInvite'&&m)copiar(location.origin+location.pathname+'?unirse='+m.sharedId,b);
   else if(a==='copyCode'&&m)copiar(m.sharedId,b);
   else if(a==='leaveShared'&&m){
-    if(confirm('¿Salir de esta materia compartida? Conservas una copia en tu cuaderno, pero ya no se sincroniza con el grupo.')){
+    if(await UI.confirmar('¿Salir de esta materia compartida? Conservas una copia en tu cuaderno, pero ya no se sincroniza con el grupo.')){
       await abandonarCompartida(m);persist();render();
     }
   }
   else if(a==='deleteShared'&&m){
-    if(confirm('¿Eliminar la materia compartida para TODAS las personas? Cada quien conservará una copia en su cuaderno, pero el grupo dejará de existir.')){
+    if(await UI.confirmar('¿Eliminar la materia compartida para TODAS las personas? Cada quien conservará una copia en su cuaderno, pero el grupo dejará de existir.')){
       await abandonarCompartida(m,{todos:true});persist();render();
     }
   }
@@ -2511,15 +2783,15 @@ function hacerLocal(m){
 
 /* ---------- Crear materia como docente ---------- */
 async function crearDocente(){
-  const name=prompt('Nombre de la materia (ej. Ética profesional – Grupo A):');
-  if(!name||!name.trim())return;
-  const icon=prompt('Emoji (opcional):','📘')||'📘';
+  const f=await formMateria('Nueva materia',null,'Ej. Ética profesional – Grupo A');
+  if(!f)return;
+  const name=f.name,icon=f.icon;
   const ref=db.collection('temarios').doc();
   try{
     await ref.set({tipo:'docente',name:name.trim(),icon,ownerUid:currentUid,members:[currentUid],
       memberNames:{[currentUid]:miNombre()},createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-  }catch(e){console.error(e);alert('No se pudo crear la materia'+detalleError(e)+'. Revisa las reglas de Firestore y tu conexión.');return}
-  mutate(s=>s.materias.push({id:uid(),name:name.trim(),icon,semesterId:semDocente(s).id,refs:'',sharedId:ref.id,rol:'docente'}));
+  }catch(e){console.error(e);UI.alerta('No se pudo crear la materia'+detalleError(e)+'. Revisa las reglas de Firestore y tu conexión.');return}
+  mutate(s=>s.materias.push({id:uid(),name:name.trim(),icon,color:f.color||undefined,semesterId:semDocente(s).id,refs:'',sharedId:ref.id,rol:'docente'}));
   const m=state.materias.find(x=>x.sharedId===ref.id);
   escucharCompartida(m);
   route={view:'materiaDetail',materiaId:m.id};render();
@@ -2540,7 +2812,7 @@ async function invitarEstudiantes(m){
   const yo=(auth.currentUser.email||'').toLowerCase();
   const existentes=new Set((invitMap[m.sharedId]||[]).map(i=>i.email));
   const nuevos=buenos.filter(e=>e!==yo&&!existentes.has(e));
-  if(!nuevos.length){alert(malos.length?'Estos correos no son válidos: '+malos.join(', '):'No hay correos nuevos para invitar.');return}
+  if(!nuevos.length){UI.alerta(malos.length?'Estos correos no son válidos: '+malos.join(', '):'No hay correos nuevos para invitar.');return}
   try{
     for(let i=0;i<nuevos.length;i+=400){
       const b=db.batch();
@@ -2550,17 +2822,17 @@ async function invitarEstudiantes(m){
       await b.commit();
     }
     box.value='';
-    alert('Invitaciones enviadas a '+nuevos.length+' persona'+(nuevos.length==1?'':'s')+'.'+(malos.length?'\nNo válidos (se omitieron): '+malos.join(', '):''));
-  }catch(e){console.error(e);alert('No se pudieron enviar las invitaciones'+detalleError(e)+'. Si dice permission-denied, falta publicar las reglas nuevas de Firestore.')}
+    UI.alerta('Invitaciones enviadas a '+nuevos.length+' persona'+(nuevos.length==1?'':'s')+'.'+(malos.length?'\nNo válidos (se omitieron): '+malos.join(', '):''));
+  }catch(e){console.error(e);UI.alerta('No se pudieron enviar las invitaciones'+detalleError(e)+'. Si dice permission-denied, falta publicar las reglas nuevas de Firestore.')}
 }
 async function quitarInvitacion(m,invId){
   const inv=(invitMap[m.sharedId]||[]).find(x=>x.id===invId);if(!inv)return;
-  if(!confirm(inv.uid?'¿Quitar a '+(inv.nombre||inv.email)+' de la materia? Conservará una copia de lo que ya tenía, pero ya no recibirá más cambios.':'¿Cancelar la invitación a '+inv.email+'?'))return;
+  if(!await UI.confirmar(inv.uid?'¿Quitar a '+(inv.nombre||inv.email)+' de la materia? Conservará una copia de lo que ya tenía, pero ya no recibirá más cambios.':'¿Cancelar la invitación a '+inv.email+'?'))return;
   try{
     if(inv.uid){const F=firebase.firestore.FieldValue;
       await refTemario(m.sharedId).update({members:F.arrayRemove(inv.uid),['memberNames.'+inv.uid]:F.delete()})}
     await db.collection('invitaciones').doc(invId).delete();
-  }catch(e){console.error(e);alert('No se pudo completar la acción.')}
+  }catch(e){console.error(e);UI.alerta('No se pudo completar la acción.')}
 }
 async function borrarInvitaciones(sid){
   const qs=await db.collection('invitaciones').where('sid','==',sid).where('ownerUid','==',currentUid).get();
@@ -2575,10 +2847,10 @@ function publicarTema(id){
   mutate(s=>{const t=s.temas.find(x=>x.id===id);if(t)t.publicado=!t.publicado});
   const t=state.temas.find(x=>x.id===id);if(t&&t.publicado&&esDocenteMat(t.materiaId))avisoPublicado();
 }
-function publicarTodos(m){
+async function publicarTodos(m){
   const borradores=state.temas.filter(t=>t.materiaId===m.id&&!t.publicado);
   if(!borradores.length)return;
-  if(!confirm('¿Publicar '+borradores.length+' tema'+(borradores.length==1?'':'s')+' a todos tus estudiantes?'))return;
+  if(!await UI.confirmar('¿Publicar '+borradores.length+' tema'+(borradores.length==1?'':'s')+' a todos tus estudiantes?'))return;
   mutate(s=>s.temas.forEach(t=>{if(t.materiaId===m.id)t.publicado=true}));
   avisoPublicado();
 }
@@ -2607,12 +2879,12 @@ async function aceptarInvitacion(invId){
     const m=state.materias.find(x=>x.sharedId===inv.sid);
     escucharCompartida(m);
     route={view:'materiaDetail',materiaId:m.id};render();
-  }catch(e){console.error(e);alert('No se pudo aceptar la invitación'+detalleError(e)+'. Inténtalo de nuevo.')}
+  }catch(e){console.error(e);UI.alerta('No se pudo aceptar la invitación'+detalleError(e)+'. Inténtalo de nuevo.')}
 }
 async function rechazarInvitacion(invId){
-  if(!confirm('¿Rechazar esta invitación?'))return;
+  if(!await UI.confirmar('¿Rechazar esta invitación?'))return;
   try{await db.collection('invitaciones').doc(invId).update({estado:'rechazada',nombre:miNombre()})}
-  catch(e){console.error(e);alert('No se pudo rechazar la invitación.')}
+  catch(e){console.error(e);UI.alerta('No se pudo rechazar la invitación.')}
 }
 
 /* ---------- Interfaz ---------- */
@@ -2678,14 +2950,14 @@ document.addEventListener('click',async e=>{
   else if(a==='acceptInvite')aceptarInvitacion(b.dataset.inv);
   else if(a==='declineInvite')rechazarInvitacion(b.dataset.inv);
   else if(a==='verifyEmail'){
-    try{await auth.currentUser.sendEmailVerification();alert('Te enviamos un correo de verificación. Ábrelo y luego pulsa "Ya verifiqué".')}
-    catch(err){console.error(err);alert('No se pudo enviar el correo. Inténtalo de nuevo en unos minutos.')}
+    try{await auth.currentUser.sendEmailVerification();UI.alerta('Te enviamos un correo de verificación. Ábrelo y luego pulsa "Ya verifiqué".')}
+    catch(err){console.error(err);UI.alerta('No se pudo enviar el correo. Inténtalo de nuevo en unos minutos.')}
   }
   else if(a==='recheckVerified'){
     try{
       await auth.currentUser.reload();await auth.currentUser.getIdToken(true);
       if(auth.currentUser.emailVerified){escucharMisInvitaciones();render()}
-      else alert('Todavía no aparece verificado. Abre el enlace del correo y vuelve a intentarlo.');
+      else UI.alerta('Todavía no aparece verificado. Abre el enlace del correo y vuelve a intentarlo.');
     }catch(err){console.error(err)}
   }
 });
@@ -2866,7 +3138,7 @@ function etapaCorte(m,c){
 
 /* ---------- Interfaz ---------- */
 function toast(html){
-  const t=document.createElement('div');t.className='toast';t.innerHTML=html;document.body.appendChild(t);
+  const t=document.createElement('div');t.className='toast';t.setAttribute('role','status');t.setAttribute('aria-live','polite');t.innerHTML=html;document.body.appendChild(t);
   setTimeout(()=>t.classList.add('on'),20);
   setTimeout(()=>{t.classList.remove('on');setTimeout(()=>t.remove(),400)},4200);
 }
@@ -3113,11 +3385,11 @@ function pedirRol(){
     document.body.appendChild(ov);
   });
 }
-document.addEventListener('click',e=>{
+document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-action="setRol"]');if(!b)return;
   const rol=b.dataset.rol;
   if(rol===state.profile.rol)return;
-  if(rol==='estudiante'&&state.materias.some(m=>m.rol==='docente')&&!confirm('Tienes materias como profesor. Si cambias a estudiante, la sección Docente se oculta (no se borra nada) hasta que vuelvas a elegir Profesor. ¿Continuar?'))return;
+  if(rol==='estudiante'&&state.materias.some(m=>m.rol==='docente')&&!await UI.confirmar('Tienes materias como profesor. Si cambias a estudiante, la sección Docente se oculta (no se borra nada) hasta que vuelvas a elegir Profesor. ¿Continuar?'))return;
   elegirRol(rol);
 });
 
@@ -3347,7 +3619,7 @@ function docenteEventosHTML(m){
 /* Formulario (ventana) para crear o editar */
 function abrirEventoForm({sid=null,ev=null,fecha=''}={}){
   const docs=state.materias.filter(x=>x.rol==='docente'&&x.sharedId);
-  if(!docs.length){alert('Primero crea una materia en tu espacio docente.');return}
+  if(!docs.length){UI.alerta('Primero crea una materia en tu espacio docente.');return}
   if(document.getElementById('evOverlay'))return;
   const cur=ev?(evMap[sid]||{})[ev]:null;
   if(ev&&!cur)return;
@@ -3399,14 +3671,14 @@ async function guardarEventoDoc(sid,evId,d){
   const datos={title:d.title,date:d.date,type:d.type,hora:d.hora||'',nota:d.nota||'',by:miNombre(),actualizado:ts};
   if(!evId)datos.creado=ts;
   try{await ref.set(datos,{merge:true});return true}
-  catch(e){console.error(e);alert('No se pudo guardar el evento'+detalleError(e)+'. Si dice permission-denied, publica las reglas nuevas de firestore.rules en Firebase.');return false}
+  catch(e){console.error(e);UI.alerta('No se pudo guardar el evento'+detalleError(e)+'. Si dice permission-denied, publica las reglas nuevas de firestore.rules en Firebase.');return false}
 }
 async function borrarEventoDoc(sid,evId){
   const m=state.materias.find(x=>x.sharedId===sid&&x.rol==='docente');
   if(!m)return;
-  if(!confirm('¿Eliminar este evento del calendario de tus estudiantes?'))return;
+  if(!await UI.confirmar('¿Eliminar este evento del calendario de tus estudiantes?'))return;
   try{await refTemario(sid).collection('eventos').doc(evId).delete()}
-  catch(e){console.error(e);alert('No se pudo eliminar el evento'+detalleError(e)+'.')}
+  catch(e){console.error(e);UI.alerta('No se pudo eliminar el evento'+detalleError(e)+'.')}
 }
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-action]');if(!b)return;
@@ -3658,7 +3930,7 @@ async function exEliminarExamen(m,exId){
   b.delete(base.collection('claves').doc(exId));
   Object.values(inMap[m.sharedId]||{}).filter(i=>i.examId===exId).forEach(i=>b.delete(base.collection('intentos').doc(i.id)));
   Object.values(iniMap[m.sharedId]||{}).filter(i=>i.examId===exId).forEach(i=>b.delete(base.collection('inicios').doc(i.id)));
-  try{await b.commit()}catch(e){console.error(e);alert('No se pudo eliminar el examen'+detalleError(e)+'.')}
+  try{await b.commit()}catch(e){console.error(e);UI.alerta('No se pudo eliminar el examen'+detalleError(e)+'.')}
 }
 
 /* ======================= DOCENTE: resultados ======================= */
@@ -3807,7 +4079,7 @@ async function descargarXlsx(m,ex){
 /* Libro de notas: una fila por estudiante y una columna por examen, con el promedio */
 async function descargarLibroNotas(m){
   const exs=examenesDe(m).filter(e=>e.estado!=='borrador').sort((x,y)=>ms(x.creado)-ms(y.creado));
-  if(!exs.length){alert('Todavía no hay exámenes publicados.');return}
+  if(!exs.length){UI.alerta('Todavía no hay exámenes publicados.');return}
   const res=exs.map(ex=>resultadosDe(m,ex));
   const filas=[['Estudiante','Correo',...exs.map(e=>e.titulo||'Examen'),'Promedio']];
   res[0].filas.forEach((f0,k)=>{
@@ -3919,7 +4191,7 @@ function examenesEstudianteHTML(m){
 }
 async function abrirExamenEst(m,exId){
   const exx=(exMap[m.sharedId]||{})[exId];
-  if(!miIntento(m,exId)&&(!exx||!examAbierto(exx))){alert('Este examen ya no está disponible.');return}
+  if(!miIntento(m,exId)&&(!exx||!examAbierto(exx))){UI.alerta('Este examen ya no está disponible.');return}
   clearExTimer();
   exTom={respuestas:miIntento(m,exId)?{}:cargarRespLocal(exId),resultado:null,cargando:false,error:'',inicio:0,skew:0};
   const ini=miInicio(m,exId);if(ini&&!miIntento(m,exId))exTom.inicio=ini;       // retoma un examen que ya había empezado
@@ -3944,9 +4216,9 @@ async function entregarExamenEst(m,forzado){
   const ex=(exMap[m.sharedId]||{})[route.examId];if(!ex||!exTom||exTom.enviando)return;
   const faltan=(ex.preguntas||[]).filter(q=>exTom.respuestas[q.id]===undefined).length;
   if(!forzado){
-    if(faltan&&!(ex.duracion>0)){alert('Te faltan '+faltan+' pregunta'+(faltan==1?'':'s')+' por responder.');return}
-    if(faltan){if(!confirm('Te faltan '+faltan+' pregunta'+(faltan==1?'':'s')+' sin responder. ¿Entregar de todos modos?'))return}
-    else if(!confirm('¿Entregar el examen? No podrás cambiar tus respuestas.'))return;
+    if(faltan&&!(ex.duracion>0)){UI.alerta('Te faltan '+faltan+' pregunta'+(faltan==1?'':'s')+' por responder.');return}
+    if(faltan){if(!await UI.confirmar('Te faltan '+faltan+' pregunta'+(faltan==1?'':'s')+' sin responder. ¿Entregar de todos modos?'))return}
+    else if(!await UI.confirmar('¿Entregar el examen? No podrás cambiar tus respuestas.'))return;
   }
   clearExTimer();
   exTom.enviando=true;exTom.error='';render(true);
@@ -4010,7 +4282,7 @@ function aplicarRolMenu(){
   const visibles=prof?['docente','perfil']:['materias','calendario','logros','perfil'];
   document.querySelectorAll('#mainNav [data-nav]').forEach(b=>{b.style.display=visibles.includes(b.dataset.nav)?'':'none'});
   const d=document.querySelector('#mainNav [data-nav="docente"]');if(d)d.textContent='🏫 Mis materias';
-  const ct=$('ct');if(ct)ct.textContent=prof?'🏫 Auren · Docente':'📚 Auren';
+  const ct=$('ctTxt');if(ct)ct.textContent=prof?'Auren · Docente':'Auren';
   const sw=$('searchWrap');if(sw)sw.style.display=prof?'none':'';
   pintarCampana();
 }
@@ -4035,6 +4307,8 @@ function viewPerfilDocenteHTML(){
       <div class="pgs"><div><b>${mats.length}</b>materias</div><div><b>${nEx}</b>exámenes</div></div>
     </div>
     <div class="card"><h3>Avatar</h3><div class="avatarPicker">${AV.map(a=>`<button class="avBtn ${a===p.avatar?'on':''}" data-action="setAvatar" data-a="${a}">${a}</button>`).join('')}</div></div>
+    ${fxCardHTML()}
+    ${datosCardHTML()}
     <div class="card">
       <h3>Editar perfil</h3>
       <label class="lbl">Nombre (lo verán tus estudiantes)</label><input class="fld" data-action="profileField" data-f="name" value="${esc(p.name)}" maxlength="40">
@@ -4057,6 +4331,13 @@ function viewPerfilDocenteHTML(){
 /* ======================= Acciones ======================= */
 document.addEventListener('input',e=>{
   const ea=e.target.dataset&&e.target.dataset.action;
+  if(ea==='fxSel'){state.fx=e.target.value||null;applyFx();persist();return}
+  if(ea==='alcanceSel'){
+    const v=String(e.target.value||'all'),mid=route.materiaId;ui.alcance=ui.alcance||{};
+    ui.alcance[mid]=v.startsWith('t:')?{temaId:v.slice(2)}:v.startsWith('c:')?{corteId:v.slice(2)}:{};
+    render(true);return;
+  }
+  if(ea==='quizTema'&&toolState&&toolState.setup){toolState.temaId=e.target.value;ui.quizCfg[route.materiaId].temaId=toolState.temaId;render(true);return}
   if(ea==='bancoCorte'){bancoFiltro.corte=e.target.value;render(true);return}
   if(ea==='bancoTexto'){bancoFiltro.texto=e.target.value;render(true);return}
   if(ea==='bancoSel'){const id=e.target.dataset.bid;if(e.target.checked)bancoSel.add(id);else bancoSel.delete(id);render(true);return}
@@ -4083,10 +4364,10 @@ document.addEventListener('click',async e=>{
   else if(a==='exResultados'&&m&&m.rol==='docente'){docResSel=null;docResFiltro='todas';route={view:'docResultados',materiaId:m.id,examId:b.dataset.ex};render()}
   else if(a==='exEstado'&&m){
     try{await baseDe(m).collection('examenes').doc(b.dataset.ex).update({estado:b.dataset.to})}
-    catch(err){console.error(err);alert('No se pudo cambiar el estado'+detalleError(err)+'.')}
+    catch(err){console.error(err);UI.alerta('No se pudo cambiar el estado'+detalleError(err)+'.')}
   }
   else if(a==='exEliminarLista'&&m){
-    if(confirm('¿Eliminar este examen y todas las entregas de tus estudiantes? No se puede deshacer.'))exEliminarExamen(m,b.dataset.ex);
+    if(await UI.confirmar('¿Eliminar este examen y todas las entregas de tus estudiantes? No se puede deshacer.'))exEliminarExamen(m,b.dataset.ex);
   }
   else if(a==='exVolver'){
     await exGuardarYa();exBuf=null;
@@ -4098,7 +4379,7 @@ document.addEventListener('click',async e=>{
   else if(a==='exBancoGuardar'&&exBuf){
     const mm=materiaRuta();if(!mm)return;
     try{const n=await guardarEnBanco(mm,exBuf.preguntas);toast(n?'📚 '+n+' pregunta'+(n==1?'':'s')+' guardada'+(n==1?'':'s')+' en tu banco':'No hay preguntas completas para guardar')}
-    catch(err){console.error(err);alert('No se pudo guardar en el banco'+detalleError(err)+'. ¿Publicaste las reglas nuevas de Firestore?')}
+    catch(err){console.error(err);UI.alerta('No se pudo guardar en el banco'+detalleError(err)+'. ¿Publicaste las reglas nuevas de Firestore?')}
   }
   else if(a==='exBancoAgregar'&&exBuf&&exBuf.estado==='borrador'){
     const ya=new Set(exBuf.preguntas.map(p=>normTxt(p.enunciado)));let n=0;
@@ -4109,9 +4390,9 @@ document.addEventListener('click',async e=>{
     render(true);
   }
   else if(a==='bancoDel'){
-    if(confirm('¿Quitar esta pregunta de tu banco? (No se borra de los exámenes donde ya la usaste.)')){
+    if(await UI.confirmar('¿Quitar esta pregunta de tu banco? (No se borra de los exámenes donde ya la usaste.)')){
       try{await bancoRef().doc(b.dataset.bid).delete();bancoCache=(bancoCache||[]).filter(x=>x.id!==b.dataset.bid);bancoSel.delete(b.dataset.bid);render(true)}
-      catch(err){console.error(err);alert('No se pudo quitar'+detalleError(err)+'.')}
+      catch(err){console.error(err);UI.alerta('No se pudo quitar'+detalleError(err)+'.')}
     }
   }
   else if(a==='exAddQ'&&exBuf){
@@ -4128,25 +4409,25 @@ document.addEventListener('click',async e=>{
     const mm=materiaRuta();if(!mm)return;
     const ids=[...document.querySelectorAll('.exTema:checked')].map(x=>x.value);
     const n=Math.max(1,Math.min(40,parseInt($('exN').value)||10));
-    if(!ids.length){alert('Elige al menos un tema.');return}
+    if(!ids.length){UI.alerta('Elige al menos un tema.');return}
     const nuevas=generarPreguntas(mm,ids,n);
-    if(!nuevas.length){alert('No se pudieron generar preguntas. Los temas elegidos necesitan tarjetas, y la materia necesita al menos 2 respuestas distintas.');return}
+    if(!nuevas.length){UI.alerta('No se pudieron generar preguntas. Los temas elegidos necesitan tarjetas, y la materia necesita al menos 2 respuestas distintas.');return}
     exBuf.preguntas=exBuf.preguntas.concat(nuevas);exGuardarLuego();render(true);
   }
   else if(a==='exPublicar'&&exBuf){
-    const err=validarExamen(exBuf);if(err){alert(err);return}
-    if(!confirm('¿Publicar el examen? Tus estudiantes lo verán de inmediato y ya no podrás editarlo.'))return;
+    const err=validarExamen(exBuf);if(err){UI.alerta(err);return}
+    if(!await UI.confirmar('¿Publicar el examen? Tus estudiantes lo verán de inmediato y ya no podrás editarlo.'))return;
     exBuf.estado='publicado';exBuf.publicadoEn=Date.now();
     await exGuardarYa();render(true);avisoPublicado();
   }
   else if(a==='exABorrador'&&exBuf){
     const mm=materiaRuta();
-    if(Object.values(inMap[mm.sharedId]||{}).some(i=>i.examId===exBuf.id)){alert('Ya hay estudiantes que lo presentaron, así que no se puede volver a borrador. Puedes cerrarlo.');return}
+    if(Object.values(inMap[mm.sharedId]||{}).some(i=>i.examId===exBuf.id)){UI.alerta('Ya hay estudiantes que lo presentaron, así que no se puede volver a borrador. Puedes cerrarlo.');return}
     exBuf.estado='borrador';await exGuardarYa();render(true);
   }
   else if(a==='exEliminar'&&exBuf){
     const mm=materiaRuta();
-    if(mm&&confirm('¿Eliminar este examen? No se puede deshacer.')){
+    if(mm&&await UI.confirmar('¿Eliminar este examen? No se puede deshacer.')){
       const id=exBuf.id;exBuf=null;clearTimeout(exGuardarT);
       await exEliminarExamen(mm,id);
       docTab='examenes';docTabMat=mm.id;route={view:'materiaDetail',materiaId:mm.id};render();
@@ -4155,19 +4436,19 @@ document.addEventListener('click',async e=>{
   else if(a==='resFila'){docResSel=docResSel===b.dataset.u?null:b.dataset.u;render(true)}
   else if(a==='exRepetir'){
     const mm=materiaRuta();
-    if(mm&&confirm('¿Permitir que este estudiante vuelva a presentar el examen? Se borra su entrega actual.')){
+    if(mm&&await UI.confirmar('¿Permitir que este estudiante vuelva a presentar el examen? Se borra su entrega actual.')){
       try{
         await baseDe(mm).collection('intentos').doc(route.examId+'_'+b.dataset.u).delete();
         try{await baseDe(mm).collection('inicios').doc(route.examId+'_'+b.dataset.u).delete()}catch(e2){}      // también su hora de inicio, para que empiece de cero
       }
-      catch(err){console.error(err);alert('No se pudo borrar la entrega'+detalleError(err)+'.')}
+      catch(err){console.error(err);UI.alerta('No se pudo borrar la entrega'+detalleError(err)+'.')}
     }
   }
   else if(a==='exCsv'){const mm=materiaRuta(),ex=mm&&(exMap[mm.sharedId]||{})[route.examId];if(ex&&mm.rol==='docente')descargarCsv(mm,ex)}
   else if(a==='exCsvDet'){const mm=materiaRuta(),ex=mm&&(exMap[mm.sharedId]||{})[route.examId];if(ex&&mm.rol==='docente')descargarCsvDetalle(mm,ex)}
   else if(a==='resFiltro'){docResFiltro=b.dataset.f;render(true)}
-  else if(a==='exXlsx'){const mm=materiaRuta(),ex=mm&&(exMap[mm.sharedId]||{})[route.examId];if(ex&&mm.rol==='docente')descargarXlsx(mm,ex).catch(err=>alert('No se pudo crear el Excel'+detalleError(err)+'.'))}
-  else if(a==='libroNotas'&&m&&m.rol==='docente'){descargarLibroNotas(m).catch(err=>alert('No se pudo crear el Excel'+detalleError(err)+'.'))}
+  else if(a==='exXlsx'){const mm=materiaRuta(),ex=mm&&(exMap[mm.sharedId]||{})[route.examId];if(ex&&mm.rol==='docente')descargarXlsx(mm,ex).catch(err=>UI.alerta('No se pudo crear el Excel'+detalleError(err)+'.'))}
+  else if(a==='libroNotas'&&m&&m.rol==='docente'){descargarLibroNotas(m).catch(err=>UI.alerta('No se pudo crear el Excel'+detalleError(err)+'.'))}
   else if(a==='exPresentar'&&m)abrirExamenEst(m,b.dataset.ex);
   else if(a==='exResp'&&exTom){exTom.respuestas[b.dataset.q]=+b.dataset.i;guardarRespLocal();render(true)}
   else if(a==='exComenzar'){const mm=materiaRuta();if(mm)comenzarExamenEst(mm)}

@@ -1,6 +1,6 @@
 /* Auren — service worker (PWA)
    Sube el número de VERSION cuando quieras forzar que todos reciban cambios. */
-const VERSION = 'v5';
+const VERSION = 'v6';
 const CACHE = 'auren-' + VERSION;
 const BASE = ['/', '/firebase-init.js', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
 

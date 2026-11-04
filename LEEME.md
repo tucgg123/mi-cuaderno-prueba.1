@@ -56,3 +56,15 @@ La clave local del navegador sigue siendo `cuaderno_<uid>` y el proyecto de Fire
 - **Avisos con la app totalmente cerrada** (push real) no están incluidos: necesitan un servidor que envíe notificaciones (Firebase Cloud Messaging con credenciales). El `service-worker.js` ya tiene el receptor `push` listo.
 - El reloj del examen se calcula en el navegador a partir de la hora de inicio del servidor; las reglas de Firestore rechazan entregas pasado el tiempo (+60 s de margen).
 - Cambiar la versión de la caché de la IA (`IA_CACHE_VER`) hace que los archivos analizados antes se vuelvan a analizar (y gasten cupo) la próxima vez que se suban.
+
+## Nuevo diseño (rediseño visual de Auren)
+- **Paleta y fondo:** modo oscuro azul noche con acento durazno; modo claro con acento terracota. Fondo de circuito animado.
+- **Efectos visuales** (Perfil → ✨): *Completos*, *Ligeros* (circuito quieto, sin desenfoque) o *Sin efectos*. En automático, los celulares y equipos modestos usan *Ligeros* y quien pide "reducir movimiento" no ve animaciones.
+- **Menú de esquina** (☰) con Materias, Calendario, Logros, Perfil, tema y salir. El buscador se enfoca con la tecla `/`.
+- **Inicio:** calendario del mes con tus eventos y los de tus docentes, "Mi carrera", promedio por semestre (también en una ventana) y promedio en la cabecera de cada semestre.
+- **Color por materia:** se elige al crear o editar la materia.
+- **Diálogos propios** en lugar de los del navegador (`alert`, `confirm`, `prompt`): se encolan, se cierran con Esc y se usan con teclado.
+- **Navegación con URL:** `#/materia/ID`, `#/estudio/quiz/ID`, `#/calendario`… El botón "atrás" del celular vuelve a la pantalla anterior y se puede recargar o compartir el enlace de una materia.
+- **Practicar con un tema** (flashcards, memorizar, repaso…) y **Quiz / Modo examen** por corte o por tema.
+- **Examen escrito:** respondes con tus palabras, ves la respuesta y te autoevalúas; alimenta el repaso espaciado y la racha.
+- **Perfil → 💾 Tus datos:** descarga una copia de tus datos en un archivo.
