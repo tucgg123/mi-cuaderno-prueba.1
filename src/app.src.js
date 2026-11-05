@@ -489,7 +489,7 @@ function fxCardHTML(){
   const b=$('menuBtn'),m=$('menu');
   const set=o=>{m.classList.toggle('open',o);b.setAttribute('aria-expanded',String(o));b.setAttribute('aria-label',o?'Cerrar menú':'Abrir menú')};
   b.onclick=e=>{e.stopPropagation();set(!m.classList.contains('open'))};
-  m.addEventListener('click',e=>{if(e.target.closest('#mainNav button,#logoutBtn'))set(false)});
+  m.addEventListener('click',e=>{if(e.target.closest('#mainNav button,#menuJoin,#logoutBtn'))set(false)});
   document.addEventListener('click',e=>{if(!e.target.closest('.menuwrap'))set(false)});
   document.addEventListener('keydown',e=>{
     if(e.key==='Escape'&&m.classList.contains('open')){set(false);b.focus()}
@@ -732,7 +732,7 @@ function viewMateriasHTML(){
   }).join('');
   return `<div class="mv"><div class="mv-col">
     <div class="viewhead"><div><h1>Mis materias</h1><p class="sub">${pluralMv(sems.length,'semestre','semestres')} y ${pluralMv(todas.length,'materia','materias')}</p></div>
-      <span class="row" style="margin:0"><button class="sec" data-action="semDlg">📈 Promedio por semestre</button><button class="sec" data-action="joinSharedPrompt">🔗 Unirme con código</button><button class="pr" data-action="addSemester">+ Semestre</button></span></div>
+      <span class="row" style="margin:0"><button class="sec" data-action="semDlg">📈 Promedio por semestre</button><button class="pr" data-action="addSemester">+ Semestre</button></span></div>
     ${invitacionesHTML()}
     ${repasoHoyHTML()}
     ${sems.length?'':'<div class="empty">Aún no tienes semestres. Agrega uno para empezar a organizar tus materias.</div>'}
@@ -792,14 +792,12 @@ function matStatsHTML(nSem,mats){
   const rows=mats.map(m=>({m,a:weightedAvg(state.cortes.filter(c=>c.materiaId===m.id))})).filter(x=>x.a!=null);
   const avg=rows.length?rows.reduce((t,x)=>t+x.a,0)/rows.length:null;
   const temas=mats.reduce((t,m)=>t+state.temas.filter(x=>x.materiaId===m.id).length,0);
-  const comp=mats.filter(m=>m.sharedId).length;
   const idsM=new Set(mats.map(m=>m.id)),nTarj=state.cards.filter(c=>idsM.has(c.materiaId)).length;
   const srt=rows.slice().sort((x,y)=>y.a-x.a);
   const best=srt[0],low=srt.length>1?srt[srt.length-1]:null;
   const C=314.16,d=avg==null?0:Math.max(0,Math.min(avg/mx,1))*C;
   const hl=(lbl,x)=>`<div><span>${lbl}</span><b style="--mc:${matColor(x.m)}"><i></i><em>${esc(x.m.name)}</em> ${fmtN(x.a)}</b></div>`;
   const resaltes=(best?hl('Mejor promedio',best):'')+(low?hl('Por reforzar',low):'');
-  const filas=srt.map(x=>`<div class="stRow" style="--mc:${matColor(x.m)}"><span>${esc(x.m.name)}</span><b>${fmtN(x.a)}</b><div class="mbar"><i style="width:${Math.max(0,Math.min(100,x.a/mx*100))}%"></i></div></div>`).join('');
   return `<section class="stPn"><div class="stK">Promedio general</div>
       <div class="stRing"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--b)" stroke-width="9"/><circle cx="60" cy="60" r="50" fill="none" stroke="var(--a)" stroke-width="9" stroke-linecap="round" stroke-dasharray="${d.toFixed(1)} ${C}" transform="rotate(-90 60 60)"/></svg>
       <div class="stRc"><b>${avg==null?'—':fmtN(avg)}</b><span>/ ${fmtN(mx)}</span></div></div>
@@ -808,9 +806,7 @@ function matStatsHTML(nSem,mats){
     <details class="drawer cal" open><summary class="dh"><span>📅 Calendario</span><span class="da">${MESES[new Date(new Date().getFullYear(),new Date().getMonth()+(ui.calM||0),1).getMonth()].slice(0,3)}<span class="chev">▾</span></span></summary>${miniCalHTML()}</details>
     <section class="stPn"><div class="stK">Mi carrera</div><div class="stKp">
       <div><b>${nSem}</b><span>${nSem==1?'semestre':'semestres'}</span></div><div><b>${mats.length}</b><span>${mats.length==1?'materia':'materias'}</span></div>
-      <div><b>${temas}</b><span>${temas==1?'tema':'temas'}</span></div><div><b>${nTarj}</b><span>${nTarj==1?'tarjeta':'tarjetas'}</span></div></div></section>
-    <section class="stPn"><div class="stK">Promedio por semestre</div>${semsVisibles().map(({s,mats:ms},k,arr)=>{const p=promSemestre(ms);return `<details class="drawer sd" ${k===arr.length-1?'open':''}><summary class="dh"><span>${esc(s.name)}</span><span class="da">${p==null?'–':fmtN(p)}<span class="chev">▾</span></span></summary>${filasSemHTML(ms)}</details>`}).join('')||'<p class="dm">Aún no hay semestres.</p>'}
-      <button class="sec semb" data-action="semDlg">📈 Ver todos los semestres</button></section>`;
+      <div><b>${temas}</b><span>${temas==1?'tema':'temas'}</span></div><div><b>${nTarj}</b><span>${nTarj==1?'tarjeta':'tarjetas'}</span></div></div></section>`;
 }
 
 /* ================= VISTA: DETALLE DE MATERIA ================= */
@@ -1322,12 +1318,27 @@ function proximoRepasoTexto(materiaId){
   return 'El próximo repaso es '+relDate(f[0])+' ('+n+' tarjeta'+(n==1?'':'s')+').';
 }
 function hoyVacioHTML(){return `<div class="empty"><h2>🎉 Nada pendiente por hoy</h2><p>${esc(proximoRepasoTexto(route.materiaId))}</p></div>`}
+/* "Para repasar hoy" es un cajón. Su estado (abierto/cerrado) vive en localStorage con clave propia, NO dentro de `state`
+   (que se sincroniza con la nube). Se lee al dibujar, y si localStorage está bloqueado se recuerda en memoria durante la sesión. */
+const REPASO_HOY_KEY='auren_repasoHoy_abierto';
+let repasoHoyMem=null;
+function repasoHoyAbierto(){
+  if(repasoHoyMem!==null)return repasoHoyMem;
+  try{const v=localStorage.getItem(REPASO_HOY_KEY);if(v==='0')return false;if(v==='1')return true}catch(e){}
+  return true;                                           // por defecto, abierto
+}
+function guardarRepasoHoyAbierto(abierto){
+  repasoHoyMem=abierto;
+  try{localStorage.setItem(REPASO_HOY_KEY,abierto?'1':'0')}catch(e){}
+}
 function repasoHoyHTML(){
   if(esProfesor())return '';
   const filas=state.materias.filter(m=>m.rol!=='docente').map(m=>({m,n:sesionHoy(m.id).length})).filter(x=>x.n>0);
   if(!filas.length)return '';
-  const total=filas.reduce((s,x)=>s+x.n,0);
-  return `<div class="card shareBox repasoHoy"><b>📅 Para repasar hoy: ${total} tarjeta${total==1?'':'s'}</b><p class="meta" style="margin:4px 0 8px">Según tus repasos anteriores, hoy te toca ver estas para que no se te olviden.</p>${filas.map(x=>`<div class="li"><span>${esc(x.m.icon)} ${esc(x.m.name)} <small class="meta">· ${x.n}</small></span><button class="sec" data-action="openTool" data-tool="hoy" data-mat="${x.m.id}">Repasar</button></div>`).join('')}</div>`;
+  const total=filas.reduce((s,x)=>s+x.n,0),abierto=repasoHoyAbierto();
+  return `<div class="card shareBox repasoHoy${abierto?' open':''}">
+    <button type="button" class="rhHead" id="rhBtn" data-action="toggleRepasoHoy" aria-expanded="${abierto}" aria-controls="rhBody"><b>📅 Para repasar hoy: ${total} tarjeta${total==1?'':'s'}</b><span class="chev" aria-hidden="true">▼</span></button>
+    <div class="rhBody" id="rhBody"><div class="rhInner"><p class="meta" style="margin:4px 0 8px">Según tus repasos anteriores, hoy te toca ver estas para que no se te olviden.</p>${filas.map(x=>`<div class="li"><span>${esc(x.m.icon)} ${esc(x.m.name)} <small class="meta">· ${x.n}</small></span><button class="sec" data-action="openTool" data-tool="hoy" data-mat="${x.m.id}">Repasar</button></div>`).join('')}</div></div></div>`;
 }
 /* ---------- Repasar lo que fallé ---------- */
 const tarjetasFalladas=materiaId=>getCardsTodas(materiaId).filter(c=>c.lastOk===false);
@@ -1929,6 +1940,13 @@ document.addEventListener('click',async e=>{
   else if(a==='calPrev'){calView.m--;if(calView.m<0){calView.m=11;calView.y--}render();}
   else if(a==='calNext'){calView.m++;if(calView.m>11){calView.m=0;calView.y++}render();}
   else if(a==='miniCalNav'){ui.calM=(ui.calM||0)+(+b.dataset.d||0);render(true)}
+  else if(a==='toggleRepasoHoy'){
+    /* Solo se cambia ese cajón (sin repintar la pantalla) y se recuerda la elección */
+    const caja=b.closest('.repasoHoy');if(!caja)return;
+    const abrir=!caja.classList.contains('open');
+    caja.classList.toggle('open',abrir);b.setAttribute('aria-expanded',String(abrir));
+    guardarRepasoHoyAbierto(abrir);
+  }
   else if(a==='semDlg'){abrirPromediosSemestre()}
   else if(a==='selDay'){calView.sel=b.dataset.date;render();}
   else if(a==='addEvent'){
@@ -4294,6 +4312,7 @@ function aplicarRolMenu(){
   const d=document.querySelector('#mainNav [data-nav="docente"]');if(d)d.textContent='🏫 Mis materias';
   const ct=$('ctTxt');if(ct)ct.textContent=prof?'Auren · Docente':'Auren';
   const sw=$('searchWrap');if(sw)sw.style.display=prof?'none':'';
+  const mj=$('menuJoin');if(mj)mj.style.display=prof?'none':'';     // el docente nunca tuvo este botón (no ve "Mis materias" de estudiante)
   pintarCampana();
 }
 /* Cada rol solo entra a sus propias pantallas */

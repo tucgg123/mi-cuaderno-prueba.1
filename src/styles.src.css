@@ -617,6 +617,15 @@ main#view:has(.mv){max-width:1180px;padding:28px 24px 72px}
 .vfAfirm{display:inline-block;margin-top:6px;font-weight:600;color:var(--a)}
 .hueco{display:inline-block;min-width:3.2em;border-bottom:2px solid var(--a);text-align:center;color:var(--a)}
 .repasoHoy{margin:0 0 14px}
+.rhHead{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;margin:0;padding:0;background:none;border:0;border-radius:10px;color:inherit;font:inherit;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.rhHead b{min-width:0;overflow-wrap:anywhere}
+.rhHead .chev{flex:none}
+.rhHead:focus-visible{outline:2px solid var(--a);outline-offset:4px}
+.rhBody{display:grid;grid-template-rows:0fr;transition:grid-template-rows .2s ease}
+.repasoHoy.open .rhBody{grid-template-rows:1fr}
+.rhInner{min-height:0;overflow:hidden;visibility:hidden;transition:visibility 0s linear .2s}
+.repasoHoy.open .rhInner{visibility:visible;transition-delay:0s}
+@media(prefers-reduced-motion:reduce){.rhBody,.rhInner,.rhHead .chev{transition:none}}
 
 /* ===== Examen con tiempo, banco de preguntas ===== */
 .exRelojWrap{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 10px}
@@ -761,10 +770,9 @@ dialog::backdrop{background:rgba(5,8,12,.55);-webkit-backdrop-filter:blur(4px);b
 .dh{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:none;border:0;font-weight:600;font-size:14px;text-align:left;cursor:pointer}
 .dh:hover{background:var(--hover)}
 .dh .da{display:flex;align-items:center;gap:8px;color:var(--m);font-weight:500;font-variant-numeric:tabular-nums}
-.drawer .chev{display:inline-block;font-size:13px;color:var(--m);transition:transform .2s}
-.drawer[open] .chev{transform:rotate(180deg);color:var(--a)}
-.drawer .stRows{margin:0;padding:6px 14px 14px}
-.drawer .dm,.stPn .dm,.sdl .dm{padding:0 14px 14px;color:var(--m);font-size:13px;margin:0}
+.drawer .chev,.rhHead .chev{display:inline-block;font-size:13px;color:var(--m);transition:transform .2s}
+.drawer[open] .chev,.repasoHoy.open .chev{transform:rotate(180deg);color:var(--a)}
+.sdl .dm{padding:0 14px 14px;color:var(--m);font-size:13px;margin:0}
 .drawer.cal{margin:0 0 18px;background:var(--panel);border-radius:20px}
 .drawer.cal .dh{padding:13px 18px}
 .mcal{padding:0 16px 14px}
@@ -780,7 +788,6 @@ dialog::backdrop{background:rgba(5,8,12,.55);-webkit-backdrop-filter:blur(4px);b
 .mnx{min-width:0;display:flex;gap:6px;overflow:hidden;white-space:nowrap}
 .mnx b{overflow:hidden;text-overflow:ellipsis;font-weight:600}.mnx span{color:var(--m)}
 .sec.sm{height:30px;padding:0 12px;font-size:12.5px;border-radius:99px}
-.semb{width:100%;margin-top:12px;height:40px}
 .sdlWrap{display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow:auto}
 .sdl{border:1px solid var(--line);border-radius:14px;background:var(--card);padding:12px 14px}
 .sdh{display:flex;justify-content:space-between;align-items:baseline;font:600 16px var(--serif)}
