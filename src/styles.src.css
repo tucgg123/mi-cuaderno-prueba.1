@@ -824,3 +824,10 @@ details.s[open]{border-color:var(--a)}
   main#view,main#view:has(.mv){padding-left:14px;padding-right:14px}
   .menu{max-width:calc(100vw - 28px)}
 }
+
+/* Color personalizado */
+.accRow{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.accSw{width:34px;height:34px;border-radius:50%;border:2px solid var(--b);padding:0}
+.accSw.on{border-color:var(--t);box-shadow:0 0 0 2px var(--c),0 0 0 4px var(--a)}
+.accCustom{display:flex;align-items:center;gap:8px;border:1px dashed var(--line2);border-radius:999px;padding:3px 12px 3px 4px;cursor:pointer;font-size:.9em;color:var(--m)}
+.accCustom input{width:30px;height:30px;padding:0;border:0;border-radius:50%;background:none;cursor:pointer}
