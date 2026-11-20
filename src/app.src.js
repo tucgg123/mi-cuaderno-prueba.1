@@ -450,24 +450,43 @@ function accentValido(c){return typeof c==='string'&&/^#[0-9a-f]{6}$/i.test(c)}
 function accentLum(h){const v=[1,3,5].map(i=>{const x=parseInt(h.substr(i,2),16)/255;return x<=.03928?x/12.92:Math.pow((x+.055)/1.055,2.4)});return .2126*v[0]+.7152*v[1]+.0722*v[2]}
 /* Pone el color elegido como color principal de toda la app (botones, títulos, bordes activos, barras…). null = el original */
 function applyAccent(){
-  const r=document.documentElement,vars=['--a','--al','--glow','--on'];
+  const r=document.documentElement,fx=document.querySelector('.fx');
+  const vars=['--a','--al','--glow','--on','--bg','--card','--hover','--b'];
+  const fxv=['--cb','--cc','--co','--co2','--ct','--base','--g1','--g2','--g3','--g4'];
   const meta=document.querySelector('meta[name=theme-color]');
-  if(!accentValido(state.accent)){vars.forEach(v=>r.style.removeProperty(v));if(meta)meta.setAttribute('content','#B9472A');return}
-  let c=state.accent.toUpperCase();
+  if(!accentValido(state.accent)){
+    vars.forEach(v=>r.style.removeProperty(v));if(fx)fxv.forEach(v=>fx.style.removeProperty(v));
+    if(meta)meta.setAttribute('content','#B9472A');return;
+  }
+  const c=state.accent.toUpperCase(),mx=(p,o)=>'color-mix(in srgb,'+c+' '+p+'%,'+o+')';
   const oscuro=state.theme==='dark'||(!state.theme&&typeof matchMedia==='function'&&matchMedia('(prefers-color-scheme:dark)').matches);
   /* en modo oscuro un color muy oscuro no se leería sobre el fondo: se aclara un poco */
   const vis=oscuro&&accentLum(c)<.18?'color-mix(in srgb,'+c+' 55%,#fff)':c;
-  r.style.setProperty('--a',vis);
-  r.style.setProperty('--al','color-mix(in srgb,'+c+(oscuro?' 18%':' 13%')+',var(--c))');
-  r.style.setProperty('--glow','color-mix(in srgb,'+c+' 18%,transparent)');
-  r.style.setProperty('--on',accentLum(c)>.5?'#17181C':'#FFFFFF');
+  const S=(k,v)=>r.style.setProperty(k,v);
+  S('--a',vis);
+  S('--al',mx(oscuro?18:13,'var(--c)'));
+  S('--glow',mx(18,'transparent'));
+  S('--on',accentLum(c)>.5?'#17181C':'#FFFFFF');
+  /* color de la página: el fondo y las superficies toman un tinte del color elegido */
+  S('--bg',mx(oscuro?9:8,oscuro?'#0B0D12':'#F6F5F3'));
+  S('--card',mx(oscuro?7:5,oscuro?'#0D1016':'#FBFAF9'));
+  S('--hover',mx(oscuro?14:12,oscuro?'#11141B':'#F6F5F3'));
+  S('--b',mx(oscuro?20:22,oscuro?'#1E2430':'#E6E3DE'));
+  /* fondo animado: líneas del circuito y brillos en tonos del color elegido */
+  if(fx){
+    const F=(k,v)=>fx.style.setProperty(k,v);
+    F('--cb',mx(100,'#000'));F('--cc',mx(70,'#fff'));F('--co',mx(85,'#fff'));F('--co2',mx(60,'#fff'));F('--ct',mx(80,'#000'));
+    F('--base',mx(oscuro?10:9,oscuro?'#050914':'#fff'));
+    F('--g1',mx(oscuro?26:36,'transparent'));F('--g2',mx(oscuro?22:42,'transparent'));
+    F('--g3',mx(oscuro?18:34,'transparent'));F('--g4',mx(oscuro?16:28,'transparent'));
+  }
   if(meta)meta.setAttribute('content',c);
 }
 function setAccent(c){state.accent=accentValido(c)?c.toUpperCase():null;applyAccent();persist()}
 function accentCardHTML(){
   const cur=accentValido(state.accent)?state.accent.toUpperCase():'';
   return `<div class="card"><h3>🎨 Color de la app</h3>
-    <p class="meta" style="margin-top:0">Elige el color que quieras para botones, títulos y detalles. Se guarda en tu cuenta.</p>
+    <p class="meta" style="margin-top:0">Elige el color que quieras para toda la app: botones, títulos, fondo y las líneas animadas. Se guarda en tu cuenta.</p>
     <div class="accRow">${ACCENT_PRESETS.map(c=>`<button type="button" class="accSw ${c===cur?'on':''}" style="background:${c}" data-action="accentPick" data-c="${c}" aria-label="Color ${c}"></button>`).join('')}
       <label class="accCustom" title="Elegir otro color"><input type="color" data-action="accentInput" value="${cur||'#B9472A'}" aria-label="Elegir un color cualquiera"><span>Otro…</span></label>
     </div>
