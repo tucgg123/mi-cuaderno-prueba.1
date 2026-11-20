@@ -16,6 +16,7 @@ function defaultState(){return{
   profile:{name:'',career:'',avatar:'🎓',examDate:'',scale:5,goal:4,notes:'',rol:''},
   theme:null,
   fx:null,
+  accent:null,
   semesters:[{id:uid(),name:'Semestre 1'}],
   materias:[],
   temas:[],
@@ -441,7 +442,36 @@ document.addEventListener('click',e=>{
 function applyTheme(){
   if(state.theme)document.documentElement.setAttribute('data-theme',state.theme);
   else document.documentElement.removeAttribute('data-theme');
-  applyFx();
+  applyFx();applyAccent();
+}
+/* ================= COLOR PERSONALIZADO ================= */
+const ACCENT_PRESETS=['#B9472A','#2563EB','#7C3AED','#DB2777','#059669','#D97706','#0891B2','#475569'];
+function accentValido(c){return typeof c==='string'&&/^#[0-9a-f]{6}$/i.test(c)}
+function accentLum(h){const v=[1,3,5].map(i=>{const x=parseInt(h.substr(i,2),16)/255;return x<=.03928?x/12.92:Math.pow((x+.055)/1.055,2.4)});return .2126*v[0]+.7152*v[1]+.0722*v[2]}
+/* Pone el color elegido como color principal de toda la app (botones, títulos, bordes activos, barras…). null = el original */
+function applyAccent(){
+  const r=document.documentElement,vars=['--a','--al','--glow','--on'];
+  const meta=document.querySelector('meta[name=theme-color]');
+  if(!accentValido(state.accent)){vars.forEach(v=>r.style.removeProperty(v));if(meta)meta.setAttribute('content','#B9472A');return}
+  let c=state.accent.toUpperCase();
+  const oscuro=state.theme==='dark'||(!state.theme&&typeof matchMedia==='function'&&matchMedia('(prefers-color-scheme:dark)').matches);
+  /* en modo oscuro un color muy oscuro no se leería sobre el fondo: se aclara un poco */
+  const vis=oscuro&&accentLum(c)<.18?'color-mix(in srgb,'+c+' 55%,#fff)':c;
+  r.style.setProperty('--a',vis);
+  r.style.setProperty('--al','color-mix(in srgb,'+c+(oscuro?' 18%':' 13%')+',var(--c))');
+  r.style.setProperty('--glow','color-mix(in srgb,'+c+' 18%,transparent)');
+  r.style.setProperty('--on',accentLum(c)>.5?'#17181C':'#FFFFFF');
+  if(meta)meta.setAttribute('content',c);
+}
+function setAccent(c){state.accent=accentValido(c)?c.toUpperCase():null;applyAccent();persist()}
+function accentCardHTML(){
+  const cur=accentValido(state.accent)?state.accent.toUpperCase():'';
+  return `<div class="card"><h3>🎨 Color de la app</h3>
+    <p class="meta" style="margin-top:0">Elige el color que quieras para botones, títulos y detalles. Se guarda en tu cuenta.</p>
+    <div class="accRow">${ACCENT_PRESETS.map(c=>`<button type="button" class="accSw ${c===cur?'on':''}" style="background:${c}" data-action="accentPick" data-c="${c}" aria-label="Color ${c}"></button>`).join('')}
+      <label class="accCustom" title="Elegir otro color"><input type="color" data-action="accentInput" value="${cur||'#B9472A'}" aria-label="Elegir un color cualquiera"><span>Otro…</span></label>
+    </div>
+    <button class="sec" style="margin-top:10px" data-action="accentReset">↺ Color original</button></div>`;
 }
 function updateThemeBtn(){$('themeBtn').textContent=state.theme==='dark'?'🌙 Tema oscuro':state.theme==='light'?'☀️ Tema claro':'🌗 Tema automático'}
 /* Efectos visuales (fondo animado y desenfoques). Automático: ligeros en pantallas pequeñas o equipos con poca memoria/procesador, sin efectos si pides reducir movimiento */
@@ -1678,6 +1708,7 @@ function viewPerfilHTML(){
     </div>
     <div class="card"><h3>Avatar</h3><div class="avatarPicker">${AV.map(a=>`<button class="avBtn ${a===p.avatar?'on':''}" data-action="setAvatar" data-a="${a}">${a}</button>`).join('')}</div></div>
     ${avisosCardHTML()}
+    ${accentCardHTML()}
     ${fxCardHTML()}
     ${datosCardHTML()}
     <div class="card">
@@ -1824,6 +1855,8 @@ document.addEventListener('click',async e=>{
   }
   else if(a==='descargarOriginal'){descargarOriginal(b.dataset.id)}
   else if(a==='descargarCopia'){descargarCopia()}
+  else if(a==='accentPick'){setAccent(b.dataset.c);render()}
+  else if(a==='accentReset'){setAccent(null);render()}
   else if(a==='avCerrar'){$('avisosPanel').hidden=true}
   else if(a==='avVaciar'){avCargar().lista=[];avGuardar();$('avisosPanel').innerHTML=avisosPanelHTML(new Set())}
   else if(a==='avAbrir'){
@@ -4336,6 +4369,7 @@ function viewPerfilDocenteHTML(){
       <div class="pgs"><div><b>${mats.length}</b>materias</div><div><b>${nEx}</b>exámenes</div></div>
     </div>
     <div class="card"><h3>Avatar</h3><div class="avatarPicker">${AV.map(a=>`<button class="avBtn ${a===p.avatar?'on':''}" data-action="setAvatar" data-a="${a}">${a}</button>`).join('')}</div></div>
+    ${accentCardHTML()}
     ${fxCardHTML()}
     ${datosCardHTML()}
     <div class="card">
@@ -4358,8 +4392,10 @@ function viewPerfilDocenteHTML(){
 }
 
 /* ======================= Acciones ======================= */
+document.addEventListener('change',e=>{if(e.target.dataset&&e.target.dataset.action==='accentInput'){persist();render()}});
 document.addEventListener('input',e=>{
   const ea=e.target.dataset&&e.target.dataset.action;
+  if(ea==='accentInput'){state.accent=e.target.value.toUpperCase();applyAccent();return}
   if(ea==='fxSel'){state.fx=e.target.value||null;try{if(state.fx)localStorage.setItem('auren_fx',state.fx);else localStorage.removeItem('auren_fx')}catch(err){}applyFx();persist();return}
   if(ea==='alcanceSel'){
     const v=String(e.target.value||'all'),mid=route.materiaId;ui.alcance=ui.alcance||{};
